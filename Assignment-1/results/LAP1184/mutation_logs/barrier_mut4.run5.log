@@ -1,0 +1,9 @@
+mutant fetch_add_release_only (PC_MUTANT=4, plain), 12 hardware threads
+  fetch_add_release_only single     threads=1   episodes=10000     0.00 s
+  fetch_add_release_only reuse      threads=4   episodes=300000    0.10 s
+  fetch_add_release_only all-cores  threads=12  episodes=100000    0.14 s
+  fetch_add_release_only jitter     threads=4   episodes=50000     0.25 s
+  fetch_add_release_only oversub    threads=24  episodes=20        0.54 s  (time budget reached)
+  fetch_add_release_only handoff    threads=4   episodes=100000    0.05 s
+PASS fetch_add_release_only (560020 barrier episodes checked)
+SURVIVED fetch_add_release_only: no check failed

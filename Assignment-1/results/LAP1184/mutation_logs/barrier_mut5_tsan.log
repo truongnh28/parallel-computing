@@ -1,0 +1,7 @@
+mutant thread_local_sense (PC_MUTANT=5, plain), 12 hardware threads
+  thread_local_sense     single     threads=1   episodes=500       0.00 s
+  thread_local_sense     reuse      threads=4   episodes=15000     0.13 s
+  thread_local_sense     all-cores  threads=12  episodes=108       0.52 s  (time budget reached)
+  thread_local_sense     jitter     threads=4   episodes=2500      0.04 s
+  thread_local_sense     oversub    threads=24  episodes=20       17.55 s
+FAIL thread_local_sense [handoff]: WRONG VALUE, thread 2 passed barrier a of round 2 and read 1 from thread 0

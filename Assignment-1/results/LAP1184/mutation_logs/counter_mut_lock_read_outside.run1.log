@@ -1,0 +1,8 @@
+test_counter: 12 hardware threads, full sizes, time budget 1.5 s per run
+FAIL  lock_read_outside: stress run, 12 threads, 1536000 increments: [final] get() = 354655, expected 1536000; [duplicate] 1181345 (e.g. value 504); [missing] 1181345 (e.g. value 354655); [order] 57827 values not above the thread's previous value;
+FAIL  lock_read_outside: oversubscribed run, 24 threads, 1536000 increments: [final] get() = 207414, expected 1536000; [duplicate] 1328586 (e.g. value 1); [missing] 1328586 (e.g. value 207414); [order] 33691 values not above the thread's previous value;
+FAIL  lock_read_outside: real-time run, 12 threads, 384000 increments: [final] get() = 86032, expected 384000; [duplicate] 296976 (e.g. value 4); [missing] 296976 (e.g. value 87024); [order] 17683 values not above the thread's previous value;
+FAIL  lock_read_outside: real-time oversubscribed run, 24 threads, 384000 increments: [final] get() = 38373, expected 384000; [duplicate] 345408 (e.g. value 178); [missing] 345408 (e.g. value 38592); [order] 20121 values not above the thread's previous value;
+FAIL  lock_read_outside      threads 1 / 12 / 24,   3968000 increments checked, 0.31 s
+CHECKS_FIRED: final duplicate missing order
+MUTANT lock_read_outside: caught by the value checks

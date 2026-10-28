@@ -1,0 +1,54 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=212064)
+  Read of size 8 at 0x7ffef26d6c00 by thread T4:
+    #0 critical_section tests/test_locks.cpp:115 (locks_muttsan_TAS_RELEASE_RELAXED+0x7833)
+    #1 operator() tests/test_locks.cpp:140 (locks_muttsan_TAS_RELEASE_RELAXED+0x7833)
+    #2 __invoke_impl<void, (anonymous namespace)::run_fixed_iters<pc::lock_tas>(int, long long int)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:61 (locks_muttsan_TAS_RELEASE_RELAXED+0x7833)
+    #3 __invoke_r<void, (anonymous namespace)::run_fixed_iters<pc::lock_tas>(int, long long int)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:111 (locks_muttsan_TAS_RELEASE_RELAXED+0x7833)
+    #4 _M_invoke /usr/include/c++/11/bits/std_function.h:290 (locks_muttsan_TAS_RELEASE_RELAXED+0x7833)
+    #5 std::function<void (int)>::operator()(int) const /usr/include/c++/11/bits/std_function.h:590 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #6 pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}::operator()() const include/bench_common.hpp:58 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #7 void std::__invoke_impl<void, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(std::__invoke_other, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:61 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #8 std::__invoke_result<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>::type std::__invoke<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:96 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #9 void std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::_M_invoke<0ul>(std::_Index_tuple<0ul>) /usr/include/c++/11/bits/std_thread.h:259 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #10 std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::operator()() /usr/include/c++/11/bits/std_thread.h:266 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #11 std::thread::_State_impl<std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> > >::_M_run() /usr/include/c++/11/bits/std_thread.h:211 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #12 <null> <null> (libstdc++.so.6+0xf74e5)
+
+  Previous write of size 8 at 0x7ffef26d6c00 by thread T3:
+    #0 critical_section tests/test_locks.cpp:116 (locks_muttsan_TAS_RELEASE_RELAXED+0x783e)
+    #1 operator() tests/test_locks.cpp:140 (locks_muttsan_TAS_RELEASE_RELAXED+0x783e)
+    #2 __invoke_impl<void, (anonymous namespace)::run_fixed_iters<pc::lock_tas>(int, long long int)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:61 (locks_muttsan_TAS_RELEASE_RELAXED+0x783e)
+    #3 __invoke_r<void, (anonymous namespace)::run_fixed_iters<pc::lock_tas>(int, long long int)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:111 (locks_muttsan_TAS_RELEASE_RELAXED+0x783e)
+    #4 _M_invoke /usr/include/c++/11/bits/std_function.h:290 (locks_muttsan_TAS_RELEASE_RELAXED+0x783e)
+    #5 std::function<void (int)>::operator()(int) const /usr/include/c++/11/bits/std_function.h:590 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #6 pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}::operator()() const include/bench_common.hpp:58 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #7 void std::__invoke_impl<void, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(std::__invoke_other, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:61 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #8 std::__invoke_result<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>::type std::__invoke<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:96 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #9 void std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::_M_invoke<0ul>(std::_Index_tuple<0ul>) /usr/include/c++/11/bits/std_thread.h:259 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #10 std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::operator()() /usr/include/c++/11/bits/std_thread.h:266 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #11 std::thread::_State_impl<std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> > >::_M_run() /usr/include/c++/11/bits/std_thread.h:211 (locks_muttsan_TAS_RELEASE_RELAXED+0x1d88e)
+    #12 <null> <null> (libstdc++.so.6+0xf74e5)
+
+  Location is stack of main thread.
+
+  Location is global '<null>' at 0x000000000000 ([stack]+0x00000001ec00)
+
+  Thread T4 (tid=212069, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:969 (libtsan.so.0+0x60248)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xf75ce)
+    #2 pc::timed_run(int, std::function<void (int)> const&) include/bench_common.hpp:55 (locks_muttsan_TAS_RELEASE_RELAXED+0x1e75b)
+    #3 run_fixed_iters<pc::lock_tas> tests/test_locks.cpp:137 (locks_muttsan_TAS_RELEASE_RELAXED+0xb563)
+    #4 test_lock<pc::lock_tas> tests/test_locks.cpp:226 (locks_muttsan_TAS_RELEASE_RELAXED+0xb563)
+    #5 main tests/test_locks.cpp:291 (locks_muttsan_TAS_RELEASE_RELAXED+0x1a095)
+
+  Thread T3 (tid=212068, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:969 (libtsan.so.0+0x60248)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xf75ce)
+    #2 pc::timed_run(int, std::function<void (int)> const&) include/bench_common.hpp:55 (locks_muttsan_TAS_RELEASE_RELAXED+0x1e75b)
+    #3 run_fixed_iters<pc::lock_tas> tests/test_locks.cpp:137 (locks_muttsan_TAS_RELEASE_RELAXED+0xb563)
+    #4 test_lock<pc::lock_tas> tests/test_locks.cpp:226 (locks_muttsan_TAS_RELEASE_RELAXED+0xb563)
+    #5 main tests/test_locks.cpp:291 (locks_muttsan_TAS_RELEASE_RELAXED+0x1a095)
+
+SUMMARY: ThreadSanitizer: data race tests/test_locks.cpp:115 in critical_section
+==================
