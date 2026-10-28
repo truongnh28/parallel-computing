@@ -99,7 +99,7 @@ One detail matters for TSan: the test's own atomics (`inside`, `violations`, the
 
 ### 7.2 ThreadSanitizer
 
-`make tsan-part1`: **12 of 12 PASS, no report**, 8–16 s. The three macOS baselines (`std::mutex`, `pthread_mutex_t`, `os_unfair_lock`) are intercepted by TSan and gave no false positive. Not run: TSan on Linux (TSan does not start in the emulated container). `omp_lock` under TSan is therefore untested; an OpenMP runtime that is not instrumented may produce false reports. If it does, run `build/test_locks_tsan small skip=omp_lock` and say so; the skip is printed.
+`make tsan-part1`: **12 of 12 PASS, no report**, 8–16 s. The three macOS baselines (`std::mutex`, `pthread_mutex_t`, `os_unfair_lock`) are intercepted by TSan and gave no false positive. On Linux (WSL2 Ubuntu 20.04, g++ 11.5, `-fopenmp`, 12 hardware threads) TSan reported one data race on `omp_lock`, in the critical section of the test, and one on `lock_omp_lock` in the counter test of Part 3. Both are false positives: `omp_set_lock` / `omp_unset_lock` are inside libgomp, which is not instrumented, so TSan does not see the ordering the lock creates (the same cause as the `omp_barrier` reports in [part2.md](part2.md)). The plain stress test of the same lock passes. In a TSan build `test_locks` and `test_counter` therefore skip the OpenMP lock and print the skip; the argument `tsan_uninstrumented` runs it anyway and shows the report.
 
 ### 7.3 Fairness and oversubscription
 

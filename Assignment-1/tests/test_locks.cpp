@@ -20,8 +20,9 @@
 // Usage: test_locks [small] [only=<lock>] [skip=<lock>] [watchdog=<seconds>] [ms=<milliseconds>]
 //   small     10x fewer iterations and shorter timed runs (used for the ThreadSanitizer build)
 //   only=...  test a single lock (used by the mutation tests)
-//   skip=...  leave one lock out; the omission is printed (for a library lock that
-//             ThreadSanitizer cannot analyse, e.g. an OpenMP runtime that is not instrumented)
+//   skip=...  leave one lock out; the omission is printed
+//   tsan_uninstrumented  in a ThreadSanitizer build, also test omp_lock (skipped by default: the
+//             OpenMP run-time is not instrumented, so TSan reports false data races on it)
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -36,6 +37,15 @@
 #include "lock.h"
 #include "platform.hpp"
 #include "workload.hpp"
+
+// PC_TSAN is defined when this file is compiled with -fsanitize=thread (gcc and clang differ).
+#if defined(__SANITIZE_THREAD__)
+#define PC_TSAN 1
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define PC_TSAN 1
+#endif
+#endif
 
 namespace {
 
@@ -259,10 +269,21 @@ int main(int argc, char** argv) {
                 "# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)\n",
                 cfg.hw, cfg.ms);
 
+    // ThreadSanitizer only understands synchronisation that it can see. omp_set_lock and
+    // omp_unset_lock are inside the OpenMP run-time (libgomp), which is not instrumented, so TSan
+    // misses the ordering the lock creates and reports a FALSE data race on the counter it
+    // protects. omp_lock is skipped; the argument tsan_uninstrumented runs it anyway.
+    bool tsan_skip_omp = false;
+#if defined(PC_TSAN)
+    tsan_skip_omp = !args.has("tsan_uninstrumented");
+#endif
+
     int tested = 0, failed = 0;
 #define X(Type, name)                                               \
     if (cfg.skip == name) {                                         \
         std::printf("SKIP  %s (skip= argument)\n", name);           \
+    } else if (tsan_skip_omp && std::string(name) == "omp_lock") {  \
+        std::printf("SKIP  %s (ThreadSanitizer: OpenMP run-time not instrumented, see docs/part1.md)\n", name); \
     } else if (cfg.only.empty() || cfg.only == name) {              \
         ++tested;                                                   \
         if (!test_lock<Type>(name, cfg, watchdog)) ++failed;        \
