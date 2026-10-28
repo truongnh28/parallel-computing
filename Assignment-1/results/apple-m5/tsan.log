@@ -1,0 +1,94 @@
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -O1 -g -fsanitize=thread -o build/test_locks_tsan tests/test_locks.cpp
+build/test_locks_tsan small
+# test_locks on QGM0224 (arm64, macOS, clang-21.0), 10 hardware threads, small sizes
+# per lock: mutual exclusion with fixed iterations (1, 2, 10 threads), then 100 ms timed runs;
+# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)
+PASS  tas                4t:     94031 acq, max/min 1.01     10t:     31598 acq, max/min 1.31     20t:     10565 acq, max/min 2.73   
+PASS  ttas               4t:    119766 acq, max/min 1.05     10t:     35211 acq, max/min 1.36     20t:      1961 acq, max/min 4.91   
+PASS  mcs                4t:     70828 acq, max/min 1.00     10t:     33454 acq, max/min 1.01     20t:        39 acq, max/min 7.00   
+PASS  tas_bo_sleep       4t:    544824 acq, max/min 1.08     10t:    300116 acq, max/min 1.22     20t:    140561 acq, max/min 1.30   
+PASS  tas_bo_spin        4t:    126799 acq, max/min 1.03     10t:     49141 acq, max/min 1.16     20t:     15379 acq, max/min 2.22   
+PASS  tas_bo_yield       4t:     96734 acq, max/min 1.01     10t:     42303 acq, max/min 1.26     20t:     40469 acq, max/min 1.27   
+PASS  ttas_bo_sleep      4t:    441049 acq, max/min 1.03     10t:    144481 acq, max/min 1.21     20t:       431 acq, max/min 21.00  
+PASS  ttas_bo_spin       4t:    137229 acq, max/min 1.05     10t:     40902 acq, max/min 1.37     20t:      1676 acq, max/min 9.84   
+PASS  ttas_bo_yield      4t:    123067 acq, max/min 1.02     10t:     38952 acq, max/min 1.38     20t:      3798 acq, max/min 6.30   
+PASS  std_mutex          4t:    202494 acq, max/min 1.12     10t:    166237 acq, max/min 1.10     20t:    163943 acq, max/min 1.14   
+PASS  pthread_mutex      4t:    205477 acq, max/min 1.02     10t:    167445 acq, max/min 1.07     20t:    172119 acq, max/min 1.14   
+PASS  os_unfair_lock     4t:    472068 acq, max/min 6.09     10t:    480385 acq, max/min 671.84   20t:    320924 acq, max/min 65.33  
+# 12 lock(s) tested, 0 failed
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -O1 -g -fsanitize=thread -o build/test_barrier_tsan tests/test_barrier.cpp
+build/test_barrier_tsan small
+barrier correctness test (plain): 10 hardware threads, small sizes, phase budget 1.5 s, watchdog 30 s
+  sr                     single     threads=1   episodes=500       0.00 s
+  sr                     reuse      threads=4   episodes=15000     0.04 s
+  sr                     all-cores  threads=10  episodes=5000      0.28 s
+  sr                     jitter     threads=4   episodes=2500      0.01 s
+  sr                     oversub    threads=20  episodes=20        0.05 s
+  sr                     handoff    threads=4   episodes=5000      0.03 s
+PASS sr (28020 barrier episodes checked)
+  sr_bo_spin             single     threads=1   episodes=500       0.00 s
+  sr_bo_spin             reuse      threads=4   episodes=15000     0.05 s
+  sr_bo_spin             all-cores  threads=10  episodes=5000      0.08 s
+  sr_bo_spin             jitter     threads=4   episodes=2500      0.01 s
+  sr_bo_spin             oversub    threads=20  episodes=20        0.39 s
+  sr_bo_spin             handoff    threads=4   episodes=5000      0.04 s
+PASS sr_bo_spin (28020 barrier episodes checked)
+  sr_bo_yield            single     threads=1   episodes=500       0.00 s
+  sr_bo_yield            reuse      threads=4   episodes=15000     0.04 s
+  sr_bo_yield            all-cores  threads=10  episodes=5000      0.17 s
+  sr_bo_yield            jitter     threads=4   episodes=2500      0.01 s
+  sr_bo_yield            oversub    threads=20  episodes=1000      0.12 s
+  sr_bo_yield            handoff    threads=4   episodes=5000      0.06 s
+PASS sr_bo_yield (29000 barrier episodes checked)
+  sr_bo_sleep            single     threads=1   episodes=50        0.00 s
+  sr_bo_sleep            reuse      threads=4   episodes=1500      0.01 s
+  sr_bo_sleep            all-cores  threads=10  episodes=500       0.01 s
+  sr_bo_sleep            jitter     threads=4   episodes=250       0.00 s
+  sr_bo_sleep            oversub    threads=20  episodes=250       0.01 s
+  sr_bo_sleep            handoff    threads=4   episodes=500       0.01 s
+PASS sr_bo_sleep (3050 barrier episodes checked)
+  sr_block               single     threads=1   episodes=150       0.00 s
+  sr_block               reuse      threads=4   episodes=4500      0.05 s
+  sr_block               all-cores  threads=10  episodes=1500      0.07 s
+  sr_block               jitter     threads=4   episodes=750       0.00 s
+  sr_block               oversub    threads=20  episodes=1000      0.13 s
+  sr_block               handoff    threads=4   episodes=1500      0.01 s
+PASS sr_block (9400 barrier episodes checked)
+note: ThreadSanitizer + libc++: handoff check skipped for std_barrier (false positives, see docs/part2.md)
+  std_barrier            single     threads=1   episodes=150       0.00 s
+  std_barrier            reuse      threads=4   episodes=4500      0.01 s
+  std_barrier            all-cores  threads=10  episodes=1500      0.06 s
+  std_barrier            jitter     threads=4   episodes=750       0.00 s
+  std_barrier            oversub    threads=20  episodes=1000      0.08 s
+PASS std_barrier (7900 barrier episodes checked)
+  condvar                single     threads=1   episodes=50        0.00 s
+  condvar                reuse      threads=4   episodes=1500      0.01 s
+  condvar                all-cores  threads=10  episodes=500       0.02 s
+  condvar                jitter     threads=4   episodes=250       0.00 s
+  condvar                oversub    threads=20  episodes=250       0.02 s
+  condvar                handoff    threads=4   episodes=500       0.01 s
+PASS condvar (3050 barrier episodes checked)
+ALL PASS
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -O1 -g -fsanitize=thread -o build/test_counter_tsan tests/test_counter.cpp
+build/test_counter_tsan small
+test_counter: 10 hardware threads, small sizes, time budget 3.0 s per run
+PASS  faa                    threads 1 / 10 / 20,    832000 increments checked, 0.16 s
+PASS  faa_seqcst             threads 1 / 10 / 20,    832000 increments checked, 0.37 s
+PASS  cas                    threads 1 / 10 / 20,    832000 increments checked, 0.31 s
+PASS  cas_seqcst             threads 1 / 10 / 20,    832000 increments checked, 0.38 s
+PASS  cas_spin               threads 1 / 10 / 20,    832000 increments checked, 0.16 s
+PASS  cas_yield              threads 1 / 10 / 20,    832000 increments checked, 0.23 s
+PASS  cas_sleep              threads 1 / 10 / 20,    208000 increments checked, 0.02 s
+PASS  lock_tas               threads 1 / 10 / 20,    208000 increments checked, 0.74 s
+PASS  lock_ttas              threads 1 / 10 / 20,    208000 increments checked, 1.44 s
+PASS  lock_mcs               threads 1 / 10 / 20,    109366 increments checked, 6.42 s  (time budget reached: fewer increments than planned)
+PASS  lock_tas_bo_sleep      threads 1 / 10 / 20,    208000 increments checked, 0.12 s
+PASS  lock_tas_bo_spin       threads 1 / 10 / 20,    208000 increments checked, 0.85 s
+PASS  lock_tas_bo_yield      threads 1 / 10 / 20,    208000 increments checked, 0.28 s
+PASS  lock_ttas_bo_sleep     threads 1 / 10 / 20,    208000 increments checked, 2.88 s
+PASS  lock_ttas_bo_spin      threads 1 / 10 / 20,    208000 increments checked, 1.72 s
+PASS  lock_ttas_bo_yield     threads 1 / 10 / 20,    208000 increments checked, 1.64 s
+PASS  lock_std_mutex         threads 1 / 10 / 20,    208000 increments checked, 0.12 s
+PASS  lock_pthread_mutex     threads 1 / 10 / 20,    208000 increments checked, 0.11 s
+PASS  lock_os_unfair_lock    threads 1 / 10 / 20,    208000 increments checked, 0.11 s
+ALL COUNTER TESTS PASSED

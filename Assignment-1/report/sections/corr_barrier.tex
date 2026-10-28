@@ -1,0 +1,18 @@
+% Mục 4.3: Kiểm tra sense-reversing barrier. Nguồn: tests/test_barrier.cpp,
+% results/apple-m5/test.log, tsan.log.
+
+Ở episode $e$ (lần thứ $e$ cả nhóm đi qua barrier), mỗi thread ghi $e$ vào ô của mình, gọi
+\texttt{wait}, rồi đọc mọi ô. Một ô nhỏ hơn $e$ nghĩa là thread này qua sớm. Một ô lớn hơn $e+1$ nghĩa
+là thread khác đã qua episode kế tiếp mà không chờ. Các ô là atomic \texttt{relaxed}, nên điều kiện chỉ
+đúng nhờ thứ tự do barrier tạo ra. Phép kiểm handoff dùng xen kẽ hai barrier với các ô là biến thường.
+Dưới TSan, nó kiểm memory order của barrier. Các pha chạy 1, 4, 10 và 20 thread, tới 300\,000 episode liên tiếp. Watchdog báo treo khi không thread nào tiến trong 10~s.
+
+Bản schedule fuzzing chèn một độ trễ ngẫu nhiên vào mỗi điểm giữa hai bước của giao thức, để một
+thread bị chậm đúng giữa hai bước.
+
+Trên \PCname{apple-m5}, cả 7 barrier đạt với tổng cộng 2\,198\,144 episode được kiểm. Bản fuzzing đạt
+cho 5 barrier tự viết. Pha 20 thread của \PCname{sr} và \PCname{sr_bo_spin} hết ngân sách 1,5~s sau 64
+và 80 episode. Dưới TSan cả 7 barrier đạt. Nhóm bỏ phép
+kiểm handoff riêng cho \PCname{std_barrier}, vì libc++ của macOS không được instrument và TSan báo
+cảnh báo giả.
+% nguồn: results/apple-m5/test.log (cộng các dòng "PASS ... barrier episodes checked"), tsan.log

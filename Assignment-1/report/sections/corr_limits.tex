@@ -1,0 +1,10 @@
+% Mục 4.6: Giới hạn của phương pháp kiểm tra (giới hạn của việc đo nằm ở mục Các yếu tố đe dọa).
+
+Stress test và fuzzing chỉ xét các lịch chạy đã xảy ra. Chúng chỉ ra được là có lỗi, không chứng minh
+được là không có lỗi. Tính đúng vì vậy dựa trên lập luận ở mục Cài đặt. Trên x86-64 (memory model TSO)
+các lỗi memory order sinh cùng lệnh máy với bản đúng nên không bao giờ lộ ra lúc chạy. Với loại lỗi
+này, nhóm chỉ có TSan. TSan chỉ tìm data race, chỉ thấy các đường đi đã chạy và cần mã được instrument.
+Các baseline OpenMP và các lock, barrier chỉ có trên Linux chưa chạy dưới TSan. Bộ kiểm tra không kiểm
+tiến triển (lock-free, wait-free) ngoài trường hợp treo, và không kiểm \texttt{get()} trong lúc các
+thread đang tăng. Các biến thể đột biến do chính nhóm chọn, nên chúng chỉ chứng tỏ bộ kiểm tra nhạy
+với những lỗi đó.

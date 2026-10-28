@@ -1,0 +1,80 @@
+% Mục 1. Dự đoán D* viết trước khi đọc results/, chỉ từ phân tích lưu lượng cache coherence.
+Nhóm cài đặt bằng C++ mutex lock (TAS, TTAS, MCS), sense-reversing barrier và concurrent counter
+(lock, CAS, fetch-and-add), kiểm tra tính đúng đắn, và đo khả năng mở rộng trên máy shared-memory, so
+với cấu trúc của thư viện. Phần 4 (MPI-3 RMA~\cite{mpi41}) không bắt buộc và nhóm không làm.
+
+\begin{itemize}[nosep]
+  \item \textbf{Cache line.} Đơn vị 128 byte mà phần cứng giữ nhất quán giữa các core. Nhiều core cùng
+    đọc được, nhưng ghi thì một core phải giữ line độc quyền và làm mất hiệu lực bản sao ở core khác.
+  \item \textbf{Tranh chấp.} Nhiều thread cùng muốn vào critical section. \texttt{OUTSIDE\_WORK}
+    $= 0$ là tranh chấp tối đa.
+  \item \textbf{TAS, TTAS, MCS.} TAS lặp \texttt{exchange} lên cờ lock. TTAS đọc cờ tới khi rảnh rồi mới
+    \texttt{exchange}~\cite{anderson1990spinlock}. MCS xếp hàng, mỗi thread chờ trên cờ
+    riêng~\cite{mellorcrummey1991mcs}.
+  \item \textbf{Episode.} Một lần cả $n$ thread cùng vượt barrier~\cite{hensgen1988barrier}.
+  \item \textbf{FAA, CAS.} Fetch-and-add cộng và trả giá trị cũ trong một bước. Compare-and-swap chỉ ghi
+    nếu giá trị chưa đổi, nếu không thì thất bại và phải thử lại.
+\end{itemize}
+
+Dự đoán dưới đây dựa trên một mô hình. Dưới tranh chấp, chi phí chủ yếu là số lần một cache line đi giữa
+các core trên đường tới hạn~\cite{herlihy2020art}. Trên \PCname{apple-m5}, điểm gãy dự kiến ở
+\PCval{apple-m5}{pcores} thread (hết P-core) và \PCval{apple-m5}{ncpu} thread (hết core).
+
+\begin{description}[leftmargin=0pt, itemsep=0.2em, font=\normalfont]
+  \item[RQ1 (đúng đắn).] Các cài đặt có đúng không, và bộ kiểm tra có đủ nhạy để bắt lỗi cài đặt?
+    D1.1: stress test bắt lỗi thuật toán; lỗi memory order quá yếu chỉ lộ thỉnh thoảng trên ARM, cần
+    ThreadSanitizer; lỗi treo cần watchdog.
+  \item[RQ2 (lock: mở rộng).] TAS, TTAS, MCS mở rộng thế nào theo số thread, \texttt{OUTSIDE\_WORK} và
+    $N$, so với lock thư viện? D2.1: TAS chậm nhất (mỗi lần thử là một phép ghi), TTAS ở giữa (``bầy
+    đàn'' mỗi lần nhả), MCS nhanh nhất khi chưa vượt số core (chuyển giao bằng một phép ghi). D2.2: khác
+    biệt lớn nhất khi critical section ngắn. D2.3: lock bão hoà khi $p > 1 + \mathrm{OW}$. D2.4: vượt số
+    core thì MCS sụp nặng nhất (lock giao cho thread đang không chạy), lock thư viện không sụp.
+  \item[RQ3 (lock: backoff và công bằng).] Backoff giúp hay hại, ở chế độ nào; lock nhanh nhất có công
+    bằng không? D3.1: backoff giúp TAS hơn TTAS. D3.2: \texttt{sleep\_for} là system call nên ngủ lâu
+    hơn yêu cầu; khi $\mathrm{OW} = 0$ tổng thời gian không xấu đi nhưng mất công bằng, khi
+    $\mathrm{OW} > 0$ thì chậm hơn. D3.3: MCS công bằng (FIFO); TAS, TTAS thiên vị thread vừa nhả lock.
+  \item[RQ4 (barrier).] Chi phí một episode tăng thế nào theo số thread, theo cách chờ, so với barrier
+    thư viện? D4.1: $p$ phép \texttt{fetch\_add} nối tiếp trên một line, nên số episode mỗi giây
+    $\propto 1/p$. D4.2: barrier spin sụp khi vượt số core; barrier chờ chặn chỉ thắng ở đó. D4.3:
+    backoff làm barrier chậm khi mỗi thread có core riêng.
+  \item[RQ5 (counter).] Thứ tự hiệu năng giữa FAA, CAS (có/không backoff) và counter dùng lock, và vì
+    sao? D5.1: FAA $<$ CAS $<$ lock về thời gian, không cách nào mở rộng. D5.2: số lần CAS hỏng mỗi lần
+    tăng tăng theo $p$. D5.3: backoff giảm CAS hỏng khi không có việc giữa hai lần tăng. D5.4 (giả
+    thuyết): \texttt{seq\_cst} gần như không đắt hơn \texttt{relaxed}.
+  \item[RQ6 (giữa các máy).] Các kết luận trên có giữ nguyên trên máy khác không? D6.1: thứ tự giữ
+    nguyên, điểm gãy dời theo số core.
+\end{description}
+
+\begin{table}[H]\centering\footnotesize
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.4cm}>{\raggedright\arraybackslash}p{4.1cm}@{}}
+\toprule
+\textbf{RQ} & \textbf{Dự đoán} & \textbf{Thí nghiệm} & \textbf{Hình, bảng} \\
+\midrule
+RQ1 & D1.1 & stress, TSan, mutation & Bảng~\ref{tab:corr:mutation} \\
+RQ2 & D2.1--D2.4 & lock $\times$ thread $\times$ OW $\times$ $N$ &
+  Hình~\ref{fig:apple-m5:lock_slowdown}, \ref{fig:apple-m5:lock_cs_length};
+  Bảng~\ref{tab:apple-m5:locktime} \\
+RQ3 & D3.1--D3.3 & sáu biến thể backoff, thời gian ngủ thật & Hình~\ref{fig:apple-m5:lock_backoff},
+  \ref{fig:apple-m5:lock_fairness} \\
+RQ4 & D4.1--D4.3 & episode/giây, bảy barrier & Hình~\ref{fig:apple-m5:barrier_rate};
+  Bảng~\ref{tab:apple-m5:barrier} \\
+RQ5 & D5.1--D5.4 & thời gian, số CAS hỏng & Hình~\ref{fig:apple-m5:counter_time},
+  \ref{fig:apple-m5:counter_cas_failures}; Bảng~\ref{tab:apple-m5:countertime} \\
+RQ6 & D6.1 & cùng quy trình trên mỗi máy & Bảng~\ref{tab:cross:machines} \\
+\bottomrule
+\end{tabularx}
+\caption{Câu hỏi nghiên cứu, dự đoán, thí nghiệm và hình, bảng trả lời.}\label{tab:intro:rqmap}
+\end{table}
+
+Đóng góp của báo cáo:
+\begin{itemize}[nosep]
+  \item cài đặt ba nhóm cấu trúc kèm lập luận memory order cho từng thao tác atomic;
+  \item bộ kiểm tra (stress, watchdog, ThreadSanitizer, schedule fuzzing) được đánh giá bằng mutation
+    testing;
+  \item quy trình đo một lệnh, sinh lại mọi hình và bảng, thêm máy không cần sửa mã;
+  \item so sánh số đo với cận dưới lý thuyết và với dự đoán viết trước khi đo.
+\end{itemize}
+
+Mục Nền tảng thí nghiệm mô tả máy đo, và mục Cài đặt trình bày thuật toán. Mục Kiểm tra tính đúng đắn
+trả lời RQ1. Mục Phương pháp đo mô tả cách đo, và mục Kết quả và phân tích trả lời RQ2--RQ6. Báo cáo kết
+thúc bằng mục Các yếu tố đe dọa độ tin cậy, mục Kết luận và phụ lục.

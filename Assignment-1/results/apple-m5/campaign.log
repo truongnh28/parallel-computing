@@ -1,0 +1,2 @@
+2026-10-14T10:11:47 START argv=--relax-yield --host apple-m5 --wait 30 host=apple-m5 ncpu=10 reps=7 runs=12152 seed=20261031 scale=1.000 load1=6.73 force=0
+2026-10-14T11:37:35 END duration=1:25:45 ok=12152 bad_check=0 timeout=9 reduced_configs=9 skipped=0 error=0 load1=22.95

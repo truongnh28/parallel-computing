@@ -1,0 +1,7 @@
+# Assignment1 is a separate work-in-progress rewrite; not tracked here.
+/Assignment1/
+
+.DS_Store
+.idea/
+/build/
+cmake-build-*/

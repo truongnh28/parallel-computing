@@ -1,0 +1,11 @@
+\subsubsection{RQ6: Kết luận trên máy khác}
+
+\begin{rqanswer}\textbf{Trả lời RQ6.} Chưa kiểm được, vì báo cáo mới có số đo của \PCname{apple-m5}. Hình so
+sánh tự xuất hiện khi có từ hai máy (Bảng~\ref{tab:cross:machines}).\end{rqanswer}
+
+Một máy x86 kiểm được ba giả thuyết. Với TSO, mọi phép đọc-sửa-ghi atomic là lệnh có tiền tố
+\texttt{lock}, nên \PCname{cas_seqcst} phải bằng \PCname{cas}. Nếu không, giải thích ở RQ5 sai. Với SMT,
+chi phí barrier và counter phải gãy ở số core vật lý, còn spin barrier chỉ sụp khi vượt số luồng phần
+cứng. Độ trễ của \texttt{pause} và thời gian ngủ thật trên Linux đổi chi phí của các biến thể backoff.
+
+\TODO{ghi kết quả từng giả thuyết trên máy thứ hai và các khác biệt lớn nhất giữa các máy.}

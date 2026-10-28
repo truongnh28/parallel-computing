@@ -1,0 +1,9 @@
+mutant flip_before_reset (PC_MUTANT=2, plain), 10 hardware threads
+  flip_before_reset      single     threads=1   episodes=10000     0.00 s
+  flip_before_reset      reuse      threads=4   episodes=300000    0.06 s
+  flip_before_reset      all-cores  threads=10  episodes=100000    0.07 s
+  flip_before_reset      jitter     threads=4   episodes=50000     0.06 s
+  flip_before_reset      oversub    threads=20  episodes=28        0.52 s  (time budget reached)
+  flip_before_reset      handoff    threads=4   episodes=100000    0.03 s
+PASS flip_before_reset (560028 barrier episodes checked)
+SURVIVED flip_before_reset: no check failed

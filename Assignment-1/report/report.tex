@@ -1,0 +1,555 @@
+% !LW recipe = latexmk (xelatex)
+% report.tex -- Báo cáo Assignment 1 (Parallel Computing, HCMUT).
+%
+%   Bố cục theo template báo cáo HCMUT: https://github.com/truongnh28/hcmut-report-template
+%   (header có logo, footer có số trang, trang bìa, mục "Member list & Workload", "References").
+%   Template gốc dùng pdfLaTeX + vntex; báo cáo này dùng XeLaTeX để in được chữ Unicode trong các
+%   bảng do scripts/plot.py sinh ra và trong mã nguồn, với phông Latin Modern (cùng họ phông
+%   Computer Modern của template).
+%
+%   Biên dịch:  make report        (= cd report && latexmk -xelatex report.tex)
+%   Cần XeLaTeX và TeX Live đầy đủ; phông chữ lấy từ TeX Live, không phụ thuộc phông của hệ điều hành.
+%
+% ĐÂY LÀ BỘ KHUNG. Mọi hình, bảng số liệu và chú thích của chúng do scripts/plot.py sinh ra từ
+% results/<máy>/ (make figures) và được nạp qua \PCfigure, \PCtable; báo cáo không chứa con số
+% nào chép tay. Chỗ nào còn phải viết được đánh dấu "% TODO(report):" trong mã nguồn và hiện
+% thành ghi chú màu xám trong PDF (tắt bằng \showtodofalse ở dưới).
+\documentclass[a4paper]{article}
+
+% =================================================================================================
+% THÔNG TIN CỦA NHÓM -- sửa ở đây
+% =================================================================================================
+\newcommand{\ReportTitle}{Mutex Lock, Sense-Reversing Barrier\\ và Concurrent Counter}
+\newcommand{\ReportSubtitle}{Cài đặt, kiểm tra tính đúng đắn và nghiên cứu hiệu năng}
+\newcommand{\CourseName}{Tính toán song song (Parallel Computing)}
+\newcommand{\AssignmentName}{Assignment 1}
+\newcommand{\Lecturers}{PGS.TS. Trần Văn Hoài, TS. Đặng Thanh Điệp}
+\newcommand{\GroupName}{Nhóm \ldots}                       % TODO(report): tên hoặc số nhóm
+% TODO(report): họ tên và mã số học viên của từng thành viên, mỗi người một dòng.
+% Bảng "Students" của trang bìa, như template: dòng đầu có chữ "Students:", các dòng sau để trống
+% hai cột đầu. Mỗi dòng: <Họ và tên> - <MSHV>.
+\newcommand{\GroupMembers}{%
+  & Students: & Họ và tên thành viên 1 - MSHV.\\
+  & & Họ và tên thành viên 2 - MSHV.\\
+  & & Họ và tên thành viên 3 - MSHV.\\
+}
+\newcommand{\CourseTitleEN}{PARALLEL COMPUTING}          % dòng tên môn trên trang bìa
+\newcommand{\AdvisorLine}{Assoc. Prof. Trần Văn Hoài\\ & & PhD. Đặng Thanh Điệp}
+\newcommand{\AcademicYear}{2026 - 2027}
+\newcommand{\ReportDate}{HO CHI MINH CITY, OCTOBER 2026}
+
+% Các máy đã đo: tên thư mục trong results/, cách nhau bằng dấu phẩy, KHÔNG có dấu cách.
+% Thêm một máy = thêm tên của nó vào dòng này (và một dòng \PCsetowner bên dưới).
+\providecommand{\Hosts}{apple-m5}
+% Thư mục chứa hình và bảng do scripts/plot.py sinh ra.
+\providecommand{\FigRoot}{figures}
+% =================================================================================================
+
+\usepackage{a4wide}
+\usepackage{amsmath,amssymb}
+\usepackage{fontspec}
+\usepackage{unicode-math}
+% Latin Modern: cùng họ phông Computer Modern của template, đủ chữ tiếng Việt.
+\setmainfont{lmroman10}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+  ItalicFont=*-italic, BoldItalicFont=*-bolditalic]
+\setsansfont{lmsans10}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+  ItalicFont=*-oblique, BoldItalicFont=*-boldoblique]
+\setmonofont{lmmono10}[Extension=.otf, UprightFont=*-regular, BoldFont=lmmonolt10-bold,
+  ItalicFont=*-italic, BoldItalicFont=lmmonolt10-boldoblique]
+\setmathfont{latinmodern-math.otf}
+\usepackage[vietnamese]{babel}
+% Như template: mục lục và tài liệu tham khảo mang tên tiếng Anh.
+\addto\captionsvietnamese{\renewcommand*\contentsname{Contents}\renewcommand*\refname{References}}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{etoolbox}
+\usepackage{listings}
+\usepackage{lastpage}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\hypersetup{urlcolor=blue,linkcolor=black,citecolor=black,colorlinks=true}
+
+% Hộp trả lời cho từng câu hỏi nghiên cứu (RQ) ở mục Kết quả.
+\usepackage{tcolorbox}
+\definecolor{rqblue}{HTML}{E3ECF5}
+\newtcolorbox{rqanswer}{colback=rqblue,colframe=rqblue!60!black,boxrule=0.4pt,arc=1pt,
+  left=5pt,right=5pt,top=3pt,bottom=3pt}
+
+% ---- header và footer của template ----
+\setlength{\headheight}{40pt}
+\pagestyle{fancy}
+\fancyhead{}
+\fancyhead[L]{%
+ \begin{tabular}{rl}
+    \begin{picture}(25,15)(0,0)
+    \put(0,-8){\includegraphics[width=8mm, height=8mm]{hcmut.png}}
+   \end{picture}&
+	\begin{tabular}{l}
+		\textbf{\ttfamily University of Technology, Ho Chi Minh City}\\
+		\textbf{\ttfamily Faculty of Computer Science and Engineering}
+	\end{tabular}
+ \end{tabular}}
+\fancyhead[R]{}
+\fancyfoot{}
+\fancyfoot[L]{\scriptsize\ttfamily Assignment for Parallel Computing - Academic year \AcademicYear}
+\fancyfoot[R]{\scriptsize\ttfamily Page {\thepage}/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt}
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{2}
+
+\setlength{\parskip}{0.4em}
+\setlength{\emergencystretch}{2em}
+
+% ---- mã nguồn trong báo cáo ----
+% Style "myStyle" của template (màu nền, màu từ khoá, chú thích, chuỗi).
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstset{language=C++, backgroundcolor=\color{backcolour}, commentstyle=\color{codegreen},
+  keywordstyle=\color{magenta}, numberstyle=\tiny\color{codegray}, stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\footnotesize, columns=fullflexible, keepspaces=true, numbers=left,
+  numbersep=5pt, showspaces=false, showstringspaces=false, showtabs=false, tabsize=2,
+  breakatwhitespace=false, breaklines=true, aboveskip=0.8em, belowskip=0.6em, extendedchars=true}
+% listings dưới XeLaTeX xếp sai thứ tự các ký tự ngoài ASCII (ví dụ chữ có dấu trong chú thích).
+% Khai báo các chữ cái tiếng Việt là "chữ" của listings để chúng được in đúng chỗ.
+\makeatletter
+\lst@InputCatcodes
+\def\lst@DefEC{%
+  \lst@CCECUse \lst@ProcessLetter
+  ^^80^^81^^82^^83^^84^^85^^86^^87^^88^^89^^8a^^8b^^8c^^8d^^8e^^8f%
+  ^^90^^91^^92^^93^^94^^95^^96^^97^^98^^99^^9a^^9b^^9c^^9d^^9e^^9f%
+  ^^a0^^a1^^a2^^a3^^a4^^a5^^a6^^a7^^a8^^a9^^aa^^ab^^ac^^ad^^ae^^af%
+  ^^b0^^b1^^b2^^b3^^b4^^b5^^b6^^b7^^b8^^b9^^ba^^bb^^bc^^bd^^be^^bf%
+  ^^c0^^c1^^c2^^c3^^c4^^c5^^c6^^c7^^c8^^c9^^ca^^cb^^cc^^cd^^ce^^cf%
+  ^^d0^^d1^^d2^^d3^^d4^^d5^^d6^^d7^^d8^^d9^^da^^db^^dc^^dd^^de^^df%
+  ^^e0^^e1^^e2^^e3^^e4^^e5^^e6^^e7^^e8^^e9^^ea^^eb^^ec^^ed^^ee^^ef%
+  ^^f0^^f1^^f2^^f3^^f4^^f5^^f6^^f7^^f8^^f9^^fa^^fb^^fc^^fd^^fe^^ff%
+  ^^^^0102^^^^0103^^^^0110^^^^0111^^^^0128^^^^0129^^^^0168^^^^0169^^^^01a0^^^^01a1^^^^01af%
+  ^^^^01b0^^^^1ea0^^^^1ea1^^^^1ea2^^^^1ea3^^^^1ea4^^^^1ea5^^^^1ea6^^^^1ea7^^^^1ea8^^^^1ea9%
+  ^^^^1eaa^^^^1eab^^^^1eac^^^^1ead^^^^1eae^^^^1eaf^^^^1eb0^^^^1eb1^^^^1eb2^^^^1eb3^^^^1eb4%
+  ^^^^1eb5^^^^1eb6^^^^1eb7^^^^1eb8^^^^1eb9^^^^1eba^^^^1ebb^^^^1ebc^^^^1ebd^^^^1ebe^^^^1ebf%
+  ^^^^1ec0^^^^1ec1^^^^1ec2^^^^1ec3^^^^1ec4^^^^1ec5^^^^1ec6^^^^1ec7^^^^1ec8^^^^1ec9^^^^1eca%
+  ^^^^1ecb^^^^1ecc^^^^1ecd^^^^1ece^^^^1ecf^^^^1ed0^^^^1ed1^^^^1ed2^^^^1ed3^^^^1ed4^^^^1ed5%
+  ^^^^1ed6^^^^1ed7^^^^1ed8^^^^1ed9^^^^1eda^^^^1edb^^^^1edc^^^^1edd^^^^1ede^^^^1edf^^^^1ee0%
+  ^^^^1ee1^^^^1ee2^^^^1ee3^^^^1ee4^^^^1ee5^^^^1ee6^^^^1ee7^^^^1ee8^^^^1ee9^^^^1eea^^^^1eeb%
+  ^^^^1eec^^^^1eed^^^^1eee^^^^1eef^^^^1ef0^^^^1ef1^^^^1ef2^^^^1ef3^^^^1ef4^^^^1ef5^^^^1ef6%
+  ^^^^1ef7^^^^1ef8^^^^1ef9%
+  ^^00}
+\lst@RestoreCatcodes
+\makeatother
+
+% =================================================================================================
+% Macro nối báo cáo với kết quả do scripts/plot.py sinh ra
+%   \PCfigure{<máy>}{<tên hình>}   hình \FigRoot/<máy>/<tên hình>.pdf kèm chú thích do plot.py viết
+%   \PCtable{<máy>}{<khoá>}        bảng <khoá> của \FigRoot/<máy>/tables.tex kèm chú thích
+%   \PCval{<máy>}{<khoá>}          một giá trị (ncpu, cpu, os, compiler, ...)
+%   \ForEachHost{\Macro}           gọi \Macro{<máy>} cho từng máy trong \Hosts
+%   <máy> = cross: hình và bảng so sánh giữa các máy (\FigRoot/cross/)
+% Hình hoặc bảng chưa có thì hiện một khung nhắc, báo cáo vẫn biên dịch được.
+% Nhãn tham chiếu: fig:<máy>:<tên hình>, tab:<máy>:<khoá>.
+% =================================================================================================
+\newif\ifshowtodo
+\showtodotrue            % \showtodofalse: ẩn mọi ghi chú "Cần viết" và khung nhắc trong PDF
+\newcommand{\TODO}[1]{\ifshowtodo\par\noindent{\small\itshape\color{black!55}[Cần viết: #1]}\par\fi}
+\newcommand{\PCmissing}[1]{\ifshowtodo\par\medskip\noindent\fcolorbox{black!35}{black!4}{%
+  \parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{\small\itshape\color{black!65}#1}}\par\medskip\fi}
+\newcommand{\PCname}[1]{\texttt{\detokenize{#1}}}
+\makeatletter
+\newcommand{\PCload}[1]{\IfFileExists{\FigRoot/#1/tables.tex}{\input{\FigRoot/#1/tables.tex}}{}}
+\newcommand{\PCval}[2]{\ifcsname PC@#1@val@#2\endcsname\csname PC@#1@val@#2\endcsname\else\textit{(chưa có)}\fi}
+\newcommand{\PCtable}[2]{%
+  \ifcsname PC@#1@tab@#2\endcsname
+    \begin{table}[H]\centering
+      \caption{\csname PC@#1@tabcap@#2\endcsname}\label{tab:#1:#2}
+      \csname PC@#1@tab@#2\endcsname
+    \end{table}
+  \else
+    \PCmissing{Bảng \PCname{#2} của \PCname{#1} chưa có. Chạy \texttt{make bench} trên máy đó,
+      chép \texttt{results/\detokenize{#1}/} về, rồi chạy \texttt{make figures}.}%
+  \fi}
+\newcommand{\PCfigure}[2]{%
+  \IfFileExists{\FigRoot/#1/#2.pdf}{%
+    \begin{figure}[H]\centering
+      \includegraphics[width=0.76\linewidth]{\FigRoot/#1/#2.pdf}
+      \caption{\ifcsname PC@#1@figcap@#2\endcsname\csname PC@#1@figcap@#2\endcsname
+               \else Hình \PCname{#2} của \PCname{#1}.\fi}\label{fig:#1:#2}
+    \end{figure}}{%
+    \PCmissing{Hình \PCname{#2} của \PCname{#1} chưa có (\texttt{make figures} vẽ nó từ
+      \texttt{results/\detokenize{#1}/}).}}}
+% Hình và bảng không bắt buộc (chỉ có khi đã chạy phần đo tương ứng): không hiện khung nhắc.
+\newcommand{\PCfigureopt}[2]{\IfFileExists{\FigRoot/#1/#2.pdf}{\PCfigure{#1}{#2}}{}}
+\newcommand{\PCtableopt}[2]{\ifcsname PC@#1@tab@#2\endcsname\PCtable{#1}{#2}\fi}
+\newcommand{\PCappendixtables}[1]{\ifcsname PC@#1@tab@appendix\endcsname\csname PC@#1@tab@appendix\endcsname\fi}
+\newcommand{\ForEachHost}[1]{\def\PC@each{\forcsvlist{#1}}\expandafter\PC@each\expandafter{\Hosts}}
+% Thành viên chạy đo trên từng máy (hiện trong bảng cấu hình máy).
+% Máy do người viết báo cáo đo; hình của máy này nằm xen trong lời phân tích ở mục 6,
+% hình của các máy khác được thêm tự động ở cuối mỗi mục con.
+\newcommand{\PrimaryHost}{apple-m5}
+\newcommand{\PC@ifother}[2]{\ifstrequal{#2}{apple-m5}{}{#1{#2}}}
+\newcommand{\ForEachOtherHost}[1]{\def\PC@eachother{\forcsvlist{\PC@ifother{#1}}}\expandafter\PC@eachother\expandafter{\Hosts}}
+\newcommand{\PCsetowner}[2]{\expandafter\gdef\csname PC@owner@#1\endcsname{#2}}
+\newcommand{\PCowner}[1]{\ifcsname PC@owner@#1\endcsname\csname PC@owner@#1\endcsname\else\textit{(điền tên)}\fi}
+\makeatother
+
+% TODO(report): mỗi máy một dòng, ghi tên thành viên đã chạy đo trên máy đó.
+\PCsetowner{apple-m5}{\textit{(điền tên)}}
+
+\ForEachHost{\PCload}
+\PCload{cross}
+
+% Hình và bảng của từng phần cho một máy; phần 6 gọi chúng cho mọi máy trong \Hosts.
+% Giới hạn khoảng 20 trang: mỗi phần chỉ giữ các hình và bảng chính. Các hình còn lại vẫn được
+% plot.py sinh ra trong figures/<máy>/ và nằm trong bài nộp, nhưng không đưa vào báo cáo.
+\newcommand{\LockFigures}[1]{%
+  \subsubsection*{Máy \PCname{#1}}
+  \PCfigure{#1}{lock_slowdown}
+  \PCtable{#1}{locktime}
+  \PCfigure{#1}{lock_cs_length}
+  \PCfigure{#1}{lock_backoff}
+  \PCfigure{#1}{lock_fairness}
+}
+\newcommand{\BarrierFigures}[1]{%
+  \subsubsection*{Máy \PCname{#1}}
+  \PCfigure{#1}{barrier_rate}
+  \PCtable{#1}{barrier}
+}
+\newcommand{\CounterFigures}[1]{%
+  \subsubsection*{Máy \PCname{#1}}
+  \PCfigure{#1}{counter_time}
+  \PCtable{#1}{countertime}
+  \PCfigure{#1}{counter_cas_failures}
+}
+\newcommand{\CampaignTables}[1]{\PCtable{#1}{campaign}\PCtable{#1}{lockunit}}
+
+\begin{document}
+
+% ---- Trang bìa (bố cục của template) --------------------------------------------------------------
+\begin{titlepage}
+\begin{center}
+VIETNAM NATIONAL UNIVERSITY, HO CHI MINH CITY \\
+UNIVERSITY OF TECHNOLOGY \\
+FACULTY OF COMPUTER SCIENCE AND ENGINEERING
+\end{center}
+
+\vspace{1cm}
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=3cm]{hcmut.png}
+\end{center}
+\end{figure}
+
+\vspace{1cm}
+
+\begin{center}
+\begin{tabular}{c}
+\multicolumn{1}{c}{\textbf{{\Large \CourseTitleEN}}}\\
+~~\\
+\hline
+\\
+\multicolumn{1}{l}{\textbf{{\Large \AssignmentName}}}\\
+\\
+\textbf{{\Huge \begin{tabular}{@{}c@{}}\ReportTitle\end{tabular}}}\\
+\\
+\textbf{{\large \ReportSubtitle}}\\
+\\
+\hline
+\end{tabular}
+\end{center}
+
+\vspace{2.5cm}
+
+\begin{table}[h]
+\begin{tabular}{rrl}
+\hspace{4 cm} & Advisor: & \AdvisorLine\\
+\GroupMembers
+\end{tabular}
+\end{table}
+
+\vfill
+\begin{center}
+{\footnotesize \ReportDate}
+\end{center}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ====================================================================================================
+\section{Member list \& Workload}
+% TODO(report): nhóm tự điền họ tên, MSHV, phần việc, tỉ lệ đóng góp (theo bảng của template).
+% Mọi thành viên phải đọc toàn bộ báo cáo và trả lời được câu hỏi về bất kỳ phần nào.
+\begin{center}
+\begin{tabular}{|c|c|c|l|c|}
+\hline
+\textbf{No.} & \textbf{Fullname} & \textbf{Student ID} & \textbf{Problems} & \textbf{Percentage of work}\\
+\hline
+\multirow{3}{*}{1} & \multirow{3}{*}{\ldots} & \multirow{3}{*}{\ldots} & - \ldots & \multirow{3}{*}{\ldots\%}\\
+ & & & & \\
+ & & & & \\
+\hline
+\multirow{3}{*}{2} & \multirow{3}{*}{\ldots} & \multirow{3}{*}{\ldots} & - \ldots & \multirow{3}{*}{\ldots\%}\\
+ & & & & \\
+ & & & & \\
+\hline
+\multirow{3}{*}{3} & \multirow{3}{*}{\ldots} & \multirow{3}{*}{\ldots} & - \ldots & \multirow{3}{*}{\ldots\%}\\
+ & & & & \\
+ & & & & \\
+\hline
+\end{tabular}
+\end{center}
+\TODO{nhóm điền bảng phân công: họ tên, MSHV, phần việc (cài đặt, kiểm tra, đo trên máy nào, phân tích, viết báo cáo) và tỉ lệ đóng góp.}
+
+% ====================================================================================================
+\section{Giới thiệu và câu hỏi nghiên cứu}
+% TODO(report): 0,5-1 trang.
+%  - Mục tiêu của assignment: cài đặt mutex lock (TAS, TTAS, MCS), sense-reversing barrier và
+%    concurrent counter (lock, compare-and-swap, fetch-and-add); kiểm tra tính đúng đắn; nghiên
+%    cứu hiệu năng và khả năng mở rộng trên các máy shared-memory của nhóm.
+%  - Câu hỏi nghiên cứu cho từng phần, viết thành câu hỏi trả lời được bằng số liệu. Ví dụ: lock
+%    nào mở rộng tốt nhất ở mức tranh chấp cao; TAS sụp ở đâu; MCS có lợi từ lúc nào; backoff giúp
+%    TAS hay TTAS nhiều hơn; lock tự viết đứng đâu so với lock thư viện; chi phí một barrier
+%    episode tăng thế nào theo số thread; CAS chậm hơn fetch-and-add vì đâu.
+%  - DỰ ĐOÁN viết TRƯỚC khi đo (dựa trên phân tích lưu lượng cache coherence), để mục 6 so lại.
+%  - Phạm vi: phần 4 của đề (bản phân tán bằng MPI-3 RMA, không bắt buộc) không được thực hiện.
+%  - Bố cục báo cáo.
+\input{sections/intro}
+% ====================================================================================================
+\section{Nền tảng thí nghiệm}
+% TODO(report): 0,5 trang chữ + bảng.
+%  - Đề yêu cầu số nền tảng shared-memory >= số thành viên: nêu rõ nhóm có mấy người, mấy máy.
+%  - Với từng máy: vì sao nó đáng đo (kiến trúc x86 hay ARM, memory model TSO hay yếu hơn, số
+%    core, có P-core/E-core hay SMT không, hệ điều hành có cho ghim thread không).
+%  - Cache line: hệ thống báo bao nhiêu, mã nguồn đệm bao nhiêu, nhóm xác định bằng cách nào.
+%  - OpenMP: máy nào có baseline OpenMP (compiler nhận -fopenmp), máy nào không.
+%  - Điều kiện lúc đo: cắm sạc hay pin, chế độ tiết kiệm điện, các chương trình khác đã tắt chưa.
+\input{sections/platform}
+\PCtable{cross}{machines}
+
+% ====================================================================================================
+\section{Cài đặt}
+% TODO(report): với MỖI thuật toán: (1) đặc tả (bất biến, điều kiện trước/sau); (2) memory order
+% của từng thao tác atomic và lý do, đặc biệt mọi chỗ dùng relaxed; (3) bố trí bộ nhớ (biến nào
+% nằm riêng một cache line, vì sao); (4) giới hạn đã biết. Chỉ trích đoạn mã then chốt bằng
+% môi trường lstlisting, không dán cả file. Trích nguồn cho thuật toán lấy từ sách và bài báo.
+% Nguồn để viết: docs/part1.md, docs/part2.md, docs/part3.md và chú thích trong include/.
+
+\subsection{Mutex lock}
+% TODO(report):
+%  - Giao diện acquire()/release() không tham số như khung của đề.
+%  - TAS: mỗi lần thử là một phép ghi (exchange), kéo cache line về trạng thái độc quyền.
+%  - TTAS: chờ bằng load, chỉ exchange khi thấy lock rảnh; vẫn có "bầy đàn" lúc nhả.
+%  - Backoff: bốn chính sách của include/backoff.hpp (không backoff, ngủ đúng mẫu của đề, quay,
+%    quay rồi yield); sleep_for là system call nên thời gian ngủ thật do hệ điều hành quyết định.
+%  - MCS: hàng đợi, nút hàng đợi là biến thread_local; công bằng FIFO; giới hạn: một thread
+%    không giữ được hai lock_mcs cùng lúc; vấn đề khi thread kế tiếp trong hàng bị preempt.
+%  - Lock thư viện dùng để so sánh trên từng nền tảng (std::mutex, pthread_mutex_t,
+%    os_unfair_lock, pthread_spinlock_t, omp_lock_t) và cách bọc chúng.
+%  - Lệnh chờ trong vòng spin (pause / isb / yield) và lý do chọn.
+\input{sections/impl_lock}
+\subsection{Sense-reversing barrier}
+% TODO(report):
+%  - Vì sao barrier một cờ không dùng lại được, và ý tưởng đảo chiều (sense reversal).
+%  - Thứ tự hai thao tác của thread tới cuối (đặt lại bộ đếm rồi mới đảo sense) và vì sao.
+%  - Các cách chờ: spin, backoff, chờ chặn; barrier thư viện dùng để so sánh.
+%  - Memory order và bố trí bộ nhớ (local sense của mỗi thread nằm riêng một cache line).
+\input{sections/impl_barrier}
+\subsection{Concurrent counter}
+% TODO(report):
+%  - Ba loại đồng bộ đề yêu cầu: mutex lock (counter_lock<L> với từng lock của phần 1 và lock
+%    thư viện), vòng lặp compare-and-swap (có và không có backoff), fetch-and-add.
+%  - increment() trả về giá trị trước khi tăng; memory order (bản mặc định và bản seq_cst).
+%  - Trên ARM compiler sinh lệnh atomic đơn (LSE) hay vòng LL/SC: xem assembly và nêu kết quả.
+\input{sections/impl_counter}
+% ====================================================================================================
+\section{Kiểm tra tính đúng đắn}
+% TODO(report): chiến lược chung trước, rồi từng phần. Với mỗi bài kiểm tra: tính chất được kiểm,
+% cách kiểm, kết quả trên TỪNG máy (make test, make tsan). Nêu rõ kiểm thử bằng stress chỉ tìm
+% được lỗi chứ không chứng minh được là không có lỗi.
+
+\subsection{Chiến lược}
+% TODO(report): các tính chất cần kiểm (an toàn, sống còn, công bằng); stress test với số thread
+% vượt số core; watchdog chống treo; ThreadSanitizer; mutation testing để đánh giá bộ kiểm tra.
+\input{sections/corr_strategy}
+\subsection{Mutex lock}
+% TODO(report): loại trừ lẫn nhau (biến đếm không atomic + bộ đếm số thread đang ở trong critical
+% section); không deadlock; công bằng (đo, không phán xét); quá tải; kết quả TSan.
+\input{sections/corr_lock}
+\subsection{Sense-reversing barrier}
+% TODO(report): không thread nào qua sớm; dùng lại qua rất nhiều episode liên tiếp; nhiễu thời
+% điểm; TSan (lưu ý cảnh báo giả của std::barrier trên macOS, nếu có).
+\input{sections/corr_barrier}
+\subsection{Concurrent counter}
+% TODO(report): giá trị cuối; mỗi giá trị trả về xuất hiện đúng một lần và dãy của từng thread
+% tăng ngặt (bằng chứng linearizability cho counter); bẫy trình tối ưu che lỗi (docs/part3.md).
+\input{sections/corr_counter}
+\subsection{Mutation testing}
+% TODO(report): bảng các biến thể cố ý làm hỏng của từng phần (make mutation): bài kiểm tra nào
+% bắt được, sau bao lâu; biến thể nào chỉ ThreadSanitizer bắt được và vì sao.
+\input{sections/corr_mutation}
+\subsection{Giới hạn của phương pháp}
+% TODO(report): những gì bộ kiểm tra không chứng minh; lỗi memory order không lộ trên x86 (TSO);
+% những nền tảng chưa chạy được TSan.
+\input{sections/corr_limits}
+% ====================================================================================================
+\section{Phương pháp đo}
+% TODO(report): 1-1,5 trang. Mọi chi tiết dưới đây lấy từ scripts/run_bench.py (khối "THE GRID"
+% và chú thích đầu file) và include/bench_common.hpp; đừng chép số từ trí nhớ.
+%  - Vùng đo: từ lúc mở cổng xuất phát tới khi thread cuối cùng join xong; tạo thread nằm ngoài.
+%  - Chống trình tối ưu xoá việc: is_prime không inline, N qua pc::opaque() ở mỗi lời gọi, tổng
+%    kết quả được kiểm ở cuối (cột ok). Bằng chứng: bảng "đơn vị công việc" bên dưới (t gần như
+%    không đổi theo OUTSIDE_WORK) và assembly.
+%  - Lưới tham số: số thread (kể cả vượt số core), OUTSIDE_WORK, N; vì sao chọn các giá trị đó.
+%  - Số vòng lặp: lock dùng I = W_N / max(p, 1 + OW) để cận dưới của mọi lần chạy dài như nhau;
+%    barrier và counter hiệu chỉnh I cho từng cấu hình bằng một lần chạy thử. Vì I khác nhau giữa
+%    các cấu hình, hình và bảng so sánh qua thời gian quy về cùng số vòng lặp.
+%  - Cấu hình sụp đổ (lock hàng đợi khi số thread vượt số core): đo với I nhỏ hơn 100 lần.
+%  - Thống kê: số lần lặp; báo cáo trung vị, min, max; vì sao không dùng trung bình.
+%  - Thứ tự chạy: lặp là vòng ngoài, các cấu hình xáo trộn trong từng lượt lặp với seed cố định.
+%  - Kiểm soát nhiễu: một tiến trình đo tại một thời điểm; ngưỡng load average lúc bắt đầu; load
+%    ghi trong từng dòng số liệu; không ghim thread (macOS không cho).
+%  - Thời hạn của một lần chạy và cách ghi nhận lần chạy vượt thời hạn (không bỏ, không coi là 0).
+%  - Mô hình so sánh của phần lock: cận dưới max(p I t, (1 + OW) I t), t suy ra từ lần chạy 1 thread.
+\input{sections/method}
+\ForEachHost{\CampaignTables}
+
+% ====================================================================================================
+\section{Kết quả và phân tích}
+% TODO(report): với MỖI hình viết đủ ba ý:
+%   (1) Quan sát: hình cho thấy gì, có số ("ở 8 thread, TAS chậm hơn TTAS x lần");
+%   (2) Giải thích bằng cơ chế: lưu lượng coherence, tranh chấp, công bằng, scheduler, P/E-core;
+%   (3) Bằng chứng cho giải thích: số đo phụ nào ủng hộ (số lần CAS hỏng, độ công bằng, thí
+%       nghiệm đối chứng chỉ đổi một yếu tố).
+% So với dự đoán ở mục 1; chỗ dự đoán sai là chỗ đáng viết nhất. Nói rõ kết luận nào được số
+% liệu hỗ trợ và kết luận nào chỉ là suy đoán. Mọi con số trích trong lời văn phải lấy từ bảng do
+% plot.py sinh ra, không tự tính tay.
+
+\subsection{Mutex lock}
+% TODO(report):
+%  - Thời gian và thông lượng theo số thread: lock nào bám sát cận dưới, tới đâu; đường cong gãy
+%    ở số P-core, ở tổng số core hay ở điểm nào khác; chuyện gì xảy ra khi số thread vượt số core
+%    (đây là kết quả, không phải lỗi đo) và vì sao lock thư viện hành xử khác (block thay vì spin).
+%  - Ảnh hưởng của OUTSIDE_WORK: lock bão hoà khi p > 1 + OW.
+%  - Ảnh hưởng của N (độ dài critical section): chi phí chuyển giao lock so với phần việc.
+%  - Backoff: giúp hay hại, ở chế độ nào; giải thích bằng thời gian ngủ thật (bảng sleep_latency).
+%  - Công bằng: lock "nhanh nhất" có công bằng không.
+%  - Chi phí khi không tranh chấp (1 thread).
+\input{sections/results_lock}
+\ForEachOtherHost{\LockFigures}
+\subsection{Barrier}
+% TODO(report):
+%  - Chi phí một episode tăng thế nào theo số thread (so với phân tích: một lần ghi phải lan tới
+%    p - 1 core đang chờ).
+%  - Biến thể spin sụp ở đâu khi vượt số core, và vì sao nặng hơn lock.
+%  - Chờ chặn hoà vốn ở đâu; so với barrier thư viện.
+%  - Backoff ở barrier có ý nghĩa gì khác so với ở lock.
+\input{sections/results_barrier}
+\ForEachOtherHost{\BarrierFigures}
+\subsection{Concurrent counter}
+% TODO(report):
+%  - Thứ tự nhanh chậm giữa fetch-and-add, CAS và counter dùng lock, ở tranh chấp cao và thấp.
+%  - Số lần CAS hỏng mỗi lần tăng: bằng chứng trực tiếp vì sao CAS chậm hơn fetch-and-add.
+%  - Backoff giúp hay hại; seq_cst có khác bản mặc định không (và vì sao, theo lệnh máy).
+%  - Counter dùng lock: liên hệ với kết quả của phần lock ở critical section rất ngắn.
+\input{sections/results_counter}
+\ForEachOtherHost{\CounterFigures}
+\subsection{So sánh giữa các máy}
+\PCfigureopt{cross}{lock}
+\PCfigureopt{cross}{barrier}
+\PCfigureopt{cross}{counter}
+% TODO(report): kết quả có giống nhau giữa các máy không; nếu khác thì khác vì kiến trúc (x86 so
+% với ARM), số core, P/E-core hay SMT, hay hệ điều hành (scheduler, sleep, ghim thread). Mục này
+% chỉ có hình khi results/ chứa từ hai máy trở lên.
+\input{sections/results_cross}
+% ====================================================================================================
+\section{Các yếu tố đe dọa độ tin cậy}
+% TODO(report): mỗi yếu tố: nó có thể làm sai kết quả thế nào, nhóm đã làm gì để giảm, còn lại gì.
+%  - Tải nền và nhiệt độ (throttling); load average lúc bắt đầu và kết thúc đợt đo (campaign.log).
+%  - Hai loại core (P/E) và không ghim được thread trên macOS: cận dưới dùng t đo trên một core nhanh.
+%  - Cận dưới lý tưởng chứa chi phí lấy/nhả lock khi không tranh chấp, nên hơi rộng.
+%  - Số vòng lặp khác nhau giữa các cấu hình và phép quy đổi tuyến tính; cấu hình đo với I giảm.
+%  - Lần chạy vượt thời hạn: chỉ biết cận dưới của thời gian.
+%  - Số lần lặp và độ phân tán; trung vị che gì.
+%  - Chỉ đo một compiler và một bộ cờ trên mỗi máy; máy ảo hoặc container (nếu dùng).
+%  - Giới hạn của kiểm tra đúng đắn (mục 4).
+%  - Tính đại diện của workload is_prime.
+\input{sections/threats}
+% ====================================================================================================
+\section{Kết luận}
+% TODO(report): trả lời từng câu hỏi nghiên cứu của mục 1 bằng một hai câu có số; điều học được
+% trái với dự đoán; khuyến nghị dùng lock, barrier, counter nào trong hoàn cảnh nào; việc chưa làm.
+\input{sections/conclusion}
+% ====================================================================================================
+% TODO(report): thay \nocite{*} bằng các \cite đặt đúng chỗ trong bài (thuật toán và ý tưởng lấy
+% từ sách, bài báo, bài giảng phải được trích nguồn); xoá mục nào trong references.bib không dùng.
+\nocite{*}
+\clearpage
+\phantomsection\addcontentsline{toc}{section}{References}
+\bibliographystyle{plain}
+\bibliography{references}
+
+% ====================================================================================================
+\appendix
+\section{Cách build và chạy lại}
+Yêu cầu: compiler C++20 (Apple clang, g++ hoặc clang++), \texttt{make}, Python~3; \texttt{matplotlib}
+và \texttt{numpy} để vẽ hình; XeLaTeX (TeX Live) để biên dịch báo cáo. Chi tiết trong \texttt{README.md}.
+
+\begin{lstlisting}[language=bash]
+make                 # biên dịch các bài kiểm tra và các benchmark vào build/
+make test            # chạy mọi bài kiểm tra tính đúng đắn
+make tsan            # chạy lại dưới ThreadSanitizer
+make mutation        # các biến thể cố ý làm hỏng phải bị bộ kiểm tra bắt
+make bench           # chạy toàn bộ đợt đo trên máy rảnh -> results/<máy>/
+make figures         # vẽ lại mọi hình và bảng từ results/ -> report/figures/
+make report          # biên dịch report/report.pdf
+make zip             # đóng gói bài nộp
+\end{lstlisting}
+% TODO(report): thời gian chạy thật của `make bench` trên từng máy (campaign.log); ghi chú riêng
+% cho từng nền tảng nếu có (ví dụ cách cài matplotlib, compiler đã dùng).
+\input{sections/build_notes}
+\section{Cấu trúc mã nguồn}
+% TODO(report): kiểm lại bảng này với nội dung thật của file zip trước khi nộp.
+\begin{table}[H]\centering\small
+\begin{tabular}{@{}lp{10.2cm}@{}}
+\toprule
+\textbf{Đường dẫn} & \textbf{Nội dung} \\
+\midrule
+\texttt{include/lock.h} & các lock của phần 1 (TAS, TTAS, biến thể backoff, MCS) và lock thư viện \\
+\texttt{include/barrier.hpp} & sense-reversing barrier và các barrier dùng để so sánh \\
+\texttt{include/counter.hpp} & các counter của phần 3 \\
+\texttt{include/backoff.hpp} & các chính sách chờ dùng chung cho cả ba phần \\
+\texttt{include/platform.hpp} & cache line, lệnh chờ trong vòng spin, đồng hồ, thông tin máy \\
+\texttt{include/workload.hpp} & \texttt{is\_prime} và hàm \texttt{opaque} chống trình tối ưu \\
+\texttt{include/bench\_common.hpp} & đọc tham số, cổng xuất phát, định dạng dòng CSV \\
+\texttt{tests/} & bài kiểm tra tính đúng đắn của ba phần \\
+\texttt{bench/} & ba chương trình đo và \texttt{sleep\_latency} \\
+\texttt{mk/} & các mục tiêu \texttt{make} của từng phần và của việc đóng gói \\
+\texttt{scripts/run\_bench.py} & chạy toàn bộ đợt đo, ghi số liệu thô vào \texttt{results/} \\
+\texttt{scripts/plot.py} & vẽ mọi hình, sinh mọi bảng của báo cáo từ \texttt{results/} \\
+\texttt{scripts/machine\_info.sh} & ghi lại cấu hình máy \\
+\texttt{scripts/fake\_bench.py} & chương trình giả để thử công cụ, không tạo ra số đo \\
+\texttt{results/<máy>/} & số liệu thô của từng máy (CSV), cấu hình máy, nhật ký đợt đo \\
+\texttt{report/} & mã nguồn báo cáo, hình và bảng sinh tự động \\
+\bottomrule
+\end{tabular}
+\caption{Cấu trúc thư mục của bài nộp.}\label{tab:layout}
+\end{table}
+
+\section{Khai báo sử dụng công cụ AI}
+% TODO(report): khai báo theo đúng quy định của môn học. Nội dung do nhóm tự viết và chịu trách
+% nhiệm: công cụ nào đã dùng, dùng cho việc gì (mã nguồn, kiểm tra, script đo và vẽ, báo cáo),
+% nhóm đã kiểm tra lại kết quả của công cụ bằng cách nào, phần nào hoàn toàn do nhóm tự làm.
+\TODO{khai báo việc sử dụng công cụ AI theo quy định của môn học (do nhóm tự viết).}
+
+
+\end{document}

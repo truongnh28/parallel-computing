@@ -1,0 +1,15 @@
+# test_locks on QGM0224 (arm64, macOS, clang-21.0), 10 hardware threads
+# per lock: mutual exclusion with fixed iterations (1, 2, 10 threads), then 300 ms timed runs;
+# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)
+
+FAIL  tas fixed-iters threads=2 iters=100000: counter=196113 expected=200000 (lost 3887), threads seen inside together=49871
+
+FAIL  tas fixed-iters threads=10 iters=20000: counter=73677 expected=200000 (lost 126323), threads seen inside together=195913
+
+FAIL  tas fixed-time threads=4 ms=300: counter=4487797 expected=5014238 (lost 526441), threads seen inside together=1225585
+
+FAIL  tas fixed-time threads=10 ms=300: counter=687961 expected=1945327 (lost 1257366), threads seen inside together=1944135
+
+FAIL  tas fixed-time threads=20 ms=300: counter=666514 expected=1863134 (lost 1196620), threads seen inside together=1863117
+FAIL  tas                4t:   5014238 acq, max/min 1.32     10t:   1945327 acq, max/min 1.15     20t:   1863134 acq, max/min 1.32   
+# 1 lock(s) tested, 1 failed

@@ -1,0 +1,168 @@
+% Mục Kết quả, mutex lock (RQ2, RQ3). Nguồn: results/apple-m5/lock.csv, lock_yield.csv,
+% sleep_latency.csv (trung vị 7 lần lặp); bảng locktime, locktime-ow*, locksingle, sleeplatency,
+% lockunit trong report/figures/apple-m5/tables.tex. Số không có trong bảng in ra (độ chậm, độ công
+% bằng, ns mỗi critical section, tỉ số backoff) tính bằng scripts/report_numbers/rlock_analyze.py và
+% scripts/report_numbers/rlock_analyze2.py; hai script nạp scripts/plot.py và dùng đúng aggregate/unit_time/bound của nó, nên trùng
+% với số vẽ trên hình. Nguồn từng số ghi trong comment ngay cạnh.
+
+Độ chậm là thời gian đo chia cho cận dưới
+lý tưởng $\max(p,\,1+\mathrm{OW})\,I\,t$ (mục Phương pháp đo). Độ chậm 1 nghĩa là lock không thêm chi
+phí nào. Độ công bằng là thời gian của thread xong sớm nhất chia cho thời gian của thread xong muộn nhất
+trong một lần chạy. Mọi thread lấy lock cùng số lần, nên 1 là hoàn toàn đều.
+
+% ================================================================================================
+\subsubsection{RQ2: Lock mở rộng thế nào theo số thread, tranh chấp và độ dài critical section?}
+
+\begin{rqanswer}\textbf{Trả lời RQ2.} TTAS mở rộng tốt nhất trong ba lock tự viết. Ở 20 thread
+($N = 1009$, $\mathrm{OW} = 0$), nó chậm 2,48 lần cận dưới. MCS chậm khoảng 6\,900 lần vì sụp ngay
+khi số thread chạm số core. Lock thư viện không sụp. Chúng chậm hơn spinlock khi critical section dài
+cỡ 0,5~$\mu$s và nhanh hơn khi critical section chỉ vài nanosecond. Kết luận chỉ áp dụng cho
+\PCname{apple-m5}.\end{rqanswer}
+% nguồn: scripts/report_numbers/rlock_analyze.py, độ chậm N=1009 OW=0 p=20: ttas 2,48; mcs 6\,880 (locktime 24\,100 / 3,51).
+
+\PCfigure{apple-m5}{lock_slowdown}
+
+\emph{Bằng chứng.} Ở $\mathrm{OW} = 0$, ba spinlock tự viết chậm không quá 1,24 lần cận dưới tới 4
+thread (Hình~\ref{fig:apple-m5:lock_slowdown}). Mọi đường cong gãy từ 4 lên 6 thread, tức tại số P-core
+chứ không tại số core. MCS gãy mạnh nhất, chậm 13 lần ở đúng 10 thread rồi sụp hẳn khi vượt số core
+(Bảng~\ref{tab:apple-m5:locktime}). TAS và TTAS chỉ chậm dần. Lock thư viện gần như phẳng từ 8 thread.
+% nguồn: scripts/report_numbers/rlock_analyze.py, độ chậm N=1009 OW=0 p=4: tas 1,18, ttas 1,08, mcs 1,24; mcs p=10 13,0.
+% std_mutex p=8..20 3,72..3,93; pthread_mutex 3,54..3,97; os_unfair_lock (p=2..20) 1,59..1,69.
+
+\PCtable{apple-m5}{locktime}
+
+Ô $\mathrm{OW} = 15$ là một thí nghiệm đối chứng, vì với $p \le 15$ lock bận tối đa $p/16$ thời gian.
+Vậy mà ở 6 thread cả mười hai lock, kể cả lock thư viện, cùng chậm 1,53--2,03 lần cận dưới.
+% nguồn: scripts/report_numbers/rlock_analyze.py, độ chậm N=1009 OW=15 p=6: 1,53 (mcs) .. 2,03 (os_unfair_lock).
+
+\PCfigure{apple-m5}{lock_cs_length}
+
+Với $N = 10\,007$ (khoảng 5,2~$\mu$s) TAS và TTAS gần như trùng nhau
+(Hình~\ref{fig:apple-m5:lock_cs_length}). Với $N = 11$ (4,6~ns), ở 20 thread TAS chậm 80,5 lần cận
+dưới, TTAS 28,2 lần, còn lock thư viện chỉ khoảng 5 lần.
+% nguồn: scripts/report_numbers/rlock_analyze.py, độ chậm OW=0: N=10007 p=20 tas 2,55, ttas 2,53; N=11 p=20 tas 80,5, ttas 28,2,
+% std_mutex 5,71, pthread_mutex 4,97, os_unfair_lock 5,02.
+
+\emph{Vì sao.} Chỗ gãy ở 4 thread đến từ máy, không từ thuật toán. Ở ô đối chứng, mọi lock cùng chậm như
+nhau. Độ công bằng ở 6 thread là 0,84--0,98, tức mọi thread cùng chậm đi. Điều này phù hợp với việc
+scheduler luân chuyển thread giữa P-core và E-core, hoặc với tải nền. Nhóm không tách được hai khả năng.
+% nguồn: scripts/report_numbers/rlock_analyze.py, fairness N=1009 OW=15 p=6: 0,84 (mcs) .. 0,98.
+
+Nhóm giải thích sự sụp đổ của MCS ở 10 thread bằng một giả thuyết. MCS trao lock cho đúng thread kế
+tiếp theo thứ tự FIFO (vào trước được phục vụ trước). Mỗi lần thread đó không có core, cả hàng mất trắng
+một lượt lập lịch. TAS và TTAS không bị như vậy, vì thread nào đang chạy cũng lấy được lock rảnh. Ba số đo
+ủng hộ giả thuyết. Độ công bằng của MCS bằng 1 tới 10 thread (Hình~\ref{fig:apple-m5:lock_fairness}),
+tức lock luôn đi đúng thứ tự hàng đợi. Cột \texttt{load1} của bảy lần chạy là 21,8--33,7, lớn hơn số
+core, nên với tải nền máy đã quá tải ngay ở 10 thread. Cuối cùng, một critical section của MCS ở 10
+thread tốn trung bình 6,6~$\mu$s. Nếu mỗi lượt mất trắng tốn cỡ 0,87~ms như đo được ở 12 thread, chỉ
+cần khoảng 0,7\,\% số lần chuyển giao rơi vào thread không có core là đủ giải thích. Đếm số lần chuyển
+ngữ cảnh không tự nguyện của từng thread (\texttt{getrusage}) trong lần chạy sẽ xác nhận hoặc bác bỏ
+giả thuyết này.
+% nguồn: lock.csv, mcs p=10 OW=0 N=1009, load1 của 7 dòng: 21,84..33,74. scripts/report_numbers/rlock_analyze.py ns/CS mcs N=1009
+% OW=0: p=10 6\,635 ns, p=12 8,70e5 ns; locksingle mcs 538 ns; (6\,635 - 538) / 869\,600 = 0,70 %.
+
+Lock thư viện cho thread chờ ngủ trong kernel, nên không giành core của chủ lock và không sụp. Việc
+chúng chậm ở $N = 1009$ mà nhanh ở $N = 11$ có một giả thuyết. Mỗi lần đánh thức một thread qua kernel
+tốn một chi phí cố định cỡ 1,5~$\mu$s. Trong lúc thread được đánh thức chưa kịp chạy, thread vừa nhả lock
+lấy lại lock và chạy tiếp các critical section của mình với cache line còn nóng. Ở
+$N = 1009$, mỗi critical section của \PCname{std_mutex} tốn thêm 1\,459~ns so với khi không tranh chấp,
+tức gần như mỗi lần chuyển giao trả trọn một lần đánh thức.
+% nguồn: scripts/report_numbers/rlock_analyze.py, ns/CS std_mutex N=1009 OW=0 p=20: 2\,007 ns; locksingle 548; 2\,007 - 548 = 1\,459.
+
+Ở $N = 11$, cùng lock tốn thêm 19,7~ns mỗi critical section, tức một lần đánh thức được chia cho khoảng
+74 critical section. Chuỗi này kéo dài khoảng 1,9~$\mu$s, cùng bậc với lần ngủ ngắn nhất của \texttt{sleep\_for}
+(2\,500~ns). Số đo này nhỏ hơn một lần chuyển cache line của TAS (39,5~ns ở 4 thread), nên phần lớn
+critical section không thể có chuyển giao. Độ công bằng 0,92 của \PCname{std_mutex} ở 20 thread không
+chống lại giả thuyết, vì thước đo này không thấy các đợt độc chiếm luân phiên. Đếm số lời gọi hệ thống
+đánh thức trên mỗi critical section ở hai giá trị $N$ sẽ kiểm tra được giả thuyết.
+% nguồn: scripts/report_numbers/rlock_analyze.py, ns/CS std_mutex N=11 OW=0 p=20: 26,24; locksingle N=11 std_mutex 6,50;
+% 26,24 - 6,50 = 19,74; 1\,459 / 19,74 = 74; 74 * 26,24 ns = 1,94 us. sleeplatency: sleep_for nhỏ nhất
+% 2\,500 ns. tas N=11 p=4: 39,53 ns/CS. fairness std_mutex N=11 OW=0 p=20: 0,92 (scripts/report_numbers/rlock_analyze2.py).
+
+TAS thua TTAS nhiều nhất khi lock đổi chủ ở mỗi lượt. Phép nhả lock của TAS phải tranh cache line
+(đơn vị 128 byte phần cứng giữ nhất quán giữa các core) với các \texttt{exchange} liên tục của thread
+chờ, còn thread TTAS chờ bằng phép đọc. Độ công bằng của TAS 10 thread là 0,32 ở $\mathrm{OW} = 0$ và
+0,91 ở $\mathrm{OW} = 3$. Khi không có việc ngoài, lock chủ yếu ở lại với thread vừa nhả.
+
+Độ dài critical section quyết định tỉ lệ giữa chi phí chuyển giao và phần việc
+(Hình~\ref{fig:apple-m5:lock_cs_length}). Ở $N = 11$ và 4 thread, một critical section của TAS tốn
+39,5~ns, gấp khoảng 8,6 lần lời gọi \texttt{is\_prime(11)}. Ở $N = 10\,007$, cùng chi phí đó chưa tới
+1\,\% của 5,2~$\mu$s, nên mọi lock gần như trùng nhau.
+% nguồn: scripts/report_numbers/rlock_analyze.py ns/CS tas N=11 OW=0 p=4: 39,53; t(N=11) 4,60 ns (lockunit); 39,53/4,60 = 8,6;
+% 39,53/5\,163 = 0,77 %.
+% nguồn: scripts/report_numbers/rlock_analyze.py, fairness N=1009 tas p=10: OW=0 0,32; OW=3 0,91. Thêm: OW=1 p=8 thông lượng
+% ttas 1,41 M/s, tas 0,467 M/s (locktime-ow1: 0,975 s và 2,94 s).
+
+\emph{Dự đoán.} D2.1 đúng một nửa. TAS chậm hơn TTAS khi nhiều thread chờ. Nhưng MCS không nhanh nhất
+khi chưa vượt số core, mà chậm nhất từ 6 thread và sụp ngay tại số core. D2.2 đúng cho TAS và TTAS. D2.3
+chỉ đúng khi $1+\mathrm{OW} \le 4$. Xa hơn, máy giới hạn trước lock. D2.4 đúng, và MCS sụp sớm hơn dự
+kiến.
+
+\emph{Độ vững.} Cả bảy lần chạy MCS 10 thread đều chậm 7,1--15,5 lần cận dưới. Các điểm MCS vượt số
+core ở $N = 11$ không đo được sự sụp đổ. Lần chạy đầu vượt thời hạn 30~s, còn các lần sau giảm vòng lặp tới
+mức hàng đợi không kịp hình thành. Với $\mathrm{OW} \ge 7$, MCS vượt số core cho kết quả hai cực, nên
+chỉ khoảng min--max đáng tin.
+% nguồn: lock.csv, mcs p=10 OW=0 N=1009 iters=34\,366: 1,241..2,727 s, cận dưới 0,1755 s.
+% 6 dòng timeout: mcs N=11 OW=0/3 p=12/16/20, iters 4\,522/3\,391/2\,713; lần sau 45/33/27 vòng, ~0,1 ms.
+% mcs p=16 OW=15: 4 lần < 10 ms, 3 lần 2,0..10,6 s.
+
+% ================================================================================================
+\subsubsection{RQ3: Backoff giúp hay hại, và lock nhanh nhất có công bằng không?}
+
+\begin{rqanswer}\textbf{Trả lời RQ3.} Backoff giúp TAS và gần như không đổi gì với TTAS. Ở 20 thread
+($N = 1009$, $\mathrm{OW} = 0$), backoff bằng \texttt{sleep\_for} đưa TAS từ 12,2~s xuống 3,78~s. Lợi
+ích đến từ việc lock gần như không đổi chủ, nên lock nhanh nhất lại kém công bằng nhất. Khi có việc
+ngoài critical section và tranh chấp vừa phải, backoff làm chậm. Kết luận chỉ áp dụng cho
+\PCname{apple-m5}.\end{rqanswer}
+% nguồn: locktime p=20: tas 12,2; tas_bo_sleep 3,78.
+
+\PCfigure{apple-m5}{lock_backoff}
+
+\emph{Bằng chứng.} Ở $\mathrm{OW} = 0$ (Hình~\ref{fig:apple-m5:lock_backoff}, cột trái),
+\PCname{tas_bo_sleep} và \PCname{tas_bo_yield} chỉ mất khoảng 0,31 lần thời gian của TAS ở 20 thread,
+còn các biến thể của TTAS nằm trong 0,87--1,15 lần TTAS. Ở $\mathrm{OW} = 3$ và 4--6 thread, backoff làm
+TAS chậm hơn. Ở 20 thread, TAS có backoff lại nhanh hơn.
+% nguồn: locktime p=20: 3,78/12,2 = 0,31; 3,95/12,2 = 0,32. scripts/report_numbers/rlock_analyze.py tỉ số ttas_bo_*/ttas OW=0:
+% 0,87..1,15. OW=3 so với tas: tas_bo_sleep p=4/6 1,32/1,33, tas_bo_spin 1,29/1,49; p=20 0,69/0,55.
+
+\PCfigure{apple-m5}{lock_fairness}
+
+Ở $\mathrm{OW} = 0$, MCS giữ độ công bằng 1 tới 10 thread (Hình~\ref{fig:apple-m5:lock_fairness}). Độ
+công bằng của \PCname{tas_bo_sleep} bằng đúng $1/p$, tới 0,05 ở 20 thread, tức là các thread chạy xong lần lượt
+từng thread một. TAS và TTAS cũng thiên vị thread vừa nhả lock, và \PCname{os_unfair_lock}, lock thư
+viện nhanh nhất, kém công bằng nhất trong ba lock thư viện.
+% nguồn: scripts/report_numbers/rlock_analyze.py, fairness N=1009 OW=0: mcs p=2..10 1,00; tas_bo_sleep p=2/4/10/20 0,50/0,25/0,10/0,05;
+% tas p=2 0,50; os_unfair_lock p=20 0,20; std_mutex 0,78..0,97.
+
+\emph{Vì sao.} Các biến thể \PCname{tas_bo_*} lùi lại sau mọi lần \texttt{exchange} thất bại, kể cả khi
+lock chỉ đang bị giữ, nên thread chờ gần như luôn ngủ hoặc nhường core. Các biến thể \PCname{ttas_bo_*}
+chỉ lùi lại sau một lần \texttt{exchange} thua và vẫn đọc liên tục như TTAS (mục Cài đặt). Một lần
+\texttt{sleep\_for} yêu cầu 100~ns thật ra ngủ 2\,670~ns, đủ để chủ lock chạy khoảng năm critical section
+511~ns liền nhau. Độ công bằng $1/p$ là bằng chứng trực tiếp.
+% nguồn: sleeplatency: sleep_for 100 ns trung vị 2\,670 ns; lockunit t = 511 ns; 2\,670/511 = 5,2.
+
+Khi $\mathrm{OW} > 0$, lock rảnh trong lúc thread chờ còn ngủ ít nhất 2,5~$\mu$s. Ở tranh chấp vừa
+phải, đó là thời gian mất, còn ở số thread lớn luôn có thread sẵn sàng.
+% nguồn: sleeplatency: sleep_for 1..1000 ns nhỏ nhất 2\,500..3\,040 ns.
+Khi vượt số core, thread MCS bị lấy core giữa \texttt{release} và \texttt{acquire} không nằm trong hàng
+đợi, nên ở $\mathrm{OW} = 15$ và 20 thread MCS có độ công bằng thấp nhất.
+% nguồn: scripts/report_numbers/rlock_analyze.py, fairness N=1009 OW=15 mcs p=16/20: 0,29/0,26 (thấp nhất trong 12 lock).
+
+Khi vượt số core và $\mathrm{OW} \ge 3$, \PCname{ttas_bo_sleep} chậm khoảng 6 lần TTAS. Nhóm giả thuyết
+rằng ở biến thể này một phần thread chờ quay đọc và chiếm core, phần khác ngủ. Thread vừa thức dậy sau
+khi ngủ có thể giành core của chủ lock. Trong lúc chủ lock không chạy, các thread quay đọc đốt hết
+lượt của mình. Hai số đo ủng hộ giả thuyết này. \PCname{ttas_bo_yield}, chỉ khác ở chỗ nhường core thay vì ngủ, không
+chậm hơn TTAS (1,97~s so với 2,42~s ở 20 thread, $\mathrm{OW} = 3$). \PCname{tas_bo_sleep}, nơi mọi
+thread chờ đều ngủ, cũng không bị. Đếm số lần chủ lock bị lấy core trong lúc giữ lock sẽ kiểm tra giả
+thuyết này.
+% nguồn: tables.tex locktime-ow3 p=20: ttas_bo_yield 1,97, ttas 2,42, ttas_bo_sleep 16,4; tas_bo_sleep
+% 4,27 so với tas 6,20; p=16 ttas_bo_sleep 10,4, ttas 1,70.
+
+\emph{Dự đoán.} D3.1 đúng. D3.2 đúng khi $\mathrm{OW} = 0$. Khi $\mathrm{OW} > 0$, nó chỉ đúng ở tranh
+chấp vừa phải, sai ở số thread lớn. D3.3 đúng khi mọi thread được chạy. Khi vượt số core, MCS lại kém
+công bằng nhất.
+
+\emph{Độ vững.} Kết quả của \PCname{ttas_bo_sleep} khi vượt số core phân tán mạnh giữa các lần lặp.
+Đổi lệnh chờ \texttt{isb} thành \texttt{yield} không tạo khác biệt vượt độ phân tán.
+% nguồn: tables.tex locktime-ow3 p=16/20: ttas_bo_sleep 10,4/16,4, ttas 1,70/2,42; lock.csv ttas_bo_sleep
+% p=16 OW=3: 0,259..4,510 s. lock_yield.csv vs lock.csv: trung vị tỉ số 0,86..1,09, min..max 0,69..2,17.

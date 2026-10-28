@@ -1,0 +1,67 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=37995)
+  Read of size 8 at 0x00016b98e700 by thread T8:
+    #0 std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::stress_run<(anonymous namespace)::mutant_counter>(char const*, char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&) function.h:174 (counter_muttsan_lock_read_outside:arm64+0x100005a44)
+    #1 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()>>(void*) thread.h:168 (counter_muttsan_lock_read_outside:arm64+0x100004e1c)
+
+  Previous write of size 8 at 0x00016b98e700 by thread T9 (mutexes: write M0):
+    #0 std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::stress_run<(anonymous namespace)::mutant_counter>(char const*, char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&) function.h:174 (counter_muttsan_lock_read_outside:arm64+0x100005a5c)
+    #1 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()>>(void*) thread.h:168 (counter_muttsan_lock_read_outside:arm64+0x100004e1c)
+
+  Location is stack of main thread.
+
+  Mutex M0 (0x00016b98e680) created at:
+    [failed to restore the stack]
+
+  Thread T8 (tid=4075304, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 std::__1::thread::thread[abi:nqe210106]<pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'(), 0>(pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()&&) thread.h:216 (counter_muttsan_lock_read_outside:arm64+0x100004c80)
+    #2 pc::timed_run(int, std::__1::function<void (int)> const&) bench_common.hpp:55 (counter_muttsan_lock_read_outside:arm64+0x100003ef4)
+    #3 main test_counter.cpp:493 (counter_muttsan_lock_read_outside:arm64+0x100001028)
+
+  Thread T9 (tid=4075305, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 std::__1::thread::thread[abi:nqe210106]<pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'(), 0>(pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()&&) thread.h:216 (counter_muttsan_lock_read_outside:arm64+0x100004c80)
+    #2 pc::timed_run(int, std::__1::function<void (int)> const&) bench_common.hpp:55 (counter_muttsan_lock_read_outside:arm64+0x100003ef4)
+    #3 main test_counter.cpp:493 (counter_muttsan_lock_read_outside:arm64+0x100001028)
+
+SUMMARY: ThreadSanitizer: data race function.h:174 in std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::stress_run<(anonymous namespace)::mutant_counter>(char const*, char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&)
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=37995)
+  Read of size 8 at 0x00016b98e700 by thread T36:
+    #0 std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::realtime_run<(anonymous namespace)::mutant_counter>(char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&) function.h:174 (counter_muttsan_lock_read_outside:arm64+0x1000051b4)
+    #1 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()>>(void*) thread.h:168 (counter_muttsan_lock_read_outside:arm64+0x100004e1c)
+
+  Previous write of size 8 at 0x00016b98e700 by thread T34 (mutexes: write M0):
+    #0 std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::realtime_run<(anonymous namespace)::mutant_counter>(char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&) function.h:174 (counter_muttsan_lock_read_outside:arm64+0x1000051cc)
+    #1 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()>>(void*) thread.h:168 (counter_muttsan_lock_read_outside:arm64+0x100004e1c)
+
+  Location is stack of main thread.
+
+  Mutex M0 (0x00016b98e680) created at:
+    [failed to restore the stack]
+
+  Thread T36 (tid=4075591, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 std::__1::thread::thread[abi:nqe210106]<pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'(), 0>(pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()&&) thread.h:216 (counter_muttsan_lock_read_outside:arm64+0x100004c80)
+    #2 pc::timed_run(int, std::__1::function<void (int)> const&) bench_common.hpp:55 (counter_muttsan_lock_read_outside:arm64+0x100003ef4)
+    #3 main test_counter.cpp:493 (counter_muttsan_lock_read_outside:arm64+0x100001340)
+
+  Thread T34 (tid=4075589, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 std::__1::thread::thread[abi:nqe210106]<pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'(), 0>(pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()&&) thread.h:216 (counter_muttsan_lock_read_outside:arm64+0x100004c80)
+    #2 pc::timed_run(int, std::__1::function<void (int)> const&) bench_common.hpp:55 (counter_muttsan_lock_read_outside:arm64+0x100003ef4)
+    #3 main test_counter.cpp:493 (counter_muttsan_lock_read_outside:arm64+0x100001340)
+
+SUMMARY: ThreadSanitizer: data race function.h:174 in std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::realtime_run<(anonymous namespace)::mutant_counter>(char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&)
+==================
+test_counter: 10 hardware threads, small sizes, time budget 3.0 s per run
+FAIL  lock_read_outside: stress run, 10 threads, 80000 increments: [final] get() = 18627, expected 80000; [duplicate] 61373 (e.g. value 94); [missing] 61373 (e.g. value 18627); [order] 6046 values not above the thread's previous value;
+FAIL  lock_read_outside: oversubscribed run, 20 threads, 80000 increments: [final] get() = 5211, expected 80000; [duplicate] 74789 (e.g. value 12); [missing] 74789 (e.g. value 5211); [order] 6853 values not above the thread's previous value;
+FAIL  lock_read_outside: real-time run, 10 threads, 20000 increments: [final] get() = 5004, expected 20000; [duplicate] 14996 (e.g. value 7); [missing] 14996 (e.g. value 5004); [order] 3476 values not above the thread's previous value;
+FAIL  lock_read_outside: real-time oversubscribed run, 20 threads, 20000 increments: [final] get() = 2008, expected 20000; [duplicate] 17992 (e.g. value 23); [missing] 17992 (e.g. value 2008); [order] 3531 values not above the thread's previous value;
+FAIL  lock_read_outside      threads 1 / 10 / 20,    208000 increments checked, 0.27 s
+CHECKS_FIRED: final duplicate missing order
+MUTANT lock_read_outside: caught by the value checks
+ThreadSanitizer: reported 2 warnings

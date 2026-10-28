@@ -1,0 +1,32 @@
+% Mục 7: Các yếu tố đe dọa độ tin cậy, ba đoạn Construct/Internal/External. Mỗi giới hạn chỉ nêu ở
+% đây. Nguồn: results/apple-m5/{campaign.log, lock.csv, counter.csv, barrier.csv}, tables.tex
+% (campaign, lockunit, locksingle). Số tự tính: scripts/report_numbers/corr_stats.py, scripts/report_numbers/corr_stats2.py.
+
+\emph{Construct validity.} Cận dưới của phần lock dùng $t$ đo ở 1 thread, nên chứa chi phí lấy và nhả
+lock của lock nhanh nhất. Ở $N=11$, chi phí này chênh 41\,\% giữa các lock. Cận dưới còn bỏ qua giới hạn
+10 core khi $p > 10$ và $\text{OW} > 0$. Ở 20 thread và $\text{OW}=15$, sàn thật cao hơn cận dưới vẽ
+trên hình 1,6 lần. Phép quy về cùng số vòng lặp giả định thời gian tỉ lệ với số vòng. Giả định này yếu nhất
+ở MCS quá tải (27--45 vòng mỗi thread) và ở các ô barrier sụp đổ (50--69 episode mỗi lần chạy). Ở các
+ô có lần vượt thời hạn, trung vị tính cả lần đó ở dạng cận dưới, nên khác trung vị chỉ trên các lần
+chạy thành công. Ở $\text{OW}=8$, thời gian của mọi counter, kể cả \PCname{faa}, tăng ít nhất gấp đôi
+từ 4 lên 10 thread. Nhóm không có phép đo đối chứng không counter để tách phần do E-core.
+% nguồn: locksingle N=11: 6,50/4,60 = 1,41; sàn 20 thread OW=15: p(1+OW)It/10 = 32It so với
+% max(p,1+OW)It = 20It -> 1,6; calibration.json (reduced|lock|mcs: 45/33/27); barrier.csv (sr,
+% sr_bo_spin, 12-20 thread: iters 69/66/50); counter.csv OW=8, giây/iters trung vị 10 thread / 4 thread:
+% faa 2,13 (nhỏ nhất) .. lock_mcs 6,44
+
+\emph{Internal validity.} macOS không cho ghim thread, và \PCname{apple-m5} có 4 P-core và 6 E-core. Ở
+$N=1009$, thời gian một lời gọi trong 420 lần chạy 1 thread đi từ 468 tới 1\,713~ns. Nhóm cho rằng độ
+phân tán này phần lớn do thread rơi vào E-core, nhưng không tách được ảnh hưởng của E-core với tải nền.
+Load average ghi trong các dòng số liệu của phần lock nằm trong 12,4--51,2, cao hơn số thread của chính
+lần chạy. Phần lớn có thể do load average còn mang các lần chạy 20 thread trước đó. Nhóm không tách
+được phần do tiến trình nền. Nhóm không đọc nhiệt độ hay tần số CPU. Thời gian 1 thread không trôi quá
+3,4\,\% qua 7 lượt lặp. Với 7 lần lặp, nhóm không tính khoảng tin cậy. Trung vị che phân bố hai đỉnh và
+đuôi chậm, chỉ thanh min--max cho thấy phần này.
+% nguồn: scripts/report_numbers/corr_stats2.py (lock.csv, threads=1, n=1009); lock.csv cột load1: 12,42..51,18; scripts/report_numbers/corr_stats.py (tỉ số
+% theo lượt 0,977..1,034)
+
+\emph{External validity.} Mọi số đo đến từ một máy ARM, một compiler (Apple clang 21, \texttt{-O2}) và
+một hệ điều hành. Trên x86, với g++ hay với scheduler khác, thứ hạng có thể đổi. \texttt{is\_prime}
+không chạm dữ liệu dùng chung, trong khi critical section thật thường ghi dữ liệu dùng chung, nên chi phí
+chuyển giao lock thực tế có thể lớn hơn.

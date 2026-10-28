@@ -1,0 +1,13 @@
+% Phụ lục: ghi chú build. Nguồn: results/apple-m5/{campaign.log, machine.txt}, Makefile, mk/zz_pack.mk.
+
+Trên \PCname{apple-m5}, đợt đo dài 1 giờ 25 phút 45 giây (12\,152 lần chạy), gồm cả các lần chạy thử hiệu chỉnh. Lệnh đã dùng là
+\texttt{python3 scripts/run\_bench.py --relax-yield --host apple-m5 --wait 30}, tương đương
+\texttt{make bench} cộng lượt tùy chọn \texttt{make bench-relax}. \texttt{make bench-dry} in lưới và thời
+gian ước tính mà không đo.
+% nguồn: campaign.log (START argv=..., END duration=1:25:45)
+
+Nền tảng gồm macOS 27.0.1, Apple clang 21.0.0, Python 3.14.8 (chạy đo chỉ cần thư viện chuẩn).
+Apple clang không nhận \texttt{-fopenmp} nên không có baseline OpenMP. \texttt{matplotlib} và
+\texttt{numpy} cài trong một môi trường ảo (\texttt{.venv}).
+% nguồn: results/apple-m5/machine.txt
+\TODO{thời gian make bench và ghi chú cài đặt trên máy của từng thành viên còn lại.}

@@ -1,0 +1,23 @@
+% Mục 4.1: Chiến lược kiểm tra. Nguồn: tests/*.cpp, mk/part{1,2,3}.mk,
+% results/apple-m5/{test,tsan,mutation}.log. Bản dài không đưa vào bài nộp.
+
+Nhóm kiểm hai nhóm tính chất. Tính an toàn (safety) nghĩa là không có hai thread
+cùng ở trong critical section, không thread nào ra khỏi barrier sớm, không giá trị counter nào bị trả
+về hai lần. Tính sống còn (liveness) nghĩa là chương trình không treo. Công bằng chỉ được đo.
+
+Cùng một bài kiểm tra dạng template chạy cho mọi cài đặt, kể cả lock và barrier của thư viện. Nhóm dùng bốn kỹ thuật:
+\begin{itemize}[nosep]
+  \item stress test với 1 thread, số luồng phần cứng và gấp đôi số đó (trên \PCname{apple-m5}: 1, 10,
+    20), để thread bị tước core giữa giao thức;
+  \item watchdog, thread giám sát báo \texttt{FAIL} khi bài kiểm tra ngừng tiến triển;
+  \item ThreadSanitizer (TSan), công cụ của compiler báo hai truy cập không atomic xung đột mà không có
+    quan hệ happens-before; atomic riêng của bài kiểm tra dùng \texttt{relaxed} để không tự tạo thứ tự;
+  \item mutation testing, chạy bộ kiểm tra trên các biến thể cố ý làm hỏng.
+\end{itemize}
+Barrier dùng thêm schedule fuzzing. Counter dùng thêm phép kiểm thứ tự thời gian thực.
+
+Trên \PCname{apple-m5}, \texttt{make test} và \texttt{make tsan} đạt cho 12/12 lock, 7/7 barrier và
+19/19 counter, và TSan không báo data race nào. \texttt{make mutation} bắt cả 14 biến thể hỏng. Đầu ra nằm trong
+\texttt{results/<máy>/}.
+\TODO{kết quả make test, make tsan, make mutation trên máy của các thành viên còn lại (nhất là một máy
+x86-64 và một máy Linux).}

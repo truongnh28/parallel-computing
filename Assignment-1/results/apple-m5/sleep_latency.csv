@@ -1,0 +1,13 @@
+host,os,arch,what,requested_ns,samples,min_ns,median_ns,p99_ns,max_ns
+apple-m5,macOS,arm64,clock,0,20000,0.0,41.0,42.0,8334.0
+apple-m5,macOS,arm64,sleep_for,1,2000,3042.0,13208.0,20417.0,144583.0
+apple-m5,macOS,arm64,sleep_for,10,2000,2500.0,4000.0,17709.0,39000.0
+apple-m5,macOS,arm64,sleep_for,100,2000,2541.0,2667.0,8166.0,21458.0
+apple-m5,macOS,arm64,sleep_for,1000,2000,2541.0,2667.0,7416.0,39583.0
+apple-m5,macOS,arm64,sleep_for,10000,2000,13625.0,14667.0,19958.0,27834.0
+apple-m5,macOS,arm64,sleep_for,100000,1000,113292.0,128250.0,134458.0,182458.0
+apple-m5,macOS,arm64,sleep_for,1000000,200,1063041.0,1261458.0,1279417.0,1280167.0
+apple-m5,macOS,arm64,yield,0,20000,125.0,208.0,625.0,92625.0
+apple-m5,macOS,arm64,cpu_relax,0,2000,8.5,9.6,21.4,47.8
+apple-m5,macOS,arm64,isb,0,2000,10.2,12.1,21.2,57.9
+apple-m5,macOS,arm64,yield_insn,0,2000,0.2,0.3,0.4,0.4

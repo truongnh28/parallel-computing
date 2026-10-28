@@ -1,0 +1,35 @@
+mutant thread_local_sense (PC_MUTANT=5, plain), 10 hardware threads
+  thread_local_sense     single     threads=1   episodes=500       0.00 s
+  thread_local_sense     reuse      threads=4   episodes=15000     0.14 s
+  thread_local_sense     all-cores  threads=10  episodes=5000      0.33 s
+  thread_local_sense     jitter     threads=4   episodes=2500      0.01 s
+  thread_local_sense     oversub    threads=20  episodes=20        0.08 s
+FAIL thread_local_sense [handoff]: WRONG VALUE, thread 0 passed barrier a of round 2 and read 1 from thread 1
+==================
+WARNING: ThreadSanitizer: data race (pid=37085)
+  Write of size 8 at 0x000109941d00 by thread T48:
+    #0 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'()>>(void*) thread.h:168 (barrier_mut5_tsan:arm64+0x100004704)
+
+  Previous read of size 8 at 0x000109941d00 by thread T46:
+    #0 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'()>>(void*) thread.h:168 (barrier_mut5_tsan:arm64+0x10000479c)
+
+  Location is heap block of size 512 at 0x000109941c00 allocated by main thread:
+    #0 operator new(unsigned long, std::align_val_t) <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x919dc)
+    #1 long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool) test_barrier.cpp:443 (barrier_mut5_tsan:arm64+0x100002c9c)
+    #2 main test_barrier.cpp:520 (barrier_mut5_tsan:arm64+0x1000010f8)
+
+  Thread T48 (tid=4072001, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 void std::__1::allocator_traits<std::__1::allocator<std::__1::thread>>::construct[abi:nqe210106]<std::__1::thread, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'(), 0>(std::__1::allocator<std::__1::thread>&, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)*, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'()&&) allocator_traits.h:302 (barrier_mut5_tsan:arm64+0x10000451c)
+    #2 long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool) test_barrier.cpp:447 (barrier_mut5_tsan:arm64+0x100002f20)
+    #3 main test_barrier.cpp:520 (barrier_mut5_tsan:arm64+0x1000010f8)
+
+  Thread T46 (tid=4071999, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 void std::__1::allocator_traits<std::__1::allocator<std::__1::thread>>::construct[abi:nqe210106]<std::__1::thread, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'(), 0>(std::__1::allocator<std::__1::thread>&, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)*, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'()&&) allocator_traits.h:302 (barrier_mut5_tsan:arm64+0x10000451c)
+    #2 long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool) test_barrier.cpp:447 (barrier_mut5_tsan:arm64+0x100002f20)
+    #3 main test_barrier.cpp:520 (barrier_mut5_tsan:arm64+0x1000010f8)
+
+SUMMARY: ThreadSanitizer: data race thread.h:168 in void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'()>>(void*)
+==================
+ThreadSanitizer: reported 1 warnings

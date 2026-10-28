@@ -1,0 +1,37 @@
+mutant fetch_add_release_only (PC_MUTANT=4, plain), 10 hardware threads
+  fetch_add_release_only single     threads=1   episodes=500       0.00 s
+  fetch_add_release_only reuse      threads=4   episodes=15000     0.05 s
+  fetch_add_release_only all-cores  threads=10  episodes=5000      0.39 s
+  fetch_add_release_only jitter     threads=4   episodes=2500      0.01 s
+  fetch_add_release_only oversub    threads=20  episodes=20        0.08 s
+==================
+WARNING: ThreadSanitizer: data race (pid=37053)
+  Read of size 8 at 0x00010d987800 by thread T49:
+    #0 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'()>>(void*) thread.h:168 (barrier_mut4_tsan:arm64+0x100004904)
+
+  Previous write of size 8 at 0x00010d987800 by thread T46:
+    #0 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'()>>(void*) thread.h:168 (barrier_mut4_tsan:arm64+0x100004860)
+
+  Location is heap block of size 512 at 0x00010d987800 allocated by main thread:
+    #0 operator new(unsigned long, std::align_val_t) <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x919dc)
+    #1 long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool) test_barrier.cpp:443 (barrier_mut4_tsan:arm64+0x100002d04)
+    #2 main test_barrier.cpp:520 (barrier_mut4_tsan:arm64+0x100001058)
+
+  Thread T49 (tid=4071036, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 void std::__1::allocator_traits<std::__1::allocator<std::__1::thread>>::construct[abi:nqe210106]<std::__1::thread, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'(), 0>(std::__1::allocator<std::__1::thread>&, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)*, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'()&&) allocator_traits.h:302 (barrier_mut4_tsan:arm64+0x10000468c)
+    #2 long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool) test_barrier.cpp:447 (barrier_mut4_tsan:arm64+0x100002f88)
+    #3 main test_barrier.cpp:520 (barrier_mut4_tsan:arm64+0x100001058)
+
+  Thread T46 (tid=4071033, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 void std::__1::allocator_traits<std::__1::allocator<std::__1::thread>>::construct[abi:nqe210106]<std::__1::thread, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'(), 0>(std::__1::allocator<std::__1::thread>&, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)*, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'()&&) allocator_traits.h:302 (barrier_mut4_tsan:arm64+0x10000468c)
+    #2 long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool) test_barrier.cpp:447 (barrier_mut4_tsan:arm64+0x100002f88)
+    #3 main test_barrier.cpp:520 (barrier_mut4_tsan:arm64+0x100001058)
+
+SUMMARY: ThreadSanitizer: data race thread.h:168 in void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void (anonymous namespace)::launch<long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int)>(bool, int, long (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long, bool, bool)::'lambda'(int))::'lambda'()>>(void*)
+==================
+  fetch_add_release_only handoff    threads=4   episodes=5000      0.14 s
+PASS fetch_add_release_only (28020 barrier episodes checked)
+SURVIVED fetch_add_release_only: no check failed
+ThreadSanitizer: reported 1 warnings

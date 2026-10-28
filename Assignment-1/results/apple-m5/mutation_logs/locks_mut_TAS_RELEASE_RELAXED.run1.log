@@ -1,0 +1,5 @@
+# test_locks on QGM0224 (arm64, macOS, clang-21.0), 10 hardware threads
+# per lock: mutual exclusion with fixed iterations (1, 2, 10 threads), then 300 ms timed runs;
+# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)
+PASS  tas                4t:   5313243 acq, max/min 1.02     10t:   1703410 acq, max/min 1.56     20t:   1040642 acq, max/min 2.09   
+# 1 lock(s) tested, 0 failed

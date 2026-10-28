@@ -1,0 +1,15 @@
+% Mục 4.2: Kiểm tra mutex lock. Nguồn: tests/test_locks.cpp, results/apple-m5/test.log, tsan.log.
+
+Trong critical section, bài kiểm tra tăng một biến đếm không atomic (đọc, cộng một, ghi) và đếm số
+thread đang ở bên trong. Vi phạm hiện ra trực tiếp, hoặc qua một lần cập nhật bị mất. Nhóm chạy phép kiểm với số vòng cố định (1, 2 và 10
+thread) và trong 300~ms với 4, 10 và 20 thread. Lượt 20 thread thử lock khi quá tải. Watchdog kết thúc
+một bài kiểm tra con sau 20~s và báo deadlock.
+
+Từ số lần lấy lock của từng thread, bài kiểm tra in tỉ số max/min (1,00 là chia đều). Khi mỗi thread
+có một core, \PCname{mcs} chia gần như đều (1,00 ở 4 thread, 1,01 ở 10 thread), đúng tính chất FIFO
+của hàng đợi MCS~\cite{mellorcrummey1991mcs}. Ở 20 thread, MCS chỉ lấy lock 15\,221 lần trong 300~ms
+(so với 2\,705\,564 lần ở 4 thread) với tỉ số 311,40, vì lock được trao cho một thread không có core.
+% nguồn: results/apple-m5/test.log, dòng mcs (một lần chạy 300 ms mỗi ô)
+
+Trên \PCname{apple-m5}, cả 12 lock đạt mọi bài kiểm tra con, kể cả khi quá tải. Dưới TSan cả 12 lock
+đạt và không có cảnh báo.

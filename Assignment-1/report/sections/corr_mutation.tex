@@ -1,0 +1,56 @@
+% Mục 4.5: Mutation testing, trả lời RQ1. Nguồn: results/apple-m5/mutation.log (toàn bộ).
+% Số episode lúc bắt lỗi: build/barrier_mut2.run{2,5}.log, build/barrier_mut2_fuzz.run1.log (cùng
+% lượt make mutation, không nằm trong results/).
+
+\begin{rqanswer}\textbf{Trả lời RQ1.} Có. Trên \texttt{apple-m5}, mọi cài đặt (12 lock, 7 barrier,
+19 counter) đạt mọi bài kiểm tra và TSan không báo data race nào. Bộ kiểm tra bắt cả 14/14 biến thể cố
+ý làm hỏng. Riêng hai lỗi memory order thì stress test chỉ bắt được 1 trong 8 lần chạy. TSan bắt được
+cả hai. Dự đoán D1.1 đúng. Kết luận dựa trên một lượt kiểm tra trên một máy ARM.\end{rqanswer}
+% nguồn: mutation.log: TAS_RELEASE_RELAXED stress 0/3, fetch_add_release_only plain 1/5 -> 1/8.
+
+Mỗi biến thể sửa đúng một chỗ của một thuật toán đúng. Bảng~\ref{tab:corr:mutation} tóm tắt kết quả.
+
+\begin{table}[tbp]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+% nguồn: results/apple-m5/mutation.log
+\begin{tabularx}{\linewidth}{@{}>{\ttfamily}l>{\raggedright\arraybackslash}Xlll@{}}
+\toprule
+\normalfont\textbf{Biến thể} & \textbf{Lỗi cài vào} & \textbf{Stress (+ fuzzing)} & \textbf{TSan} & \textbf{Bị bắt bởi} \\
+\midrule
+TAS\_CHECK\_THEN\_SET & \texttt{load} rồi \texttt{store} thay \texttt{exchange} & 3/3 vi phạm loại trừ & race & cả hai \\
+TAS\_RELEASE\_RELAXED & nhả lock bằng \texttt{store} relaxed & 0/3 & race & chỉ TSan \\
+MCS\_NO\_WAIT\_SUCCESSOR & nhả lock không chờ thread kế tiếp & 3/3 treo & không & stress \\
+MCS\_ALWAYS\_CLEAR\_TAIL & luôn đặt \texttt{tail} về null & 3/3 treo & race & cả hai \\
+\midrule
+single\_flag & một cờ, không đảo chiều & 5/5 (5/5) sai episode & không & stress \\
+flip\_before\_reset & đảo \texttt{sense} trước khi đặt lại bộ đếm & 2/5 (5/5) treo & không & stress \\
+nonatomic\_count & \texttt{load}+\texttt{store} thay \texttt{fetch\_add} & 5/5 (5/5) treo & không & stress \\
+fetch\_add\_release\_only & \texttt{fetch\_add} release thay acq\_rel & 1/5 (0/5) sai episode & race & chủ yếu TSan \\
+thread\_local\_sense & local sense chung cho mọi barrier & 5/5 (5/5) sai giá trị handoff & race & cả hai \\
+\midrule
+plain\_long & \texttt{long} thường & 3/3 final, dup, miss, order & race & cả hai \\
+load\_store & \texttt{load} rồi \texttt{store} atomic & 3/3 final, dup, miss, order & không & kiểm giá trị \\
+cas\_no\_retry & CAS một lần, không thử lại & 3/3 final, dup, miss & không & kiểm giá trị \\
+lock\_read\_outside & đọc giá trị trước \texttt{acquire()} & 3/3 final, dup, miss, order & race & cả hai \\
+block\_reserve & giữ trước 8 giá trị mỗi thread & 3/3 chỉ real-time & không & kiểm giá trị \\
+\bottomrule
+\end{tabularx}
+\caption{Mutation testing trên \texttt{apple-m5}: lock (trên), barrier (giữa), counter (dưới). Cột
+stress: số lần chạy bắt được trên số lần chạy (trong ngoặc: bản schedule fuzzing) và dấu hiệu; với counter
+là các phép kiểm báo lỗi (final, duplicate, missing, order, real-time). Cột TSan: có báo data race không.}
+\label{tab:corr:mutation}
+\end{table}
+
+Hai biến thể chỉ TSan bắt ổn định đều là lỗi memory order. \texttt{TAS\_RELEASE\_RELAXED} đổi lệnh
+nhả lock \texttt{stlrb} (store release) thành \texttt{strb}. Ba lần chạy không có cập nhật nào bị mất,
+và trên x86-64 biến thể này sinh đúng lệnh của bản đúng. TSan bắt nó vì store relaxed không tạo cạnh
+happens-before giữa hai chủ lock liên tiếp. \texttt{fetch\_add\_release\_only} đổi \texttt{ldaddal}
+thành \texttt{ldaddl}, nên thread tới cuối có thể đọc ô của thread khác trước khi \texttt{fetch\_add}
+của nó có hiệu lực. TSan bắt nó qua các ô thường của phép kiểm handoff. Ngược lại, TSan im lặng với bảy
+biến thể chỉ dùng atomic hoặc gây treo. Không kỹ thuật nào một mình bắt được mọi biến thể.
+
+Dự đoán D1.1 đúng ở cả ba ý. Stress test hoặc phép kiểm giá trị bắt mọi lỗi thuật toán. Hai lỗi memory
+order chỉ lộ 1 trong 8 lần chạy và cần TSan. Bốn lỗi treo (hai biến thể MCS, \texttt{flip\_before\_reset},
+\texttt{nonatomic\_count}) hiện ra qua watchdog. D1.1 không lường trước một điều. Fuzzing làm
+\texttt{flip\_before\_reset} treo sau 5 episode (bản thường cần 39\,896 và 289\,052 episode), nhưng làm
+lỗi thiếu acquire biến mất (0/5).
+% nguồn: build/barrier_mut2.run{2,5}.log, build/barrier_mut2_fuzz.run1.log (cùng lượt make mutation)

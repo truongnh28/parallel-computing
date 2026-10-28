@@ -1,0 +1,5 @@
+# test_locks on QGM0224 (arm64, macOS, clang-21.0), 10 hardware threads, small sizes
+# per lock: mutual exclusion with fixed iterations (1, 2, 10 threads), then 100 ms timed runs;
+# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)
+
+FAIL  mcs fixed-iters threads=2 iters=10000: DEADLOCK -- not finished after 10 s (watchdog)

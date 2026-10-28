@@ -1,0 +1,37 @@
+% Mục 2: Nền tảng thí nghiệm. Nguồn: results/apple-m5/machine.txt, results/apple-m5/campaign.log,
+% include/platform.hpp, Makefile.
+
+Đề yêu cầu số nền tảng shared-memory không ít hơn số thành viên. Báo cáo này có số đo của
+\PCval{cross}{nhosts} máy, \PCname{apple-m5}. Mỗi thành viên thêm máy của mình bằng cách chạy
+\texttt{make bench} trên máy rảnh, gửi lại thư mục \texttt{results/<tên máy>/} và thêm tên máy vào
+danh sách máy của báo cáo. Bảng cấu hình (Bảng~\ref{tab:cross:machines}) và các hình của máy mới được
+sinh lại tự động. Mọi nhận định về hiệu năng dưới đây chỉ nói về \PCname{apple-m5}.
+\TODO{nhóm có mấy thành viên, và máy của các thành viên còn lại (sau khi họ chạy make bench)}
+
+Máy \PCname{apple-m5} là một Apple M5 với 10 core không đồng nhất, gồm 4 P-core (performance) và 6
+E-core (efficiency). Mỗi cụm có cache L2 riêng. Máy không có SMT. Ba đặc điểm của máy ảnh hưởng tới kết
+quả. Thứ nhất, khi số thread vượt 4, một phần thread chạy trên E-core chậm hơn, và cache line dùng chung
+phải đi qua lại giữa hai cụm. Thứ hai, macOS không cho gắn thread vào một core cố định, nên loại core
+của mỗi thread do scheduler quyết định và có thể đổi giữa các lần chạy. Nhóm giảm biến thiên này bằng
+cách lặp lại và lấy trung vị. Thứ ba, AArch64 có memory model yếu hơn x86-TSO. Các memory order khác
+nhau sinh ra các lệnh máy khác nhau (store \texttt{relaxed} là \texttt{str}, store \texttt{release} là
+\texttt{stlr}). Vì vậy lỗi chọn sai memory order có thể quan sát được trên máy này, trong khi trên x86 nó
+thường không bao giờ lộ ra. CPU có các lệnh atomic LSE của ARMv8.1, nên \texttt{fetch\_add} và
+\texttt{compare\_exchange} là một lệnh máy (\texttt{ldadd}, \texttt{cas}) chứ không phải vòng LL/SC.
+
+Hệ điều hành báo cache line, đơn vị dữ liệu mà phần cứng giữ nhất quán giữa các core, dài 128 byte.
+Mã nguồn đệm mọi biến dùng chung theo hằng \texttt{pc::kCacheLine}, bằng 128 trên Apple arm64 và 64
+trên nền tảng khác. Nhóm kiểm tra rằng kích thước và căn chỉnh của mọi kiểu lock và của nút hàng đợi
+MCS đều bằng 128 byte trên máy này.
+
+Phần mềm gồm macOS 27.0.1 và Apple clang 21.0.0 với cờ \texttt{-std=c++20 -O2}. Apple clang không nhận
+\texttt{-fopenmp}, và macOS không có \texttt{pthread\_spinlock\_t} hay \texttt{pthread\_barrier\_t}.
+Vì vậy các baseline trên máy này là \texttt{std::mutex}, \texttt{pthread\_mutex\_t}, \texttt{os\_unfair\_lock},
+\texttt{std::barrier} và barrier dựng từ mutex và condition variable.
+
+Toàn bộ số đo đến từ một đợt đo duy nhất dài 1 giờ 26 phút, gồm 12\,152 lần chạy. Mỗi cấu hình có
+7 lần lặp, và thứ tự các cấu hình xáo trộn trong từng lượt. Máy cắm sạc, chế độ tiết kiệm điện tắt, và
+không có tiến trình đo hay build nào khác chạy cùng lúc. Load average một phút lúc bắt đầu là 6,73,
+trong khoảng thường thấy của máy khi chỉ có ứng dụng nền. Không lần chạy nào sai kết quả kiểm tra.
+Có 9 lần vượt thời hạn, đều là cấu hình có MCS khi số thread vượt số core, và chúng được đo lại với số vòng
+lặp nhỏ hơn 100 lần (mục Phương pháp đo).

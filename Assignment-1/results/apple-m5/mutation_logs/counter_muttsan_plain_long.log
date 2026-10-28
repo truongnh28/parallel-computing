@@ -1,0 +1,61 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=37916)
+  Write of size 8 at 0x00016d90a700 by thread T3:
+    #0 std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::stress_run<(anonymous namespace)::mutant_counter>(char const*, char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&) function.h:174 (counter_muttsan_plain_long:arm64+0x100005984)
+    #1 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()>>(void*) thread.h:168 (counter_muttsan_plain_long:arm64+0x100004d7c)
+
+  Previous write of size 8 at 0x00016d90a700 by thread T9:
+    #0 std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::stress_run<(anonymous namespace)::mutant_counter>(char const*, char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&) function.h:174 (counter_muttsan_plain_long:arm64+0x100005984)
+    #1 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()>>(void*) thread.h:168 (counter_muttsan_plain_long:arm64+0x100004d7c)
+
+  Location is stack of main thread.
+
+  Thread T3 (tid=4074057, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 std::__1::thread::thread[abi:nqe210106]<pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'(), 0>(pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()&&) thread.h:216 (counter_muttsan_plain_long:arm64+0x100004be0)
+    #2 pc::timed_run(int, std::__1::function<void (int)> const&) bench_common.hpp:55 (counter_muttsan_plain_long:arm64+0x100003e54)
+    #3 main test_counter.cpp:493 (counter_muttsan_plain_long:arm64+0x100000fcc)
+
+  Thread T9 (tid=4074063, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 std::__1::thread::thread[abi:nqe210106]<pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'(), 0>(pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()&&) thread.h:216 (counter_muttsan_plain_long:arm64+0x100004be0)
+    #2 pc::timed_run(int, std::__1::function<void (int)> const&) bench_common.hpp:55 (counter_muttsan_plain_long:arm64+0x100003e54)
+    #3 main test_counter.cpp:493 (counter_muttsan_plain_long:arm64+0x100000fcc)
+
+SUMMARY: ThreadSanitizer: data race function.h:174 in std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::stress_run<(anonymous namespace)::mutant_counter>(char const*, char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&)
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=37916)
+  Write of size 8 at 0x00016d90a700 by thread T36:
+    #0 std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::realtime_run<(anonymous namespace)::mutant_counter>(char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&) function.h:174 (counter_muttsan_plain_long:arm64+0x10000511c)
+    #1 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()>>(void*) thread.h:168 (counter_muttsan_plain_long:arm64+0x100004d7c)
+
+  Previous write of size 8 at 0x00016d90a700 by thread T39:
+    #0 std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::realtime_run<(anonymous namespace)::mutant_counter>(char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&) function.h:174 (counter_muttsan_plain_long:arm64+0x10000511c)
+    #1 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()>>(void*) thread.h:168 (counter_muttsan_plain_long:arm64+0x100004d7c)
+
+  Location is stack of main thread.
+
+  Thread T36 (tid=4074107, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 std::__1::thread::thread[abi:nqe210106]<pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'(), 0>(pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()&&) thread.h:216 (counter_muttsan_plain_long:arm64+0x100004be0)
+    #2 pc::timed_run(int, std::__1::function<void (int)> const&) bench_common.hpp:55 (counter_muttsan_plain_long:arm64+0x100003e54)
+    #3 main test_counter.cpp:493 (counter_muttsan_plain_long:arm64+0x1000012ec)
+
+  Thread T39 (tid=4074110, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 std::__1::thread::thread[abi:nqe210106]<pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'(), 0>(pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()&&) thread.h:216 (counter_muttsan_plain_long:arm64+0x100004be0)
+    #2 pc::timed_run(int, std::__1::function<void (int)> const&) bench_common.hpp:55 (counter_muttsan_plain_long:arm64+0x100003e54)
+    #3 main test_counter.cpp:493 (counter_muttsan_plain_long:arm64+0x1000012ec)
+
+SUMMARY: ThreadSanitizer: data race function.h:174 in std::__1::__function::__func<(anonymous namespace)::Verdict (anonymous namespace)::realtime_run<(anonymous namespace)::mutant_counter>(char const*, int, long, double, double)::'lambda'(int), void (int)>::operator()(int&&)
+==================
+test_counter: 10 hardware threads, small sizes, time budget 3.0 s per run
+FAIL  plain_long: stress run, 10 threads, 80000 increments: [final] get() = 8031, expected 80000; [duplicate] 71926 (e.g. value 57); [missing] 71926 (e.g. value 8074); [order] 93 values not above the thread's previous value;
+FAIL  plain_long: oversubscribed run, 20 threads, 80000 increments: [final] get() = 5773, expected 80000; [duplicate] 74227 (e.g. value 787); [missing] 74227 (e.g. value 5773); [order] 110 values not above the thread's previous value;
+FAIL  plain_long: real-time run, 10 threads, 20000 increments: [final] get() = 2153, expected 20000; [duplicate] 17847 (e.g. value 58); [missing] 17847 (e.g. value 2153); [order] 228 values not above the thread's previous value;
+FAIL  plain_long: real-time oversubscribed run, 20 threads, 20000 increments: [final] get() = 854, expected 20000; [duplicate] 18972 (e.g. value 40); [missing] 18972 (e.g. value 1028); [order] 285 values not above the thread's previous value;
+FAIL  plain_long             threads 1 / 10 / 20,    208000 increments checked, 0.16 s
+CHECKS_FIRED: final duplicate missing order
+MUTANT plain_long: caught by the value checks
+ThreadSanitizer: reported 2 warnings

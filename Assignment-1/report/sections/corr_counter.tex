@@ -1,0 +1,18 @@
+% Mục 4.4: Kiểm tra concurrent counter. Nguồn: tests/test_counter.cpp, results/apple-m5/test.log,
+% tsan.log. Bẫy trình tối ưu: thí nghiệm phụ lúc phát triển (docs/part3.md mục 5.3, không trong results/).
+
+\texttt{increment()} trả về giá trị trước khi tăng. Nhóm lưu mọi giá trị trả về và kiểm rằng tập giá trị trả về đúng là $\{0,\dots,M-1\}$. Dãy của
+mỗi thread phải tăng ngặt. Ở một lượt riêng, nếu lần gọi A trả về trước khi B bắt đầu thì giá trị của A
+phải nhỏ hơn. Các phép kiểm
+này là bằng chứng linearizability~\cite{herlihy1990linearizability}. Tập giá trị đúng là
+$\{0,\dots,M-1\}$ khi và chỉ khi có một thứ tự tuần tự hợp lệ. Hai phép kiểm thứ tự xác nhận thứ tự
+đó tôn trọng thời gian thực.
+
+Ở \texttt{-O2}, compiler gộp một vòng tăng không atomic thành một lần đọc và một lần ghi, nên bài kiểm
+tra chỉ so giá trị cuối gần như luôn đạt với một counter không đồng bộ. Bài kiểm tra của nhóm lưu mọi
+giá trị trả về và cho địa chỉ counter đi qua \texttt{pc::opaque()} ở mỗi vòng, buộc mỗi lần tăng đọc và
+ghi thật.
+
+Trên \PCname{apple-m5}, cả 19 counter đạt, tổng cộng hơn 121 triệu lần tăng được kiểm. Riêng
+\PCname{lock_mcs} hết ngân sách thời gian ở 20 thread và chỉ được kiểm qua 1\,765\,312 lần tăng. Dưới TSan cả 19 counter đạt, không có cảnh báo.
+% nguồn: results/apple-m5/test.log (tổng 121 573 312 cộng bằng python), tsan.log

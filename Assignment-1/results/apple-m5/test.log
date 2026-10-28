@@ -1,0 +1,129 @@
+build/test_locks
+# test_locks on QGM0224 (arm64, macOS, clang-21.0), 10 hardware threads
+# per lock: mutual exclusion with fixed iterations (1, 2, 10 threads), then 300 ms timed runs;
+# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)
+PASS  tas                4t:   3728599 acq, max/min 1.16     10t:   1651574 acq, max/min 1.45     20t:    607617 acq, max/min 4.94   
+PASS  ttas               4t:   1861340 acq, max/min 1.52     10t:   1145462 acq, max/min 1.25     20t:   1065559 acq, max/min 2.89   
+PASS  mcs                4t:   2705564 acq, max/min 1.00     10t:    312227 acq, max/min 1.01     20t:     15221 acq, max/min 311.40 
+PASS  tas_bo_sleep       4t:  55832471 acq, max/min 1.19     10t:  50053272 acq, max/min 1.22     20t:  31786414 acq, max/min 1.25   
+PASS  tas_bo_spin        4t:  30702436 acq, max/min 1.15     10t:  10454572 acq, max/min 1.31     20t:   5288589 acq, max/min 4.00   
+PASS  tas_bo_yield       4t:   4737402 acq, max/min 1.09     10t:   2746350 acq, max/min 8.34     20t:   2438924 acq, max/min 2.61   
+PASS  ttas_bo_sleep      4t:  57538578 acq, max/min 1.40     10t:  54689038 acq, max/min 2.02     20t:  41280842 acq, max/min 2.69   
+PASS  ttas_bo_spin       4t:  54517914 acq, max/min 1.67     10t:  22377312 acq, max/min 1.44     20t:  17453216 acq, max/min 2.46   
+PASS  ttas_bo_yield      4t:   7519582 acq, max/min 2.86     10t:   3124325 acq, max/min 1.88     20t:   6510538 acq, max/min 2.42   
+PASS  std_mutex          4t:  22625124 acq, max/min 1.03     10t:  18323809 acq, max/min 1.05     20t:  15142214 acq, max/min 3.79   
+PASS  pthread_mutex      4t:  20007489 acq, max/min 1.00     10t:  17910469 acq, max/min 1.57     20t:  16195339 acq, max/min 1.77   
+PASS  os_unfair_lock     4t:  12779013 acq, max/min 1.03     10t:  19285821 acq, max/min 1.34     20t:  14818685 acq, max/min 2.86   
+# 12 lock(s) tested, 0 failed
+build/test_barrier
+barrier correctness test (plain): 10 hardware threads, full sizes, phase budget 1.5 s, watchdog 10 s
+  sr                     single     threads=1   episodes=10000     0.00 s
+  sr                     reuse      threads=4   episodes=300000    0.07 s
+  sr                     all-cores  threads=10  episodes=100000    0.15 s
+  sr                     jitter     threads=4   episodes=50000     0.06 s
+  sr                     oversub    threads=20  episodes=64        1.54 s  (time budget reached)
+  sr                     handoff    threads=4   episodes=100000    0.06 s
+PASS sr (560064 barrier episodes checked)
+  sr_bo_spin             single     threads=1   episodes=10000     0.00 s
+  sr_bo_spin             reuse      threads=4   episodes=300000    0.25 s
+  sr_bo_spin             all-cores  threads=10  episodes=100000    1.29 s
+  sr_bo_spin             jitter     threads=4   episodes=50000     0.18 s
+  sr_bo_spin             oversub    threads=20  episodes=80        1.53 s  (time budget reached)
+  sr_bo_spin             handoff    threads=4   episodes=100000    0.14 s
+PASS sr_bo_spin (560080 barrier episodes checked)
+  sr_bo_yield            single     threads=1   episodes=10000     0.00 s
+  sr_bo_yield            reuse      threads=4   episodes=300000    0.12 s
+  sr_bo_yield            all-cores  threads=10  episodes=100000    0.77 s
+  sr_bo_yield            jitter     threads=4   episodes=50000     0.12 s
+  sr_bo_yield            oversub    threads=20  episodes=20000     0.71 s
+  sr_bo_yield            handoff    threads=4   episodes=100000    0.04 s
+PASS sr_bo_yield (580000 barrier episodes checked)
+  sr_bo_sleep            single     threads=1   episodes=1000      0.00 s
+  sr_bo_sleep            reuse      threads=4   episodes=30000     0.19 s
+  sr_bo_sleep            all-cores  threads=10  episodes=10000     0.22 s
+  sr_bo_sleep            jitter     threads=4   episodes=5000      0.04 s
+  sr_bo_sleep            oversub    threads=20  episodes=5000      0.20 s
+  sr_bo_sleep            handoff    threads=4   episodes=10000     0.12 s
+PASS sr_bo_sleep (61000 barrier episodes checked)
+  sr_block               single     threads=1   episodes=3000      0.00 s
+  sr_block               reuse      threads=4   episodes=90000     0.03 s
+  sr_block               all-cores  threads=10  episodes=30000     0.47 s
+  sr_block               jitter     threads=4   episodes=15000     0.02 s
+  sr_block               oversub    threads=20  episodes=20000     0.69 s
+  sr_block               handoff    threads=4   episodes=30000     0.02 s
+PASS sr_block (188000 barrier episodes checked)
+  std_barrier            single     threads=1   episodes=3000      0.00 s
+  std_barrier            reuse      threads=4   episodes=90000     0.03 s
+  std_barrier            all-cores  threads=10  episodes=30000     0.04 s
+  std_barrier            jitter     threads=4   episodes=15000     0.02 s
+  std_barrier            oversub    threads=20  episodes=20000     0.76 s
+  std_barrier            handoff    threads=4   episodes=30000     0.02 s
+PASS std_barrier (188000 barrier episodes checked)
+  condvar                single     threads=1   episodes=1000      0.00 s
+  condvar                reuse      threads=4   episodes=30000     0.15 s
+  condvar                all-cores  threads=10  episodes=10000     0.19 s
+  condvar                jitter     threads=4   episodes=5000      0.04 s
+  condvar                oversub    threads=20  episodes=5000      0.18 s
+  condvar                handoff    threads=4   episodes=10000     0.13 s
+PASS condvar (61000 barrier episodes checked)
+ALL PASS
+build/test_barrier_fuzz
+barrier correctness test (schedule fuzzing): 10 hardware threads, full sizes, phase budget 0.5 s, watchdog 10 s
+  sr                     single     threads=1   episodes=1000      0.00 s
+  sr                     reuse      threads=4   episodes=30000     0.06 s
+  sr                     all-cores  threads=10  episodes=10000     0.11 s
+  sr                     jitter     threads=4   episodes=5000      0.01 s
+  sr                     oversub    threads=20  episodes=30        0.54 s
+  sr                     handoff    threads=4   episodes=10000     0.04 s
+PASS sr (56030 barrier episodes checked)
+  sr_bo_spin             single     threads=1   episodes=1000      0.00 s
+  sr_bo_spin             reuse      threads=4   episodes=30000     0.14 s
+  sr_bo_spin             all-cores  threads=10  episodes=10000     0.50 s
+  sr_bo_spin             jitter     threads=4   episodes=5000      0.03 s
+  sr_bo_spin             oversub    threads=20  episodes=26        0.51 s  (time budget reached)
+  sr_bo_spin             handoff    threads=4   episodes=10000     0.09 s
+PASS sr_bo_spin (56026 barrier episodes checked)
+  sr_bo_yield            single     threads=1   episodes=1000      0.00 s
+  sr_bo_yield            reuse      threads=4   episodes=30000     0.06 s
+  sr_bo_yield            all-cores  threads=10  episodes=10000     0.11 s
+  sr_bo_yield            jitter     threads=4   episodes=5000      0.01 s
+  sr_bo_yield            oversub    threads=20  episodes=2000      0.07 s
+  sr_bo_yield            handoff    threads=4   episodes=10000     0.04 s
+PASS sr_bo_yield (58000 barrier episodes checked)
+  sr_bo_sleep            single     threads=1   episodes=100       0.00 s
+  sr_bo_sleep            reuse      threads=4   episodes=3000      0.02 s
+  sr_bo_sleep            all-cores  threads=10  episodes=1000      0.03 s
+  sr_bo_sleep            jitter     threads=4   episodes=500       0.00 s
+  sr_bo_sleep            oversub    threads=20  episodes=500       0.03 s
+  sr_bo_sleep            handoff    threads=4   episodes=1000      0.01 s
+PASS sr_bo_sleep (6100 barrier episodes checked)
+  sr_block               single     threads=1   episodes=300       0.00 s
+  sr_block               reuse      threads=4   episodes=9000      0.02 s
+  sr_block               all-cores  threads=10  episodes=3000      0.06 s
+  sr_block               jitter     threads=4   episodes=1500      0.01 s
+  sr_block               oversub    threads=20  episodes=2000      0.08 s
+  sr_block               handoff    threads=4   episodes=3000      0.02 s
+PASS sr_block (18800 barrier episodes checked)
+ALL PASS
+build/test_counter
+test_counter: 10 hardware threads, full sizes, time budget 1.5 s per run
+PASS  faa                    threads 1 / 10 / 20,  13312000 increments checked, 0.71 s
+PASS  faa_seqcst             threads 1 / 10 / 20,  13312000 increments checked, 0.70 s
+PASS  cas                    threads 1 / 10 / 20,  13312000 increments checked, 1.54 s
+PASS  cas_seqcst             threads 1 / 10 / 20,  13312000 increments checked, 2.59 s
+PASS  cas_spin               threads 1 / 10 / 20,  13312000 increments checked, 0.05 s
+PASS  cas_yield              threads 1 / 10 / 20,  13312000 increments checked, 0.27 s
+PASS  cas_sleep              threads 1 / 10 / 20,   3328000 increments checked, 0.06 s
+PASS  lock_tas               threads 1 / 10 / 20,   3328000 increments checked, 1.24 s
+PASS  lock_ttas              threads 1 / 10 / 20,   3328000 increments checked, 0.91 s
+PASS  lock_mcs               threads 1 / 10 / 20,   1765312 increments checked, 3.49 s  (time budget reached: fewer increments than planned)
+PASS  lock_tas_bo_sleep      threads 1 / 10 / 20,   3328000 increments checked, 0.03 s
+PASS  lock_tas_bo_spin       threads 1 / 10 / 20,   3328000 increments checked, 0.20 s
+PASS  lock_tas_bo_yield      threads 1 / 10 / 20,   3328000 increments checked, 0.32 s
+PASS  lock_ttas_bo_sleep     threads 1 / 10 / 20,   3328000 increments checked, 0.02 s
+PASS  lock_ttas_bo_spin      threads 1 / 10 / 20,   3328000 increments checked, 0.11 s
+PASS  lock_ttas_bo_yield     threads 1 / 10 / 20,   3328000 increments checked, 0.33 s
+PASS  lock_std_mutex         threads 1 / 10 / 20,   3328000 increments checked, 0.05 s
+PASS  lock_pthread_mutex     threads 1 / 10 / 20,   3328000 increments checked, 0.04 s
+PASS  lock_os_unfair_lock    threads 1 / 10 / 20,   3328000 increments checked, 0.05 s
+ALL COUNTER TESTS PASSED

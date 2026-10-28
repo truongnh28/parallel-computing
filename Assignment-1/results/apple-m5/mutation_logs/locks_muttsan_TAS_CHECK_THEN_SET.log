@@ -1,0 +1,26 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=35317)
+  Read of size 8 at 0x00016cffa680 by thread T4:
+    #0 std::__1::__function::__func<(anonymous namespace)::Outcome (anonymous namespace)::run_fixed_iters<pc::lock_tas>(int, long long)::'lambda'(int), void (int)>::operator()(int&&) function.h:174 (locks_muttsan_TAS_CHECK_THEN_SET:arm64+0x1000110a4)
+    #1 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()>>(void*) thread.h:168 (locks_muttsan_TAS_CHECK_THEN_SET:arm64+0x100010d9c)
+
+  Previous write of size 8 at 0x00016cffa680 by thread T3:
+    #0 std::__1::__function::__func<(anonymous namespace)::Outcome (anonymous namespace)::run_fixed_iters<pc::lock_tas>(int, long long)::'lambda'(int), void (int)>::operator()(int&&) function.h:174 (locks_muttsan_TAS_CHECK_THEN_SET:arm64+0x1000110b4)
+    #1 void* std::__1::__thread_proxy[abi:nqe210106]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()>>(void*) thread.h:168 (locks_muttsan_TAS_CHECK_THEN_SET:arm64+0x100010d9c)
+
+  Location is stack of main thread.
+
+  Thread T4 (tid=4065432, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 std::__1::thread::thread[abi:nqe210106]<pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'(), 0>(pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()&&) thread.h:216 (locks_muttsan_TAS_CHECK_THEN_SET:arm64+0x100010c00)
+    #2 pc::timed_run(int, std::__1::function<void (int)> const&) bench_common.hpp:55 (locks_muttsan_TAS_CHECK_THEN_SET:arm64+0x10001063c)
+    #3 main test_locks.cpp:270 (locks_muttsan_TAS_CHECK_THEN_SET:arm64+0x100001414)
+
+  Thread T3 (tid=4065431, running) created by main thread at:
+    #0 pthread_create <null> (libclang_rt.tsan_osx_dynamic.dylib:arm64e+0x33834)
+    #1 std::__1::thread::thread[abi:nqe210106]<pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'(), 0>(pc::timed_run(int, std::__1::function<void (int)> const&)::'lambda'()&&) thread.h:216 (locks_muttsan_TAS_CHECK_THEN_SET:arm64+0x100010c00)
+    #2 pc::timed_run(int, std::__1::function<void (int)> const&) bench_common.hpp:55 (locks_muttsan_TAS_CHECK_THEN_SET:arm64+0x10001063c)
+    #3 main test_locks.cpp:270 (locks_muttsan_TAS_CHECK_THEN_SET:arm64+0x100001414)
+
+SUMMARY: ThreadSanitizer: data race function.h:174 in std::__1::__function::__func<(anonymous namespace)::Outcome (anonymous namespace)::run_fixed_iters<pc::lock_tas>(int, long long)::'lambda'(int), void (int)>::operator()(int&&)
+==================

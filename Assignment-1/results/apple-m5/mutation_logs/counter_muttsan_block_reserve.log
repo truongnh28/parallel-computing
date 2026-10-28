@@ -1,0 +1,6 @@
+test_counter: 10 hardware threads, small sizes, time budget 3.0 s per run
+FAIL  block_reserve: real-time run, 10 threads, 20000 increments: [real-time] 13555 increments started after a larger value had been returned;
+FAIL  block_reserve: real-time oversubscribed run, 20 threads, 20000 increments: [real-time] 13950 increments started after a larger value had been returned;
+FAIL  block_reserve          threads 1 / 10 / 20,    208000 increments checked, 0.05 s
+CHECKS_FIRED: real-time
+MUTANT block_reserve: caught by the value checks
