@@ -5,6 +5,8 @@
 #   make test       run all correctness tests
 #   make tsan       run the tests under ThreadSanitizer (smaller sizes)
 #   make mutation   build the deliberately broken variants and show that the tests catch them
+#   make check      all of the above: build, test, tsan, mutation
+#   make full       the whole workflow: check, bench, figures, report, zip  (bench alone: about an hour)
 #   make bench      run the full measurement campaign -> results/<host>/*.csv   (run on an idle machine)
 #   make figures    draw every figure of the report from results/           (needs matplotlib)
 #   make report     build report/report.pdf                                 (needs xelatex)
@@ -59,7 +61,23 @@ tsan: $(TSAN_TARGETS)
 mutation: $(MUTATION_TARGETS)
 
 bench: all
-	$(PYTHON) scripts/run_bench.py
+	$(PYTHON) scripts/run_bench.py $(BENCH_ARGS)
+
+# The whole workflow in order. Each step is a separate make call so that `make -j` cannot run two
+# steps at once (a benchmark must run alone). Before the campaign, wait up to 10 minutes for the
+# load left by the tests to fall.
+check:
+	$(MAKE) all
+	$(MAKE) test
+	$(MAKE) tsan
+	$(MAKE) mutation
+
+full:
+	$(MAKE) check
+	$(MAKE) bench BENCH_ARGS="--wait 10"
+	$(MAKE) figures
+	$(MAKE) report
+	$(MAKE) zip
 
 figures:
 	$(PYTHON) scripts/plot.py
@@ -70,4 +88,4 @@ report:
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all test tsan mutation bench figures report clean zip
+.PHONY: all test tsan mutation bench check full figures report clean zip

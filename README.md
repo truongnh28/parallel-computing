@@ -25,7 +25,8 @@ Make is the reference build. It drives the whole workflow of an assignment: test
 
 ```sh
 cd Assignment-1
-make && make test
+make check       # build and run every correctness check
+make full        # everything: checks, measurements, figures, report, submission zip
 ```
 
 CMake builds the same programs with the same flags. Use it for an IDE (CLion, VS Code) and for `ctest`. It covers building and testing only.

@@ -15,6 +15,15 @@ build/bench_*  →  results/<host>/*.csv  →  report/figures/<host>/*.pdf + tab
    (make)            (make bench)                   (make figures)                        (make report)
 ```
 
+## Quick start
+
+```sh
+make check       # build, then every correctness check: tests, ThreadSanitizer, mutation testing
+make full        # the whole workflow: check, measurement campaign, figures, report, zip
+```
+
+`make full` runs the steps one after another and stops at the first failure. The campaign takes about an hour and needs an idle machine (see [Running the measurement campaign](#running-the-measurement-campaign)); before it starts, the runner waits up to 10 minutes for the load left by the tests to fall. Figures and the report need matplotlib, numpy and XeLaTeX: with a virtual environment, run `make full PYTHON=.venv/bin/python` (see [Figures and report](#figures-and-report)).
+
 ## Repository layout
 
 | Path | Contents |
@@ -50,6 +59,7 @@ make             # build the tests and benchmarks into build/
 make test        # run every correctness test
 make tsan        # run the tests again under ThreadSanitizer, with smaller sizes
 make mutation    # build deliberately broken variants and check that the tests catch each one
+make check       # all four above, in order
 ```
 
 To use another compiler: `make CXX=g++-14`.
