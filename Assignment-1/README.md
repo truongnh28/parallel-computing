@@ -6,7 +6,7 @@ C++20 implementations of three synchronization primitives, with correctness test
 2. A sense-reversing barrier with several waiting strategies, compared with the library barriers.
 3. Concurrent counters built on a lock, on compare-and-swap and on fetch-and-add.
 
-Correctness is checked by stress tests, ThreadSanitizer and mutation testing. Part 4 of the assignment (a distributed version with MPI-3 RMA, optional) is not implemented. The report is written in Vietnamese.
+The assignment statement is [`Assignment1_18092026.pdf`](Assignment1_18092026.pdf). Correctness is checked by stress tests, ThreadSanitizer and mutation testing. Part 4 of the assignment (a distributed version with MPI-3 RMA, optional) is not implemented. The report is written in Vietnamese.
 
 Every number in the report comes from one pipeline, with no step done by hand:
 
