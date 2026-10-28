@@ -18,7 +18,7 @@ What it writes into results/<host>/ (host = the `host` field printed by the benc
     sleep_latency.csv                    output of build/sleep_latency
     campaign.log                         start/end time, load average, number of timeouts
 
-Rules built into the runner (see README.md, "Quy tắc đo"):
+Rules built into the runner (see README.md, "Measurement rules"):
   * one benchmark process at a time;
   * repetitions are the OUTER loop and the configurations (of all parts) are shuffled inside each
     repetition with a fixed seed, so slow drift of the background load or of the temperature
