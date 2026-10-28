@@ -16,3 +16,11 @@ và 80 episode. Dưới TSan cả 7 barrier đạt. Nhóm bỏ phép
 kiểm handoff riêng cho \PCname{std_barrier}, vì libc++ của macOS không được instrument và TSan báo
 cảnh báo giả.
 % nguồn: results/apple-m5/test.log (cộng các dòng "PASS ... barrier episodes checked"), tsan.log
+
+Trên \PCname{LAP1184}, cả 9 barrier đạt, kể cả hai baseline chỉ có ở máy này là \PCname{pthread_barrier}
+và \PCname{omp_barrier}. Tổng cộng 2\,085\,088 episode được kiểm. Bản fuzzing đạt cho 5 barrier tự viết. Pha 24 thread của
+\PCname{sr} và \PCname{sr_bo_spin} hết ngân sách sau 70 và 59 episode. Dưới TSan 8 barrier đạt không có
+cảnh báo. libstdc++ cài \texttt{std::barrier} ngay trong header, nên TSan thấy nó và phép kiểm handoff
+của \PCname{std_barrier} được chạy đủ. \PCname{omp_barrier} bị bỏ qua vì libgomp không được instrument.
+% nguồn: results/LAP1184/test.log (cộng các dòng "PASS ... barrier episodes checked" của bản thường),
+% tsan.log (dòng note: omp_barrier skipped)

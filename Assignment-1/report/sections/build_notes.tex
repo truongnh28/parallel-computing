@@ -1,4 +1,4 @@
-% Phụ lục: ghi chú build. Nguồn: results/apple-m5/{campaign.log, machine.txt}, Makefile, mk/zz_pack.mk.
+% Phụ lục: ghi chú build. Nguồn: results/{apple-m5,LAP1184}/{campaign.log, machine.txt}, Makefile, mk/zz_pack.mk.
 
 Trên \PCname{apple-m5}, đợt đo dài 1 giờ 25 phút 45 giây (12\,152 lần chạy), gồm cả các lần chạy thử hiệu chỉnh. Lệnh đã dùng là
 \texttt{python3 scripts/run\_bench.py --relax-yield --host apple-m5 --wait 30}, tương đương
@@ -10,4 +10,25 @@ Nền tảng gồm macOS 27.0.1, Apple clang 21.0.0, Python 3.14.8 (chạy đo c
 Apple clang không nhận \texttt{-fopenmp} nên không có baseline OpenMP. \texttt{matplotlib} và
 \texttt{numpy} cài trong một môi trường ảo (\texttt{.venv}).
 % nguồn: results/apple-m5/machine.txt
+
+Trên \PCname{LAP1184}, nhóm chạy toàn bộ quy trình bằng \texttt{make full PYTHON=.venv/bin/python}
+trong Ubuntu 20.04 trên WSL2. Đợt đo (\texttt{run\_bench.py --wait 10}) dài 1 giờ 20 phút 36 giây
+(14\,322 lần chạy). Ubuntu 20.04 cần thêm g++ 11 từ PPA \texttt{ubuntu-toolchain-r/test} (g++ 9 mặc
+định không có \texttt{<barrier>}), CMake 3.30 từ bản cài sẵn của Kitware (bản 3.16 của Ubuntu dưới mức
+3.20 mà \texttt{CMakeLists.txt} cần), \texttt{python3-venv}, XeLaTeX và \texttt{latexmk}. Python 3.8.10
+đủ cho các script. Có ba ghi chú:
+\begin{itemize}[nosep]
+  \item Git trên Windows mặc định đổi kết thúc dòng thành CRLF khi checkout, và \texttt{sh} trong WSL
+    không chạy được \texttt{scripts/machine\_info.sh} khi đó. Runner bắt lỗi và ghi một
+    \texttt{machine.txt} rỗng. Kho mã giờ có \texttt{.gitattributes} giữ LF cho các file \texttt{.sh}.
+    \texttt{machine.txt} của \PCname{LAP1184} được sinh lại bằng đúng lệnh của runner, 3 phút sau khi đợt
+    đo kết thúc, nên dòng nguồn điện và load average trong đó là của lúc sinh lại.
+  \item ThreadSanitizer báo data race giả trên \texttt{omp\_lock\_t}, vì libgomp không được instrument.
+    Bản TSan của \texttt{test\_locks} và \texttt{test\_counter} giờ bỏ qua lock OpenMP và in ra việc bỏ
+    qua, như \texttt{test\_barrier} đã làm với \texttt{omp\_barrier}. Tham số \texttt{tsan\_uninstrumented}
+    vẫn chạy nó để thấy cảnh báo.
+  \item Không chạy \texttt{make bench-relax}, vì lựa chọn \texttt{isb}/\texttt{yield} chỉ có trên AArch64.
+\end{itemize}
+% nguồn: results/LAP1184/campaign.log (START argv=--wait 10; END duration=1:20:36, 01:41:24);
+% results/LAP1184/machine.txt (date: 01:44:04); docs/part1.md mục 7.2.
 \TODO{thời gian make bench và ghi chú cài đặt trên máy của từng thành viên còn lại.}

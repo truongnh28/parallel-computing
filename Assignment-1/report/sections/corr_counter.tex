@@ -16,3 +16,8 @@ ghi thật.
 Trên \PCname{apple-m5}, cả 19 counter đạt, tổng cộng hơn 121 triệu lần tăng được kiểm. Riêng
 \PCname{lock_mcs} hết ngân sách thời gian ở 20 thread và chỉ được kiểm qua 1\,765\,312 lần tăng. Dưới TSan cả 19 counter đạt, không có cảnh báo.
 % nguồn: results/apple-m5/test.log (tổng 121 573 312 cộng bằng python), tsan.log
+
+Trên \PCname{LAP1184}, cả 20 counter đạt, tổng cộng hơn 148 triệu lần tăng được kiểm. \PCname{lock_mcs}
+lại hết ngân sách thời gian và chỉ được kiểm qua 2\,063\,205 lần tăng. Dưới TSan 19 counter đạt không có
+cảnh báo. \PCname{lock_omp_lock} bị bỏ qua vì cùng lý do với \PCname{omp_lock} ở trên.
+% nguồn: results/LAP1184/test.log (tổng 148 879 205 cộng bằng python), tsan.log (dòng SKIP lock_omp_lock)

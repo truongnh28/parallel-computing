@@ -3,8 +3,11 @@
 Stress test và fuzzing chỉ xét các lịch chạy đã xảy ra. Chúng chỉ ra được là có lỗi, không chứng minh
 được là không có lỗi. Tính đúng vì vậy dựa trên lập luận ở mục Cài đặt. Trên x86-64 (memory model TSO)
 các lỗi memory order sinh cùng lệnh máy với bản đúng nên không bao giờ lộ ra lúc chạy. Với loại lỗi
-này, nhóm chỉ có TSan. TSan chỉ tìm data race, chỉ thấy các đường đi đã chạy và cần mã được instrument.
-Các baseline OpenMP và các lock, barrier chỉ có trên Linux chưa chạy dưới TSan. Bộ kiểm tra không kiểm
+này, nhóm chỉ có TSan. Mutation testing trên \PCname{LAP1184} xác nhận điều này: stress test không bắt
+được hai biến thể memory order lần nào. TSan chỉ tìm data race, chỉ thấy các đường đi đã chạy và cần mã
+được instrument. \PCname{pthread_spinlock} và \PCname{pthread_barrier} đã chạy dưới TSan trên Linux. Ba
+baseline OpenMP thì không kiểm được bằng TSan, vì libgomp không được instrument và TSan báo cảnh báo giả.
+Với chúng, nhóm chỉ có stress test. Bộ kiểm tra không kiểm
 tiến triển (lock-free, wait-free) ngoài trường hợp treo, và không kiểm \texttt{get()} trong lúc các
 thread đang tăng. Các biến thể đột biến do chính nhóm chọn, nên chúng chỉ chứng tỏ bộ kiểm tra nhạy
 với những lỗi đó.

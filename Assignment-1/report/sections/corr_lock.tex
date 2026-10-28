@@ -1,4 +1,4 @@
-% Mục 4.2: Kiểm tra mutex lock. Nguồn: tests/test_locks.cpp, results/apple-m5/test.log, tsan.log.
+% Mục 4.2: Kiểm tra mutex lock. Nguồn: tests/test_locks.cpp, results/{apple-m5,LAP1184}/test.log, tsan.log.
 
 Trong critical section, bài kiểm tra tăng một biến đếm không atomic (đọc, cộng một, ghi) và đếm số
 thread đang ở bên trong. Vi phạm hiện ra trực tiếp, hoặc qua một lần cập nhật bị mất. Nhóm chạy phép kiểm với số vòng cố định (1, 2 và 10
@@ -13,3 +13,13 @@ của hàng đợi MCS~\cite{mellorcrummey1991mcs}. Ở 20 thread, MCS chỉ l�
 
 Trên \PCname{apple-m5}, cả 12 lock đạt mọi bài kiểm tra con, kể cả khi quá tải. Dưới TSan cả 12 lock
 đạt và không có cảnh báo.
+
+Trên \PCname{LAP1184}, cả 13 lock đạt. MCS lặp lại hình mẫu trên: tỉ số 1,00 ở 4 thread, nhưng chỉ
+10\,186 lần lấy lock ở 12 thread và 1\,628 lần ở 24 thread (so với 3\,275\,092 ở 4 thread). Ở 12
+thread, nhiều khả năng một CPU ảo đã bị Windows lấy core trong lúc giữ lượt của hàng đợi. Dưới TSan, 12 lock đạt không có cảnh báo, kể cả
+\PCname{pthread_spinlock} chỉ có trên Linux. Lần chạy TSan đầu tiên báo một data race trên biến đếm mà
+\PCname{omp_lock} bảo vệ. Đây là cảnh báo giả. \texttt{omp\_set\_lock} và \texttt{omp\_unset\_lock}
+nằm trong libgomp, thư viện không được instrument, nên TSan không thấy thứ tự mà lock tạo ra. Cùng lock
+đó đạt stress test ở bản thường. Bản TSan giờ bỏ qua \PCname{omp_lock} và in ra việc bỏ qua.
+% nguồn: results/LAP1184/test.log, dòng mcs; tsan.log (dòng SKIP omp_lock); lần chạy TSan đầu tiên
+% trước khi sửa: SUMMARY: ThreadSanitizer: data race tests/test_locks.cpp:105 in critical_section.
