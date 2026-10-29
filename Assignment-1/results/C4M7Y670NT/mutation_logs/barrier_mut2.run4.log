@@ -1,0 +1,4 @@
+mutant flip_before_reset (PC_MUTANT=2, plain), 12 hardware threads
+  flip_before_reset      single     threads=1   episodes=10000     0.00 s
+  flip_before_reset      reuse      threads=4   episodes=300000    0.04 s
+FAIL flip_before_reset [all-cores]: HANG, no thread advanced for 2.000000 s (watchdog). Episode reached by each thread: 53573 53573 53573 53573 53573 53573 53573 53573 53573 53573 53573 53573

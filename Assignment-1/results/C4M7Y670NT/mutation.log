@@ -1,0 +1,22 @@
+# Part 1 mutation tests (deliberately broken locks, see the MUTANT blocks in include/lock.h)
+mutant                 lock  stress test, 3 runs                  ThreadSanitizer build, 1 run                 verdict
+TAS_CHECK_THEN_SET     tas   CAUGHT 3/3 (mutual exclusion)        CAUGHT (data race report)                    killed by both
+TAS_RELEASE_RELAXED    tas   MISSED 0/3                           CAUGHT (data race report)                    killed by TSan only
+MCS_NO_WAIT_SUCCESSOR  mcs   CAUGHT 3/3 (deadlock)                no report (test watchdog: deadlock)          killed by stress test
+MCS_ALWAYS_CLEAR_TAIL  mcs   CAUGHT 3/3 (deadlock)                CAUGHT (data race report)                    killed by both
+# logs: build/locks_mut_*.log build/locks_muttsan_*.log
+== Part 2 mutation testing: 5 runs per stress column, 1 ThreadSanitizer run ==
+mutant                  | plain stress test             | stress + schedule fuzzing     | ThreadSanitizer build
+single_flag             | caught 5/5 (wrong 5, hang 0)  | caught 5/5 (wrong 5, hang 0)  | no report; checks: wrong episode/value
+flip_before_reset       | caught 1/5 (wrong 0, hang 1)  | caught 5/5 (wrong 0, hang 5)  | no report; checks: hang
+nonatomic_count         | caught 5/5 (wrong 0, hang 5)  | caught 5/5 (wrong 0, hang 5)  | no report; checks: hang
+fetch_add_release_only  | caught 4/5 (wrong 4, hang 0)  | SURVIVED 0/5                  | DATA RACE reported; checks: passed
+thread_local_sense      | caught 5/5 (wrong 5, hang 0)  | caught 5/5 (wrong 5, hang 0)  | DATA RACE reported; checks: wrong episode/value
+# Part 3 mutation tests: deliberately broken counters (defined in tests/test_counter.cpp)
+mutant             | value checks | checks that fired                  | ThreadSanitizer | verdict
+plain_long         | 3/3 runs     | final duplicate missing order      | data race       | killed by both
+load_store         | 3/3 runs     | final duplicate missing order      | no report       | killed by the value checks only
+cas_no_retry       | 3/3 runs     | final duplicate missing            | no report       | killed by the value checks only
+lock_read_outside  | 3/3 runs     | final duplicate missing order      | data race       | killed by both
+block_reserve      | 3/3 runs     | real-time                          | no report       | killed by the value checks only
+# logs: build/counter_mut_*.log build/counter_muttsan_*.log

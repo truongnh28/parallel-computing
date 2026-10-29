@@ -1,0 +1,8 @@
+test_counter: 12 hardware threads, full sizes, time budget 1.5 s per run
+FAIL  cas_no_retry: stress run, 12 threads, 1536000 increments: [final] get() = 200096, expected 1536000; [duplicate] 1335904 (e.g. value 4); [missing] 1335904 (e.g. value 200096);
+FAIL  cas_no_retry: oversubscribed run, 24 threads, 1536000 increments: [final] get() = 195744, expected 1536000; [duplicate] 1340256 (e.g. value 5536); [missing] 1340256 (e.g. value 195744);
+FAIL  cas_no_retry: real-time run, 12 threads, 384000 increments: [final] get() = 268220, expected 384000; [duplicate] 115780 (e.g. value 178); [missing] 115780 (e.g. value 268220);
+FAIL  cas_no_retry: real-time oversubscribed run, 24 threads, 384000 increments: [final] get() = 275335, expected 384000; [duplicate] 108665 (e.g. value 32876); [missing] 108665 (e.g. value 275335);
+FAIL  cas_no_retry           threads 1 / 12 / 24,   3968000 increments checked, 0.20 s
+CHECKS_FIRED: final duplicate missing
+MUTANT cas_no_retry: caught by the value checks

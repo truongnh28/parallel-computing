@@ -1,0 +1,15 @@
+# test_locks on C4M7Y670NT (arm64, macOS, clang-21.0), 12 hardware threads
+# per lock: mutual exclusion with fixed iterations (1, 2, 12 threads), then 300 ms timed runs;
+# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)
+
+FAIL  tas fixed-iters threads=2 iters=100000: counter=127358 expected=200000 (lost 72642), threads seen inside together=88660
+
+FAIL  tas fixed-iters threads=12 iters=20000: counter=102672 expected=240000 (lost 137328), threads seen inside together=199284
+
+FAIL  tas fixed-time threads=4 ms=300: counter=2972245 expected=4087517 (lost 1115272), threads seen inside together=3996747
+
+FAIL  tas fixed-time threads=12 ms=300: counter=551085 expected=2099540 (lost 1548455), threads seen inside together=2099516
+
+FAIL  tas fixed-time threads=24 ms=300: counter=544048 expected=2024145 (lost 1480097), threads seen inside together=2017543
+FAIL  tas                4t:   4087517 acq, max/min 1.52     12t:   2099540 acq, max/min 1.06     24t:   2024145 acq, max/min 1.15   
+# 1 lock(s) tested, 1 failed
