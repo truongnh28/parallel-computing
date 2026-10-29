@@ -1,11 +1,13 @@
-% Mục 2: Nền tảng thí nghiệm. Nguồn: results/apple-m5/machine.txt, results/apple-m5/campaign.log,
-% include/platform.hpp, Makefile.
+% Mục 2: Nền tảng thí nghiệm. Nguồn: results/{apple-m5,LAP1184}/machine.txt,
+% results/{apple-m5,LAP1184}/campaign.log, include/platform.hpp, Makefile.
 
 Đề yêu cầu số nền tảng shared-memory không ít hơn số thành viên. Báo cáo này có số đo của
-\PCval{cross}{nhosts} máy, \PCname{apple-m5}. Mỗi thành viên thêm máy của mình bằng cách chạy
-\texttt{make bench} trên máy rảnh, gửi lại thư mục \texttt{results/<tên máy>/} và thêm tên máy vào
-danh sách máy của báo cáo. Bảng cấu hình (Bảng~\ref{tab:cross:machines}) và các hình của máy mới được
-sinh lại tự động. Mọi nhận định về hiệu năng dưới đây chỉ nói về \PCname{apple-m5}.
+\PCval{cross}{nhosts} máy, \PCname{apple-m5} (AArch64, macOS) và \PCname{LAP1184} (x86-64, Linux).
+Mỗi thành viên thêm máy của mình bằng cách chạy \texttt{make bench} trên máy rảnh, gửi lại thư mục
+\texttt{results/<tên máy>/} và thêm tên máy vào danh sách máy của báo cáo. Bảng cấu hình
+(Bảng~\ref{tab:cross:machines}) và các hình của máy mới được sinh lại tự động. Phần phân tích ở mục 6
+dựa trên \PCname{apple-m5}. Hình và bảng của \PCname{LAP1184} nằm ở cuối mỗi mục con, và mục So sánh
+giữa các máy trả lời RQ6.
 \TODO{nhóm có mấy thành viên, và máy của các thành viên còn lại (sau khi họ chạy make bench)}
 
 Máy \PCname{apple-m5} là một Apple M5 với 10 core không đồng nhất, gồm 4 P-core (performance) và 6
@@ -35,3 +37,28 @@ không có tiến trình đo hay build nào khác chạy cùng lúc. Load averag
 trong khoảng thường thấy của máy khi chỉ có ứng dụng nền. Không lần chạy nào sai kết quả kiểm tra.
 Có 9 lần vượt thời hạn, đều là cấu hình có MCS khi số thread vượt số core, và chúng được đo lại với số vòng
 lặp nhỏ hơn 100 lần (mục Phương pháp đo).
+
+Máy \PCname{LAP1184} là một laptop Intel Core i5-1335U. Theo thông số của Intel, CPU này có 2 P-core với
+Hyper-Threading và 8 E-core, tức 10 core và 12 luồng phần cứng, cache L3 12~MiB dùng chung. Nhóm đo trong
+Ubuntu 20.04 chạy trên WSL2, một máy ảo Hyper-V của Windows 11. Ba đặc điểm của cách chạy này ảnh hưởng
+tới kết quả. Thứ nhất, máy ảo có 12 CPU ảo và báo chúng là 6 core, mỗi core 2 luồng. Báo cáo này không
+khớp với CPU thật, và Linux không biết CPU ảo nào nằm trên P-core hay E-core. Thứ hai, mỗi CPU ảo là một
+thread do scheduler của Windows quyết định, nên Linux không ghim được thread vào core thật dù có
+\texttt{sched\_setaffinity}. Thứ ba, load average trong máy ảo chỉ thấy tiến trình của Linux, không thấy
+tải của Windows. Vì vậy ngưỡng load average lúc bắt đầu chỉ kiểm được một phần độ rảnh của máy. x86-64
+có memory model TSO, cache line 64 byte, và mã nguồn đệm theo 64 byte.
+% nguồn: results/LAP1184/machine.txt (virtualization: Microsoft; physical_cores: 6; threads_per_core: 2;
+% cache_line_bytes: 64; cache_line_used_by_code: 64; kernel 5.15.153.1-microsoft-standard-WSL2).
+
+Phần mềm gồm g++ 11.5 với \texttt{-std=c++20 -O2 -fopenmp}. g++ 9 mặc định của Ubuntu 20.04 không có
+\texttt{<barrier>}, nên nhóm cài g++ 11 từ PPA \texttt{ubuntu-toolchain-r/test}. Ngoài các baseline
+chung, máy này có \texttt{pthread\_spinlock\_t}, \texttt{pthread\_barrier\_t}, \texttt{omp\_lock\_t}
+và \texttt{\#pragma omp barrier}, nên có 13 lock, 9 barrier và 20 counter. Đợt đo dài 1 giờ 20 phút
+36 giây, gồm 14\,322 lần chạy, 7 lần lặp mỗi cấu hình, với số thread 1, 2, 3, 4, 6, 8, 10, 12, 16, 20 và
+24. Máy cắm sạc. Load average một phút lúc bắt đầu là 6,06, sau khi runner chờ tải từ các bài kiểm tra
+giảm xuống dưới 7. Không lần chạy nào sai kết quả kiểm tra. Có 12 lần vượt thời hạn, đều là MCS khi số
+thread từ 16 trở lên (6 ở lock, 6 ở counter), và chúng được đo lại với số vòng lặp nhỏ hơn 100 lần
+(Bảng~\ref{tab:LAP1184:campaign}).
+% nguồn: results/LAP1184/campaign.log (START ... load1=6.06; END duration=1:20:36 ok=14322 bad_check=0
+% timeout=12 skipped=0); tables.tex bảng campaign; lock.csv, counter.csv (dòng extra=timeout: 6 + 6,
+% đều mcs / lock_mcs với 16, 20, 24 thread).

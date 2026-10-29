@@ -1,0 +1,63 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=213991)
+  Read of size 8 at 0x7ffd2a72d940 by thread T8:
+    #0 increment tests/test_counter.cpp:90 (counter_muttsan_plain_long+0x2e1b)
+    #1 operator() tests/test_counter.cpp:327 (counter_muttsan_plain_long+0x2e1b)
+    #2 __invoke_impl<void, (anonymous namespace)::stress_run<(anonymous namespace)::mutant_counter>(char const*, char const*, int, long int, double, double)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:61 (counter_muttsan_plain_long+0x2e1b)
+    #3 __invoke_r<void, (anonymous namespace)::stress_run<(anonymous namespace)::mutant_counter>(char const*, char const*, int, long int, double, double)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:111 (counter_muttsan_plain_long+0x2e1b)
+    #4 _M_invoke /usr/include/c++/11/bits/std_function.h:290 (counter_muttsan_plain_long+0x2e1b)
+    #5 std::function<void (int)>::operator()(int) const /usr/include/c++/11/bits/std_function.h:590 (counter_muttsan_plain_long+0x6834)
+    #6 pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}::operator()() const include/bench_common.hpp:58 (counter_muttsan_plain_long+0x6834)
+    #7 void std::__invoke_impl<void, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(std::__invoke_other, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:61 (counter_muttsan_plain_long+0x6834)
+    #8 std::__invoke_result<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>::type std::__invoke<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:96 (counter_muttsan_plain_long+0x6834)
+    #9 void std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::_M_invoke<0ul>(std::_Index_tuple<0ul>) /usr/include/c++/11/bits/std_thread.h:259 (counter_muttsan_plain_long+0x6834)
+    #10 std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::operator()() /usr/include/c++/11/bits/std_thread.h:266 (counter_muttsan_plain_long+0x6834)
+    #11 std::thread::_State_impl<std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> > >::_M_run() /usr/include/c++/11/bits/std_thread.h:211 (counter_muttsan_plain_long+0x6834)
+    #12 <null> <null> (libstdc++.so.6+0xf74e5)
+
+  Previous write of size 8 at 0x7ffd2a72d940 by thread T14:
+    #0 increment tests/test_counter.cpp:90 (counter_muttsan_plain_long+0x2e26)
+    #1 operator() tests/test_counter.cpp:327 (counter_muttsan_plain_long+0x2e26)
+    #2 __invoke_impl<void, (anonymous namespace)::stress_run<(anonymous namespace)::mutant_counter>(char const*, char const*, int, long int, double, double)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:61 (counter_muttsan_plain_long+0x2e26)
+    #3 __invoke_r<void, (anonymous namespace)::stress_run<(anonymous namespace)::mutant_counter>(char const*, char const*, int, long int, double, double)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:111 (counter_muttsan_plain_long+0x2e26)
+    #4 _M_invoke /usr/include/c++/11/bits/std_function.h:290 (counter_muttsan_plain_long+0x2e26)
+    #5 std::function<void (int)>::operator()(int) const /usr/include/c++/11/bits/std_function.h:590 (counter_muttsan_plain_long+0x6834)
+    #6 pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}::operator()() const include/bench_common.hpp:58 (counter_muttsan_plain_long+0x6834)
+    #7 void std::__invoke_impl<void, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(std::__invoke_other, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:61 (counter_muttsan_plain_long+0x6834)
+    #8 std::__invoke_result<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>::type std::__invoke<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:96 (counter_muttsan_plain_long+0x6834)
+    #9 void std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::_M_invoke<0ul>(std::_Index_tuple<0ul>) /usr/include/c++/11/bits/std_thread.h:259 (counter_muttsan_plain_long+0x6834)
+    #10 std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::operator()() /usr/include/c++/11/bits/std_thread.h:266 (counter_muttsan_plain_long+0x6834)
+    #11 std::thread::_State_impl<std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> > >::_M_run() /usr/include/c++/11/bits/std_thread.h:211 (counter_muttsan_plain_long+0x6834)
+    #12 <null> <null> (libstdc++.so.6+0xf74e5)
+
+  Location is stack of main thread.
+
+  Location is global '<null>' at 0x000000000000 ([stack]+0x00000001f940)
+
+  Thread T8 (tid=214000, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:969 (libtsan.so.0+0x60248)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xf75ce)
+    #2 pc::timed_run(int, std::function<void (int)> const&) include/bench_common.hpp:55 (counter_muttsan_plain_long+0x58a7)
+    #3 stress_run<(anonymous namespace)::mutant_counter> tests/test_counter.cpp:312 (counter_muttsan_plain_long+0x58a7)
+    #4 test_counter<(anonymous namespace)::mutant_counter> tests/test_counter.cpp:467 (counter_muttsan_plain_long+0x58a7)
+    #5 main tests/test_counter.cpp:505 (counter_muttsan_plain_long+0x58a7)
+
+  Thread T14 (tid=214006, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:969 (libtsan.so.0+0x60248)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xf75ce)
+    #2 pc::timed_run(int, std::function<void (int)> const&) include/bench_common.hpp:55 (counter_muttsan_plain_long+0x58a7)
+    #3 stress_run<(anonymous namespace)::mutant_counter> tests/test_counter.cpp:312 (counter_muttsan_plain_long+0x58a7)
+    #4 test_counter<(anonymous namespace)::mutant_counter> tests/test_counter.cpp:467 (counter_muttsan_plain_long+0x58a7)
+    #5 main tests/test_counter.cpp:505 (counter_muttsan_plain_long+0x58a7)
+
+SUMMARY: ThreadSanitizer: data race tests/test_counter.cpp:90 in increment
+==================
+test_counter: 12 hardware threads, small sizes, time budget 3.0 s per run
+FAIL  plain_long: stress run, 12 threads, 96000 increments: [final] get() = 30266, expected 96000; [duplicate] 65734 (e.g. value 1617); [missing] 65734 (e.g. value 30266); [order] 5451 values not above the thread's previous value;
+FAIL  plain_long: oversubscribed run, 24 threads, 96000 increments: [final] get() = 12204, expected 96000; [duplicate] 82198 (e.g. value 5118); [missing] 82198 (e.g. value 13802); [order] 5488 values not above the thread's previous value;
+FAIL  plain_long: real-time run, 12 threads, 24000 increments: [final] get() = 23874, expected 24000; [duplicate] 126 (e.g. value 22710); [missing] 126 (e.g. value 23874); [order] 8 values not above the thread's previous value;
+FAIL  plain_long: real-time oversubscribed run, 24 threads, 24000 increments: [final] get() = 23936, expected 24000; [duplicate] 64 (e.g. value 2284); [missing] 64 (e.g. value 23936); [order] 4 values not above the thread's previous value;
+FAIL  plain_long             threads 1 / 12 / 24,    248000 increments checked, 2.19 s
+CHECKS_FIRED: final duplicate missing order
+MUTANT plain_long: caught by the value checks
+ThreadSanitizer: reported 1 warnings

@@ -4,6 +4,9 @@
 //   build/test_counter small           small sizes (used for the ThreadSanitizer build)
 //   build/test_counter only=cas_spin   one counter
 //   build/test_counter verbose         also print one line per run
+//   build/test_counter_tsan small tsan_uninstrumented
+//                                      also test lock_omp_lock under ThreadSanitizer (skipped by
+//                                      default: the OpenMP run-time is not instrumented)
 //
 // What is checked (details and limits: docs/part3.md)
 // ---------------------------------------------------
@@ -45,6 +48,15 @@
 // The locks of Part 1. If lock.h is missing, the lock-based counter is tested with std::mutex only.
 #if !defined(PC_MUTANT) && __has_include("lock.h")
 #include "lock.h"
+#endif
+
+// PC_TSAN is defined when this file is compiled with -fsanitize=thread (gcc and clang differ).
+#if defined(__SANITIZE_THREAD__)
+#define PC_TSAN 1
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define PC_TSAN 1
+#endif
 #endif
 
 namespace {
@@ -510,8 +522,19 @@ int main(int argc, char** argv) {
     ok &= test_counter<pc::counter_cas<pc::SleepBackoff>>("cas_sleep", Speed::medium, cfg);
     // ---- (a) mutex lock: one counter per lock of Part 1 -----------------------------------------
 #if defined(PC_FOR_EACH_LOCK)
-#define PC_TEST_LOCK_COUNTER(type, lock_name) \
-    ok &= test_counter<pc::counter_lock<type>>("lock_" lock_name, Speed::medium, cfg);
+    // The OpenMP lock is inside the OpenMP run-time (libgomp), which is not instrumented:
+    // ThreadSanitizer does not see the ordering it creates and reports a FALSE data race on the
+    // protected value. It is skipped in a TSan build; tsan_uninstrumented runs it anyway.
+    bool tsan_skip_omp = false;
+#if defined(PC_TSAN)
+    tsan_skip_omp = !args.has("tsan_uninstrumented");
+#endif
+#define PC_TEST_LOCK_COUNTER(type, lock_name)                                                    \
+    if (tsan_skip_omp && std::string(lock_name) == "omp_lock")                                   \
+        std::printf("SKIP  %-22s (ThreadSanitizer: OpenMP run-time not instrumented, see docs/part1.md)\n", \
+                    "lock_" lock_name);                                                          \
+    else                                                                                         \
+        ok &= test_counter<pc::counter_lock<type>>("lock_" lock_name, Speed::medium, cfg);
     PC_FOR_EACH_LOCK(PC_TEST_LOCK_COUNTER)
 #undef PC_TEST_LOCK_COUNTER
 #else

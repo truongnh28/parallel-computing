@@ -1,12 +1,15 @@
-% Mục 4.5: Mutation testing, trả lời RQ1. Nguồn: results/apple-m5/mutation.log (toàn bộ).
+% Mục 4.5: Mutation testing, trả lời RQ1. Nguồn: results/{apple-m5,LAP1184}/mutation.log (toàn bộ).
 % Số episode lúc bắt lỗi: build/barrier_mut2.run{2,5}.log, build/barrier_mut2_fuzz.run1.log (cùng
 % lượt make mutation, không nằm trong results/).
 
 \begin{rqanswer}\textbf{Trả lời RQ1.} Có. Trên \texttt{apple-m5}, mọi cài đặt (12 lock, 7 barrier,
 19 counter) đạt mọi bài kiểm tra và TSan không báo data race nào. Bộ kiểm tra bắt cả 14/14 biến thể cố
 ý làm hỏng. Riêng hai lỗi memory order thì stress test chỉ bắt được 1 trong 8 lần chạy. TSan bắt được
-cả hai. Dự đoán D1.1 đúng. Kết luận dựa trên một lượt kiểm tra trên một máy ARM.\end{rqanswer}
-% nguồn: mutation.log: TAS_RELEASE_RELAXED stress 0/3, fetch_add_release_only plain 1/5 -> 1/8.
+cả hai. Dự đoán D1.1 đúng. Trên \PCname{LAP1184} (x86-64), 13 lock, 9 barrier và 20 counter cũng đạt, bộ
+kiểm tra cũng bắt cả 14 biến thể, và stress test không bắt được lần nào trong 8 lần chạy với hai lỗi
+memory order. Kết luận dựa trên một lượt kiểm tra trên mỗi máy.\end{rqanswer}
+% nguồn: apple-m5/mutation.log: TAS_RELEASE_RELAXED stress 0/3, fetch_add_release_only plain 1/5 -> 1/8;
+% LAP1184/mutation.log: TAS_RELEASE_RELAXED 0/3, fetch_add_release_only plain 0/5 -> 0/8.
 
 Mỗi biến thể sửa đúng một chỗ của một thuật toán đúng. Bảng~\ref{tab:corr:mutation} tóm tắt kết quả.
 
@@ -54,3 +57,14 @@ order chỉ lộ 1 trong 8 lần chạy và cần TSan. Bốn lỗi treo (hai bi
 \texttt{flip\_before\_reset} treo sau 5 episode (bản thường cần 39\,896 và 289\,052 episode), nhưng làm
 lỗi thiếu acquire biến mất (0/5).
 % nguồn: build/barrier_mut2.run{2,5}.log, build/barrier_mut2_fuzz.run1.log (cùng lượt make mutation)
+
+Trên \PCname{LAP1184}, mọi biến thể bị bắt bởi cùng kỹ thuật như trên \PCname{apple-m5}, với hai khác
+biệt. Thứ nhất, \texttt{fetch\_add\_release\_only} không bị stress test bắt lần nào (0/5, fuzzing 0/5),
+chỉ TSan bắt. Trên x86-64 mọi \texttt{fetch\_add} đều là lệnh \texttt{lock xadd}, và mọi store, kể cả
+\texttt{relaxed} và \texttt{release}, đều là \texttt{mov}. Hai biến thể memory order vì vậy chạy đúng
+lệnh máy của bản đúng, và không lịch chạy nào làm lộ lỗi. Đây là bằng chứng trực tiếp cho câu ở mục
+Giới hạn: trên TSO chỉ TSan bắt được loại lỗi này. Thứ hai, bản thường bắt \texttt{flip\_before\_reset}
+5/5 lần, so với 2/5 trên \PCname{apple-m5}. Nhóm không có số đo cho nguyên nhân, có thể do máy ảo tước
+core của thread nhiều hơn.
+% nguồn: results/LAP1184/mutation.log (Part 2: flip_before_reset caught 5/5 hang 5; fetch_add_release_only
+% SURVIVED 0/5 | SURVIVED 0/5 | DATA RACE reported; Part 1: TAS_RELEASE_RELAXED MISSED 0/3, TSan CAUGHT).

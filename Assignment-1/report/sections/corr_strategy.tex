@@ -1,5 +1,5 @@
 % Mục 4.1: Chiến lược kiểm tra. Nguồn: tests/*.cpp, mk/part{1,2,3}.mk,
-% results/apple-m5/{test,tsan,mutation}.log. Bản dài không đưa vào bài nộp.
+% results/{apple-m5,LAP1184}/{test,tsan,mutation}.log. Bản dài không đưa vào bài nộp.
 
 Nhóm kiểm hai nhóm tính chất. Tính an toàn (safety) nghĩa là không có hai thread
 cùng ở trong critical section, không thread nào ra khỏi barrier sớm, không giá trị counter nào bị trả
@@ -17,7 +17,10 @@ Cùng một bài kiểm tra dạng template chạy cho mọi cài đặt, kể c
 Barrier dùng thêm schedule fuzzing. Counter dùng thêm phép kiểm thứ tự thời gian thực.
 
 Trên \PCname{apple-m5}, \texttt{make test} và \texttt{make tsan} đạt cho 12/12 lock, 7/7 barrier và
-19/19 counter, và TSan không báo data race nào. \texttt{make mutation} bắt cả 14 biến thể hỏng. Đầu ra nằm trong
-\texttt{results/<máy>/}.
-\TODO{kết quả make test, make tsan, make mutation trên máy của các thành viên còn lại (nhất là một máy
-x86-64 và một máy Linux).}
+19/19 counter, và TSan không báo data race nào. \texttt{make mutation} bắt cả 14 biến thể hỏng. Trên
+\PCname{LAP1184} (x86-64, Linux, stress test với 1, 12 và 24 thread), \texttt{make test} đạt cho 13/13
+lock, 9/9 barrier và 20/20 counter. \texttt{make tsan} đạt và không có cảnh báo, trừ ba baseline OpenMP
+bị bỏ qua vì TSan không phân tích được chúng (mục Giới hạn). \texttt{make mutation} cũng bắt cả 14 biến
+thể. Đầu ra nằm trong \texttt{results/<máy>/}.
+% nguồn: results/LAP1184/{test,tsan,mutation}.log
+\TODO{kết quả make test, make tsan, make mutation trên máy của các thành viên còn lại.}

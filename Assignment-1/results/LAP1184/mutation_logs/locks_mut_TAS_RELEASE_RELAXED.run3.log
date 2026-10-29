@@ -1,0 +1,5 @@
+# test_locks on LAP1184 (x86_64, Linux, gcc-11.5), 12 hardware threads
+# per lock: mutual exclusion with fixed iterations (1, 2, 12 threads), then 300 ms timed runs;
+# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)
+PASS  tas                4t:   3509375 acq, max/min 8.10     12t:   1342288 acq, max/min 135.22   24t:    530967 acq, max/min 76561.00
+# 1 lock(s) tested, 0 failed

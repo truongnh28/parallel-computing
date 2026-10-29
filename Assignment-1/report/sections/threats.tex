@@ -1,5 +1,5 @@
 % Mục 7: Các yếu tố đe dọa độ tin cậy, ba đoạn Construct/Internal/External. Mỗi giới hạn chỉ nêu ở
-% đây. Nguồn: results/apple-m5/{campaign.log, lock.csv, counter.csv, barrier.csv}, tables.tex
+% đây. Nguồn: results/{apple-m5,LAP1184}/{campaign.log, lock.csv, counter.csv, barrier.csv}, tables.tex
 % (campaign, lockunit, locksingle). Số tự tính: scripts/report_numbers/corr_stats.py, scripts/report_numbers/corr_stats2.py.
 
 \emph{Construct validity.} Cận dưới của phần lock dùng $t$ đo ở 1 thread, nên chứa chi phí lấy và nhả
@@ -26,7 +26,16 @@ lần chạy. Phần lớn có thể do load average còn mang các lần chạy
 % nguồn: scripts/report_numbers/corr_stats2.py (lock.csv, threads=1, n=1009); lock.csv cột load1: 12,42..51,18; scripts/report_numbers/corr_stats.py (tỉ số
 % theo lượt 0,977..1,034)
 
-\emph{External validity.} Mọi số đo đến từ một máy ARM, một compiler (Apple clang 21, \texttt{-O2}) và
-một hệ điều hành. Trên x86, với g++ hay với scheduler khác, thứ hạng có thể đổi. \texttt{is\_prime}
-không chạm dữ liệu dùng chung, trong khi critical section thật thường ghi dữ liệu dùng chung, nên chi phí
-chuyển giao lock thực tế có thể lớn hơn.
+Trên \PCname{LAP1184}, load average trong các dòng số liệu nằm trong 5,90--19,6, nhưng nó chỉ đếm tiến
+trình trong máy ảo. Tải của Windows và việc Windows xếp lịch cho các CPU ảo không hiện ra ở đâu trong số
+liệu. Linux cũng không biết CPU ảo nào nằm trên P-core hay E-core, nên các điểm gãy theo số thread của máy
+này không gán được cho loại core.
+% nguồn: report/figures/LAP1184/tables.tex, bảng campaign (load average nhỏ nhất -- lớn nhất).
+
+\emph{External validity.} Số đo đến từ hai máy: một máy ARM (Apple clang 21, macOS) và một máy x86-64
+(g++ 11.5, Linux trong máy ảo WSL2), cả hai đều \texttt{-O2}. Hai máy khác nhau cùng lúc ở kiến trúc,
+memory model, compiler, hệ điều hành và việc có máy ảo hay không. Vì vậy RQ6 chỉ tách được một khác
+biệt khi nó có bằng chứng riêng, như \texttt{seq\_cst} với TSO. Nhóm không có máy x86 chạy Linux trực
+tiếp, máy chạy Windows trực tiếp, hay máy nhiều socket. \texttt{is\_prime} không chạm dữ liệu dùng chung,
+trong khi critical section thật thường ghi dữ liệu dùng chung, nên chi phí chuyển giao lock thực tế có
+thể lớn hơn.

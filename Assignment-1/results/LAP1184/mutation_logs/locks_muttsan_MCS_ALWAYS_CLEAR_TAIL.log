@@ -1,0 +1,54 @@
+==================
+WARNING: ThreadSanitizer: data race (pid=212108)
+  Read of size 8 at 0x7ffec77d2f80 by thread T3:
+    #0 critical_section tests/test_locks.cpp:115 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x8c2d)
+    #1 operator() tests/test_locks.cpp:140 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x8c2d)
+    #2 __invoke_impl<void, (anonymous namespace)::run_fixed_iters<pc::lock_mcs>(int, long long int)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:61 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x8c2d)
+    #3 __invoke_r<void, (anonymous namespace)::run_fixed_iters<pc::lock_mcs>(int, long long int)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:111 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x8c2d)
+    #4 _M_invoke /usr/include/c++/11/bits/std_function.h:290 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x8c2d)
+    #5 std::function<void (int)>::operator()(int) const /usr/include/c++/11/bits/std_function.h:590 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #6 pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}::operator()() const include/bench_common.hpp:58 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #7 void std::__invoke_impl<void, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(std::__invoke_other, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:61 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #8 std::__invoke_result<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>::type std::__invoke<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:96 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #9 void std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::_M_invoke<0ul>(std::_Index_tuple<0ul>) /usr/include/c++/11/bits/std_thread.h:259 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #10 std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::operator()() /usr/include/c++/11/bits/std_thread.h:266 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #11 std::thread::_State_impl<std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> > >::_M_run() /usr/include/c++/11/bits/std_thread.h:211 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #12 <null> <null> (libstdc++.so.6+0xf74e5)
+
+  Previous write of size 8 at 0x7ffec77d2f80 by thread T4:
+    #0 critical_section tests/test_locks.cpp:116 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x8c39)
+    #1 operator() tests/test_locks.cpp:140 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x8c39)
+    #2 __invoke_impl<void, (anonymous namespace)::run_fixed_iters<pc::lock_mcs>(int, long long int)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:61 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x8c39)
+    #3 __invoke_r<void, (anonymous namespace)::run_fixed_iters<pc::lock_mcs>(int, long long int)::<lambda(int)>&, int> /usr/include/c++/11/bits/invoke.h:111 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x8c39)
+    #4 _M_invoke /usr/include/c++/11/bits/std_function.h:290 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x8c39)
+    #5 std::function<void (int)>::operator()(int) const /usr/include/c++/11/bits/std_function.h:590 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #6 pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}::operator()() const include/bench_common.hpp:58 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #7 void std::__invoke_impl<void, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(std::__invoke_other, pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:61 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #8 std::__invoke_result<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>::type std::__invoke<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}>(pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}&&) /usr/include/c++/11/bits/invoke.h:96 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #9 void std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::_M_invoke<0ul>(std::_Index_tuple<0ul>) /usr/include/c++/11/bits/std_thread.h:259 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #10 std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> >::operator()() /usr/include/c++/11/bits/std_thread.h:266 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #11 std::thread::_State_impl<std::thread::_Invoker<std::tuple<pc::timed_run(int, std::function<void (int)> const&)::{lambda()#1}> > >::_M_run() /usr/include/c++/11/bits/std_thread.h:211 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1d8c2)
+    #12 <null> <null> (libstdc++.so.6+0xf74e5)
+
+  Location is stack of main thread.
+
+  Location is global '<null>' at 0x000000000000 ([stack]+0x00000001ef80)
+
+  Thread T3 (tid=212112, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:969 (libtsan.so.0+0x60248)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xf75ce)
+    #2 pc::timed_run(int, std::function<void (int)> const&) include/bench_common.hpp:55 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1e78f)
+    #3 run_fixed_iters<pc::lock_mcs> tests/test_locks.cpp:137 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0xe035)
+    #4 test_lock<pc::lock_mcs> tests/test_locks.cpp:226 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0xe035)
+    #5 main tests/test_locks.cpp:291 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1a329)
+
+  Thread T4 (tid=212113, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:969 (libtsan.so.0+0x60248)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xf75ce)
+    #2 pc::timed_run(int, std::function<void (int)> const&) include/bench_common.hpp:55 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1e78f)
+    #3 run_fixed_iters<pc::lock_mcs> tests/test_locks.cpp:137 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0xe035)
+    #4 test_lock<pc::lock_mcs> tests/test_locks.cpp:226 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0xe035)
+    #5 main tests/test_locks.cpp:291 (locks_muttsan_MCS_ALWAYS_CLEAR_TAIL+0x1a329)
+
+SUMMARY: ThreadSanitizer: data race tests/test_locks.cpp:115 in critical_section
+==================

@@ -1,0 +1,15 @@
+# test_locks on LAP1184 (x86_64, Linux, gcc-11.5), 12 hardware threads
+# per lock: mutual exclusion with fixed iterations (1, 2, 12 threads), then 300 ms timed runs;
+# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)
+
+FAIL  tas fixed-iters threads=2 iters=100000: counter=197930 expected=200000 (lost 2070), threads seen inside together=7824
+
+FAIL  tas fixed-iters threads=12 iters=20000: counter=119724 expected=240000 (lost 120276), threads seen inside together=236413
+
+FAIL  tas fixed-time threads=4 ms=300: counter=2103533 expected=2530807 (lost 427274), threads seen inside together=2331636
+
+FAIL  tas fixed-time threads=12 ms=300: counter=971203 expected=1926140 (lost 954937), threads seen inside together=1926088
+
+FAIL  tas fixed-time threads=24 ms=300: counter=501929 expected=1751636 (lost 1249707), threads seen inside together=1751085
+FAIL  tas                4t:   2530807 acq, max/min 1.10     12t:   1926140 acq, max/min 2.30     24t:   1751636 acq, max/min 6.97   
+# 1 lock(s) tested, 1 failed

@@ -1,0 +1,2 @@
+# Shell scripts run under sh (Linux, WSL, macOS): a CRLF checkout on Windows breaks them.
+*.sh text eol=lf

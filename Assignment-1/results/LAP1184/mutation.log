@@ -1,0 +1,55 @@
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT_TAS_CHECK_THEN_SET -o build/locks_mut_TAS_CHECK_THEN_SET tests/test_locks.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT_TAS_CHECK_THEN_SET -o build/locks_muttsan_TAS_CHECK_THEN_SET tests/test_locks.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT_TAS_RELEASE_RELAXED -o build/locks_mut_TAS_RELEASE_RELAXED tests/test_locks.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT_TAS_RELEASE_RELAXED -o build/locks_muttsan_TAS_RELEASE_RELAXED tests/test_locks.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT_MCS_NO_WAIT_SUCCESSOR -o build/locks_mut_MCS_NO_WAIT_SUCCESSOR tests/test_locks.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT_MCS_NO_WAIT_SUCCESSOR -o build/locks_muttsan_MCS_NO_WAIT_SUCCESSOR tests/test_locks.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT_MCS_ALWAYS_CLEAR_TAIL -o build/locks_mut_MCS_ALWAYS_CLEAR_TAIL tests/test_locks.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT_MCS_ALWAYS_CLEAR_TAIL -o build/locks_muttsan_MCS_ALWAYS_CLEAR_TAIL tests/test_locks.cpp
+# Part 1 mutation tests (deliberately broken locks, see the MUTANT blocks in include/lock.h)
+mutant                 lock  stress test, 3 runs                  ThreadSanitizer build, 1 run                 verdict
+TAS_CHECK_THEN_SET     tas   CAUGHT 3/3 (mutual exclusion)        CAUGHT (data race report)                    killed by both
+TAS_RELEASE_RELAXED    tas   MISSED 0/3                           CAUGHT (data race report)                    killed by TSan only
+MCS_NO_WAIT_SUCCESSOR  mcs   CAUGHT 3/3 (deadlock)                no report (test watchdog: deadlock)          killed by stress test
+MCS_ALWAYS_CLEAR_TAIL  mcs   CAUGHT 3/3 (deadlock)                CAUGHT (data race report)                    killed by both
+# logs: build/locks_mut_*.log build/locks_muttsan_*.log
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=1 -o build/barrier_mut1 tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=2 -o build/barrier_mut2 tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=3 -o build/barrier_mut3 tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=4 -o build/barrier_mut4 tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=5 -o build/barrier_mut5 tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=1 -DPC_BARRIER_FUZZ -o build/barrier_mut1_fuzz tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=2 -DPC_BARRIER_FUZZ -o build/barrier_mut2_fuzz tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=3 -DPC_BARRIER_FUZZ -o build/barrier_mut3_fuzz tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=4 -DPC_BARRIER_FUZZ -o build/barrier_mut4_fuzz tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=5 -DPC_BARRIER_FUZZ -o build/barrier_mut5_fuzz tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT=1 -o build/barrier_mut1_tsan tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT=2 -o build/barrier_mut2_tsan tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT=3 -o build/barrier_mut3_tsan tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT=4 -o build/barrier_mut4_tsan tests/test_barrier.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT=5 -o build/barrier_mut5_tsan tests/test_barrier.cpp
+== Part 2 mutation testing: 5 runs per stress column, 1 ThreadSanitizer run ==
+mutant                  | plain stress test             | stress + schedule fuzzing     | ThreadSanitizer build
+single_flag             | caught 5/5 (wrong 5, hang 0)  | caught 5/5 (wrong 5, hang 0)  | no report; checks: wrong episode/value
+flip_before_reset       | caught 5/5 (wrong 0, hang 5)  | caught 5/5 (wrong 0, hang 5)  | no report; checks: hang
+nonatomic_count         | caught 5/5 (wrong 0, hang 5)  | caught 5/5 (wrong 0, hang 5)  | no report; checks: hang
+fetch_add_release_only  | SURVIVED 0/5                  | SURVIVED 0/5                  | DATA RACE reported; checks: passed
+thread_local_sense      | caught 5/5 (wrong 5, hang 0)  | caught 5/5 (wrong 5, hang 0)  | no report; checks: wrong episode/value
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=PC_MUTANT_plain_long -o build/counter_mut_plain_long tests/test_counter.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT=PC_MUTANT_plain_long -o build/counter_muttsan_plain_long tests/test_counter.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=PC_MUTANT_load_store -o build/counter_mut_load_store tests/test_counter.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT=PC_MUTANT_load_store -o build/counter_muttsan_load_store tests/test_counter.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=PC_MUTANT_cas_no_retry -o build/counter_mut_cas_no_retry tests/test_counter.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT=PC_MUTANT_cas_no_retry -o build/counter_muttsan_cas_no_retry tests/test_counter.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=PC_MUTANT_lock_read_outside -o build/counter_mut_lock_read_outside tests/test_counter.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT=PC_MUTANT_lock_read_outside -o build/counter_muttsan_lock_read_outside tests/test_counter.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -DPC_MUTANT=PC_MUTANT_block_reserve -o build/counter_mut_block_reserve tests/test_counter.cpp
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -DPC_MUTANT=PC_MUTANT_block_reserve -o build/counter_muttsan_block_reserve tests/test_counter.cpp
+# Part 3 mutation tests: deliberately broken counters (defined in tests/test_counter.cpp)
+mutant             | value checks | checks that fired                  | ThreadSanitizer | verdict
+plain_long         | 3/3 runs     | final duplicate missing order      | data race       | killed by both
+load_store         | 3/3 runs     | final duplicate missing order      | no report       | killed by the value checks only
+cas_no_retry       | 3/3 runs     | final duplicate missing            | no report       | killed by the value checks only
+lock_read_outside  | 3/3 runs     | final duplicate missing order      | data race       | killed by both
+block_reserve      | 3/3 runs     | real-time                          | no report       | killed by the value checks only
+# logs: build/counter_mut_*.log build/counter_muttsan_*.log

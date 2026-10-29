@@ -1,0 +1,104 @@
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -o build/test_locks_tsan tests/test_locks.cpp
+build/test_locks_tsan small
+# test_locks on LAP1184 (x86_64, Linux, gcc-11.5), 12 hardware threads, small sizes
+# per lock: mutual exclusion with fixed iterations (1, 2, 12 threads), then 100 ms timed runs;
+# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)
+PASS  tas                4t:     60368 acq, max/min 1.08     12t:      7920 acq, max/min 3.78     24t:         0 acq, max/min inf    
+PASS  ttas               4t:     54814 acq, max/min 1.15     12t:       133 acq, max/min inf      24t:         0 acq, max/min inf    
+PASS  mcs                4t:     29873 acq, max/min 1.00     12t:         0 acq, max/min inf      24t:         0 acq, max/min inf    
+PASS  tas_bo_sleep       4t:    223222 acq, max/min 1.23     12t:     90375 acq, max/min 1.63     24t:         0 acq, max/min inf    
+PASS  tas_bo_spin        4t:     89664 acq, max/min 1.22     12t:     11462 acq, max/min 3.82     24t:         0 acq, max/min inf    
+PASS  tas_bo_yield       4t:     51246 acq, max/min 1.20     12t:     10207 acq, max/min 3.00     24t:         0 acq, max/min inf    
+PASS  ttas_bo_sleep      4t:    234104 acq, max/min 1.04     12t:     26646 acq, max/min 1.78     24t:         0 acq, max/min inf    
+PASS  ttas_bo_spin       4t:     53028 acq, max/min 1.12     12t:         0 acq, max/min inf      24t:         0 acq, max/min inf    
+PASS  ttas_bo_yield      4t:     49722 acq, max/min 1.26     12t:      7959 acq, max/min 2.31     24t:         0 acq, max/min inf    
+PASS  std_mutex          4t:     57632 acq, max/min 1.10     12t:      9550 acq, max/min 1.97     24t:         0 acq, max/min inf    
+PASS  pthread_mutex      4t:     40841 acq, max/min 1.09     12t:     17692 acq, max/min 1.75     24t:         0 acq, max/min inf    
+PASS  pthread_spinlock   4t:     63491 acq, max/min 1.56     12t:     24456 acq, max/min 31.19    24t:         0 acq, max/min inf    
+SKIP  omp_lock (ThreadSanitizer: OpenMP run-time not instrumented, see docs/part1.md)
+# 12 lock(s) tested, 0 failed
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -o build/test_barrier_tsan tests/test_barrier.cpp
+build/test_barrier_tsan small
+barrier correctness test (plain): 12 hardware threads, small sizes, phase budget 1.5 s, watchdog 30 s
+  sr                     single     threads=1   episodes=500       0.00 s
+  sr                     reuse      threads=4   episodes=15000     0.12 s
+  sr                     all-cores  threads=12  episodes=409       1.53 s  (time budget reached)
+  sr                     jitter     threads=4   episodes=2500      0.04 s
+  sr                     oversub    threads=24  episodes=20       13.58 s
+  sr                     handoff    threads=4   episodes=5000      0.10 s
+PASS sr (23429 barrier episodes checked)
+  sr_bo_spin             single     threads=1   episodes=500       0.00 s
+  sr_bo_spin             reuse      threads=4   episodes=15000     0.12 s
+  sr_bo_spin             all-cores  threads=12  episodes=5000      1.40 s
+  sr_bo_spin             jitter     threads=4   episodes=2500      0.05 s
+  sr_bo_spin             oversub    threads=24  episodes=20        0.76 s
+  sr_bo_spin             handoff    threads=4   episodes=5000      0.11 s
+PASS sr_bo_spin (28020 barrier episodes checked)
+  sr_bo_yield            single     threads=1   episodes=500       0.00 s
+  sr_bo_yield            reuse      threads=4   episodes=15000     0.12 s
+  sr_bo_yield            all-cores  threads=12  episodes=1950      1.51 s  (time budget reached)
+  sr_bo_yield            jitter     threads=4   episodes=2500      0.04 s
+  sr_bo_yield            oversub    threads=24  episodes=541       1.51 s  (time budget reached)
+  sr_bo_yield            handoff    threads=4   episodes=5000      0.12 s
+PASS sr_bo_yield (25491 barrier episodes checked)
+  sr_bo_sleep            single     threads=1   episodes=50        0.00 s
+  sr_bo_sleep            reuse      threads=4   episodes=1500      0.15 s
+  sr_bo_sleep            all-cores  threads=12  episodes=500       0.11 s
+  sr_bo_sleep            jitter     threads=4   episodes=250       0.02 s
+  sr_bo_sleep            oversub    threads=24  episodes=250       0.10 s
+  sr_bo_sleep            handoff    threads=4   episodes=500       0.08 s
+PASS sr_bo_sleep (3050 barrier episodes checked)
+  sr_block               single     threads=1   episodes=150       0.00 s
+  sr_block               reuse      threads=4   episodes=4500      0.49 s
+  sr_block               all-cores  threads=12  episodes=1500      0.38 s
+  sr_block               jitter     threads=4   episodes=750       0.09 s
+  sr_block               oversub    threads=24  episodes=1000      0.46 s
+  sr_block               handoff    threads=4   episodes=1500      0.31 s
+PASS sr_block (9400 barrier episodes checked)
+note: ThreadSanitizer: omp_barrier skipped (OpenMP run-time not instrumented, see docs/part2.md)
+  std_barrier            single     threads=1   episodes=150       0.00 s
+  std_barrier            reuse      threads=4   episodes=4500      0.58 s
+  std_barrier            all-cores  threads=12  episodes=1500      0.42 s
+  std_barrier            jitter     threads=4   episodes=750       0.09 s
+  std_barrier            oversub    threads=24  episodes=1000      0.47 s
+  std_barrier            handoff    threads=4   episodes=1500      0.36 s
+PASS std_barrier (9400 barrier episodes checked)
+  condvar                single     threads=1   episodes=50        0.00 s
+  condvar                reuse      threads=4   episodes=1500      0.17 s
+  condvar                all-cores  threads=12  episodes=500       0.19 s
+  condvar                jitter     threads=4   episodes=250       0.04 s
+  condvar                oversub    threads=24  episodes=250       0.23 s
+  condvar                handoff    threads=4   episodes=500       0.14 s
+PASS condvar (3050 barrier episodes checked)
+  pthread_barrier        single     threads=1   episodes=50        0.00 s
+  pthread_barrier        reuse      threads=4   episodes=1500      0.19 s
+  pthread_barrier        all-cores  threads=12  episodes=500       0.13 s
+  pthread_barrier        jitter     threads=4   episodes=250       0.03 s
+  pthread_barrier        oversub    threads=24  episodes=250       0.12 s
+  pthread_barrier        handoff    threads=4   episodes=500       0.11 s
+PASS pthread_barrier (3050 barrier episodes checked)
+ALL PASS
+c++ -Iinclude -std=c++20 -O2 -Wall -Wextra -pthread -fopenmp -O1 -g -fsanitize=thread -o build/test_counter_tsan tests/test_counter.cpp
+build/test_counter_tsan small
+test_counter: 12 hardware threads, small sizes, time budget 3.0 s per run
+PASS  faa                    threads 1 / 12 / 24,    896000 increments checked, 4.85 s  (time budget reached: fewer increments than planned)
+PASS  faa_seqcst             threads 1 / 12 / 24,    992000 increments checked, 3.49 s
+PASS  cas                    threads 1 / 12 / 24,    992000 increments checked, 2.81 s
+PASS  cas_seqcst             threads 1 / 12 / 24,    992000 increments checked, 4.76 s
+PASS  cas_spin               threads 1 / 12 / 24,    992000 increments checked, 1.67 s
+PASS  cas_yield              threads 1 / 12 / 24,    992000 increments checked, 1.80 s
+PASS  cas_sleep              threads 1 / 12 / 24,    152000 increments checked, 3.55 s  (time budget reached: fewer increments than planned)
+PASS  lock_tas               threads 1 / 12 / 24,    248000 increments checked, 4.22 s
+PASS  lock_ttas              threads 1 / 12 / 24,    229899 increments checked, 4.31 s  (time budget reached: fewer increments than planned)
+PASS  lock_mcs               threads 1 / 12 / 24,    129129 increments checked, 8.75 s  (time budget reached: fewer increments than planned)
+PASS  lock_tas_bo_sleep      threads 1 / 12 / 24,    152000 increments checked, 7.84 s  (time budget reached: fewer increments than planned)
+PASS  lock_tas_bo_spin       threads 1 / 12 / 24,    224000 increments checked, 4.80 s  (time budget reached: fewer increments than planned)
+PASS  lock_tas_bo_yield      threads 1 / 12 / 24,    248000 increments checked, 2.59 s
+PASS  lock_ttas_bo_sleep     threads 1 / 12 / 24,    152000 increments checked, 4.20 s  (time budget reached: fewer increments than planned)
+PASS  lock_ttas_bo_spin      threads 1 / 12 / 24,    248000 increments checked, 1.34 s
+PASS  lock_ttas_bo_yield     threads 1 / 12 / 24,    248000 increments checked, 3.21 s
+PASS  lock_std_mutex         threads 1 / 12 / 24,    235468 increments checked, 5.41 s  (time budget reached: fewer increments than planned)
+PASS  lock_pthread_mutex     threads 1 / 12 / 24,    248000 increments checked, 0.91 s
+PASS  lock_pthread_spinlock  threads 1 / 12 / 24,    248000 increments checked, 2.41 s
+SKIP  lock_omp_lock          (ThreadSanitizer: OpenMP run-time not instrumented, see docs/part1.md)
+ALL COUNTER TESTS PASSED

@@ -20,7 +20,8 @@ và $N=10007$ với OW bằng 0 và 3. $N$ phải là số nguyên tố để \t
 giá trị cho critical section khoảng 5~ns, 0,5~\textmu s và 5~\textmu s. OW quyết định mức tranh chấp.
 Theo mô hình, lock bão hoà khi $p > 1+\text{OW}$. Barrier quét 7 cài đặt. Counter quét 19 cài đặt với OW bằng 0, 1, 8
 và $N=101$. Số thread trên \PCname{apple-m5} là 1, 2, 3, 4, 6, 8, 10, 12, 16, 20. Trong đó 4 là số P-core, 10 là
-mọi core, 12--20 là quá tải.
+mọi core, 12--20 là quá tải. Trên \PCname{LAP1184} lưới thêm 24 thread: 12 là mọi luồng phần cứng,
+16--24 là quá tải. Máy này có thêm các baseline Linux và OpenMP, nên quét 13 lock, 9 barrier và 20 counter.
 
 Với lock, số vòng mỗi thread là $I = W_N/\max(p,\,1+\text{OW})$, để cận dưới của mọi cấu hình khoảng
 0,19~s. Nhóm hiệu chỉnh $W_N$ một lần cho mỗi $N$ bằng \PCname{ttas}. Với barrier và counter, chi phí
@@ -30,7 +31,8 @@ và 0,15~s. $I$ cố định cho cả đợt đo. Hình và bảng quy thời gi
 Thời hạn mỗi lần chạy là 30~s cho lock và 10~s cho barrier và counter. Nhóm đo lock MCS quá tải với số
 vòng nhỏ hơn 100 lần ngay từ đầu (27 cấu hình). Lần chạy vượt thời hạn được ghi thành một dòng
 \texttt{ok=0}, không bỏ đi, rồi cấu hình đó chạy lại với số vòng nhỏ hơn 100 lần. Trên
-\PCname{apple-m5} có 9 lần như vậy, đều là MCS quá tải (6 ở lock, 3 ở counter).
+\PCname{apple-m5} có 9 lần như vậy, đều là MCS quá tải (6 ở lock, 3 ở counter). \PCname{LAP1184} có 12
+lần, cũng đều là MCS quá tải (6 ở lock, 6 ở counter).
 % nguồn: lock.csv, counter.csv (dòng extra=timeout); calibration.json (khoá reduced|...)
 
 Mỗi cấu hình chạy 7 lần. Hình báo cáo trung vị, thanh sai số đi từ min tới max. Nhóm không dùng trung

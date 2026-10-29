@@ -1,0 +1,104 @@
+mutant fetch_add_release_only (PC_MUTANT=4, plain), 12 hardware threads
+  fetch_add_release_only single     threads=1   episodes=500       0.00 s
+  fetch_add_release_only reuse      threads=4   episodes=15000     0.09 s
+  fetch_add_release_only all-cores  threads=12  episodes=218       0.51 s  (time budget reached)
+  fetch_add_release_only jitter     threads=4   episodes=2500      0.04 s
+  fetch_add_release_only oversub    threads=24  episodes=20        8.21 s
+==================
+WARNING: ThreadSanitizer: data race (pid=213031)
+  Read of size 8 at 0x7b4000000380 by thread T13:
+    #0 handoff_body<mutant::Barrier> tests/test_barrier.cpp:389 (barrier_mut4_tsan+0x3cfd)
+    #1 operator() tests/test_barrier.cpp:449 (barrier_mut4_tsan+0x8e18)
+    #2 operator() tests/test_barrier.cpp:428 (barrier_mut4_tsan+0x8e18)
+    #3 __invoke_impl<void, (anonymous namespace)::launch<(anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)> >(bool, int, (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)>)::<lambda()> > /usr/include/c++/11/bits/invoke.h:61 (barrier_mut4_tsan+0x8e18)
+    #4 __invoke<(anonymous namespace)::launch<(anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)> >(bool, int, (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)>)::<lambda()> > /usr/include/c++/11/bits/invoke.h:96 (barrier_mut4_tsan+0x8e18)
+    #5 _M_invoke<0> /usr/include/c++/11/bits/std_thread.h:259 (barrier_mut4_tsan+0x8e18)
+    #6 operator() /usr/include/c++/11/bits/std_thread.h:266 (barrier_mut4_tsan+0x8e18)
+    #7 _M_run /usr/include/c++/11/bits/std_thread.h:211 (barrier_mut4_tsan+0x8e18)
+    #8 <null> <null> (libstdc++.so.6+0xf74e5)
+
+  Previous write of size 8 at 0x7b4000000380 by thread T14:
+    #0 handoff_body<mutant::Barrier> tests/test_barrier.cpp:384 (barrier_mut4_tsan+0x564e)
+    #1 operator() tests/test_barrier.cpp:449 (barrier_mut4_tsan+0x8e18)
+    #2 operator() tests/test_barrier.cpp:428 (barrier_mut4_tsan+0x8e18)
+    #3 __invoke_impl<void, (anonymous namespace)::launch<(anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)> >(bool, int, (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)>)::<lambda()> > /usr/include/c++/11/bits/invoke.h:61 (barrier_mut4_tsan+0x8e18)
+    #4 __invoke<(anonymous namespace)::launch<(anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)> >(bool, int, (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)>)::<lambda()> > /usr/include/c++/11/bits/invoke.h:96 (barrier_mut4_tsan+0x8e18)
+    #5 _M_invoke<0> /usr/include/c++/11/bits/std_thread.h:259 (barrier_mut4_tsan+0x8e18)
+    #6 operator() /usr/include/c++/11/bits/std_thread.h:266 (barrier_mut4_tsan+0x8e18)
+    #7 _M_run /usr/include/c++/11/bits/std_thread.h:211 (barrier_mut4_tsan+0x8e18)
+    #8 <null> <null> (libstdc++.so.6+0xf74e5)
+
+  Location is heap block of size 256 at 0x7b4000000300 allocated by main thread:
+    #0 operator new(unsigned long, std::align_val_t) ../../../../src/libsanitizer/tsan/tsan_new_delete.cpp:88 (libtsan.so.0+0x8f055)
+    #1 allocate /usr/include/c++/11/ext/new_allocator.h:124 (barrier_mut4_tsan+0xa0a2)
+    #2 allocate /usr/include/c++/11/bits/allocator.h:185 (barrier_mut4_tsan+0xa0a2)
+    #3 allocate /usr/include/c++/11/bits/alloc_traits.h:464 (barrier_mut4_tsan+0xa0a2)
+    #4 _M_allocate /usr/include/c++/11/bits/stl_vector.h:346 (barrier_mut4_tsan+0xa0a2)
+    #5 _M_create_storage /usr/include/c++/11/bits/stl_vector.h:361 (barrier_mut4_tsan+0xa0a2)
+    #6 _Vector_base /usr/include/c++/11/bits/stl_vector.h:305 (barrier_mut4_tsan+0xa0a2)
+    #7 vector /usr/include/c++/11/bits/stl_vector.h:511 (barrier_mut4_tsan+0xa0a2)
+    #8 run_phase<mutant::Barrier> tests/test_barrier.cpp:443 (barrier_mut4_tsan+0xa0a2)
+    #9 test_variant<mutant::Barrier> tests/test_barrier.cpp:493 (barrier_mut4_tsan+0xb70c)
+    #10 main tests/test_barrier.cpp:520 (barrier_mut4_tsan+0xb70c)
+
+  Thread T13 (tid=213085, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:969 (libtsan.so.0+0x60248)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xf75ce)
+    #2 test_variant<mutant::Barrier> tests/test_barrier.cpp:493 (barrier_mut4_tsan+0xb70c)
+    #3 main tests/test_barrier.cpp:520 (barrier_mut4_tsan+0xb70c)
+
+  Thread T14 (tid=213086, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:969 (libtsan.so.0+0x60248)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xf75ce)
+    #2 test_variant<mutant::Barrier> tests/test_barrier.cpp:493 (barrier_mut4_tsan+0xb70c)
+    #3 main tests/test_barrier.cpp:520 (barrier_mut4_tsan+0xb70c)
+
+SUMMARY: ThreadSanitizer: data race tests/test_barrier.cpp:389 in handoff_body<mutant::Barrier>
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=213031)
+  Write of size 8 at 0x7b40000003c0 by thread T15:
+    #0 handoff_body<mutant::Barrier> tests/test_barrier.cpp:384 (barrier_mut4_tsan+0x564e)
+    #1 operator() tests/test_barrier.cpp:449 (barrier_mut4_tsan+0x8e18)
+    #2 operator() tests/test_barrier.cpp:428 (barrier_mut4_tsan+0x8e18)
+    #3 __invoke_impl<void, (anonymous namespace)::launch<(anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)> >(bool, int, (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)>)::<lambda()> > /usr/include/c++/11/bits/invoke.h:61 (barrier_mut4_tsan+0x8e18)
+    #4 __invoke<(anonymous namespace)::launch<(anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)> >(bool, int, (anonymous namespace)::run_phase<mutant::Barrier>(char const*, char const*, (anonymous namespace)::Check, int, long int, bool, bool)::<lambda(int)>)::<lambda()> > /usr/include/c++/11/bits/invoke.h:96 (barrier_mut4_tsan+0x8e18)
+    #5 _M_invoke<0> /usr/include/c++/11/bits/std_thread.h:259 (barrier_mut4_tsan+0x8e18)
+    #6 operator() /usr/include/c++/11/bits/std_thread.h:266 (barrier_mut4_tsan+0x8e18)
+    #7 _M_run /usr/include/c++/11/bits/std_thread.h:211 (barrier_mut4_tsan+0x8e18)
+    #8 <null> <null> (libstdc++.so.6+0xf74e5)
+
+  Previous read of size 8 at 0x7b40000003c0 by thread T14:
+    [failed to restore the stack]
+
+  Location is heap block of size 256 at 0x7b4000000300 allocated by main thread:
+    #0 operator new(unsigned long, std::align_val_t) ../../../../src/libsanitizer/tsan/tsan_new_delete.cpp:88 (libtsan.so.0+0x8f055)
+    #1 allocate /usr/include/c++/11/ext/new_allocator.h:124 (barrier_mut4_tsan+0xa0a2)
+    #2 allocate /usr/include/c++/11/bits/allocator.h:185 (barrier_mut4_tsan+0xa0a2)
+    #3 allocate /usr/include/c++/11/bits/alloc_traits.h:464 (barrier_mut4_tsan+0xa0a2)
+    #4 _M_allocate /usr/include/c++/11/bits/stl_vector.h:346 (barrier_mut4_tsan+0xa0a2)
+    #5 _M_create_storage /usr/include/c++/11/bits/stl_vector.h:361 (barrier_mut4_tsan+0xa0a2)
+    #6 _Vector_base /usr/include/c++/11/bits/stl_vector.h:305 (barrier_mut4_tsan+0xa0a2)
+    #7 vector /usr/include/c++/11/bits/stl_vector.h:511 (barrier_mut4_tsan+0xa0a2)
+    #8 run_phase<mutant::Barrier> tests/test_barrier.cpp:443 (barrier_mut4_tsan+0xa0a2)
+    #9 test_variant<mutant::Barrier> tests/test_barrier.cpp:493 (barrier_mut4_tsan+0xb70c)
+    #10 main tests/test_barrier.cpp:520 (barrier_mut4_tsan+0xb70c)
+
+  Thread T15 (tid=213087, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:969 (libtsan.so.0+0x60248)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xf75ce)
+    #2 test_variant<mutant::Barrier> tests/test_barrier.cpp:493 (barrier_mut4_tsan+0xb70c)
+    #3 main tests/test_barrier.cpp:520 (barrier_mut4_tsan+0xb70c)
+
+  Thread T14 (tid=213086, running) created by main thread at:
+    #0 pthread_create ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:969 (libtsan.so.0+0x60248)
+    #1 std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)()) <null> (libstdc++.so.6+0xf75ce)
+    #2 test_variant<mutant::Barrier> tests/test_barrier.cpp:493 (barrier_mut4_tsan+0xb70c)
+    #3 main tests/test_barrier.cpp:520 (barrier_mut4_tsan+0xb70c)
+
+SUMMARY: ThreadSanitizer: data race tests/test_barrier.cpp:384 in handoff_body<mutant::Barrier>
+==================
+  fetch_add_release_only handoff    threads=4   episodes=5000      0.25 s
+PASS fetch_add_release_only (23238 barrier episodes checked)
+SURVIVED fetch_add_release_only: no check failed
+ThreadSanitizer: reported 2 warnings

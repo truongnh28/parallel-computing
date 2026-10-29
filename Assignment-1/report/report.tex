@@ -40,7 +40,7 @@
 
 % Các máy đã đo: tên thư mục trong results/, cách nhau bằng dấu phẩy, KHÔNG có dấu cách.
 % Thêm một máy = thêm tên của nó vào dòng này (và một dòng \PCsetowner bên dưới).
-\providecommand{\Hosts}{apple-m5}
+\providecommand{\Hosts}{apple-m5,LAP1184}
 % Thư mục chứa hình và bảng do scripts/plot.py sinh ra.
 \providecommand{\FigRoot}{figures}
 % =================================================================================================
@@ -203,6 +203,7 @@
 
 % TODO(report): mỗi máy một dòng, ghi tên thành viên đã chạy đo trên máy đó.
 \PCsetowner{apple-m5}{\textit{(điền tên)}}
+\PCsetowner{LAP1184}{\textit{(điền tên)}}
 
 \ForEachHost{\PCload}
 \PCload{cross}

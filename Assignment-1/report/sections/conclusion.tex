@@ -1,8 +1,8 @@
 % Kết luận. Mọi con số dưới đây đã xuất hiện ở mục Kiểm tra tính đúng đắn hoặc mục Kết quả và phân tích.
 
 Nhóm cài đặt ba spinlock, một sense-reversing barrier và ba họ concurrent counter, kiểm tra chúng bằng
-stress test, ThreadSanitizer và mutation testing, rồi đo chúng trên \PCname{apple-m5}. Câu trả lời cho
-sáu câu hỏi nghiên cứu như sau.
+stress test, ThreadSanitizer và mutation testing, rồi đo chúng trên \PCname{apple-m5} và
+\PCname{LAP1184}. Câu trả lời cho RQ1 tới RQ5 dựa trên \PCname{apple-m5}. RQ6 so hai máy.
 
 RQ1. Mọi cài đặt qua mọi bài kiểm tra, và bộ kiểm tra bắt được cả 14 biến thể cố ý làm hỏng. Không kỹ
 thuật nào tự nó đủ. Lỗi thuật toán lộ ra dưới stress test, còn lỗi memory order như nhả lock bằng store
@@ -26,8 +26,13 @@ CAS hỏng trên mỗi lần tăng tăng từ 0,09 ở 2 thread lên 1,59 ở 8 
 nhưng tuần tự hoá các thread. Mutex thư viện thắng fetch-and-add khi không có việc giữa hai lần tăng,
 vì người giữ lock tăng nhiều lần liên tiếp trên cache line nằm sẵn trong cache của mình.
 
-RQ6. Chưa kiểm được, vì báo cáo mới có số đo của một máy.
-\TODO{trả lời RQ6 sau khi có số đo từ máy của các thành viên còn lại}
+RQ6. Một phần. Trên \PCname{LAP1184} (x86-64, Linux trong máy ảo WSL2), mọi cài đặt cũng qua mọi bài
+kiểm tra, và các thứ hạng chính vẫn giữ: TTAS nhanh hơn TAS, MCS sụp khi mọi luồng phần cứng đều bận,
+fetch-and-add nhanh hơn vòng CAS. Ba khác biệt đến từ nền tảng. Với TSO, \texttt{seq\_cst} không tốn
+thêm gì (0,75 tới 1,14 lần \PCname{cas}), và stress test không bao giờ bắt được lỗi memory order. Barrier
+spin sụp ngay ở 12 thread, bằng số luồng phần cứng, có lẽ vì Windows phải lấy core của các CPU ảo.
+\texttt{sleep\_for} ngắn nhất kéo dài khoảng 61~\textmu s, gấp 23 lần trên \PCname{apple-m5}, nên các
+biến thể ngủ chậm hơn nhiều.
 
 Bảy dự đoán viết trước khi đo bị số liệu bác bỏ toàn phần hoặc một phần. MCS không phải spinlock nhanh
 nhất khi số thread chưa vượt số core (D2.1). Lock chỉ bão hoà tại $p = 1 + \mathrm{OW}$ khi
@@ -41,4 +46,5 @@ Từ các kết quả này, nhóm khuyến nghị ba điều. Khi số thread c�
 hoặc TTAS có backoff, và chỉ dùng MCS khi mỗi thread chắc chắn có core riêng. Dùng barrier spin khi số
 thread không vượt số core, và barrier có \texttt{sched\_yield} khi có thể vượt. Dùng fetch-and-add cho
 counter, và chia counter theo thread khi nó nằm trên đường nóng. Việc chưa làm gồm phiên bản phân tán bằng MPI-3 RMA
-(phần 4 của đề) và số đo trên các máy còn lại của nhóm.
+(phần 4 của đề), số đo trên các máy còn lại của nhóm, và một máy x86 chạy Linux trực tiếp để tách ảnh
+hưởng của máy ảo.
