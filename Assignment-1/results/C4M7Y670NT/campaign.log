@@ -1,0 +1,2 @@
+2026-10-29T19:04:55 START argv=--wait 10 host=C4M7Y670NT ncpu=12 reps=7 runs=13244 seed=20261031 scale=0.956 load1=6.45 force=0
+2026-10-29T20:58:15 END duration=1:53:10 ok=13244 bad_check=0 timeout=10 reduced_configs=10 skipped=0 error=0 load1=16.69
