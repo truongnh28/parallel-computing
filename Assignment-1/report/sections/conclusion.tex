@@ -21,13 +21,13 @@ RQ4. Chi phí một episode của barrier tăng khoảng 53~ns cho mỗi thread 
 thread tràn sang E-core, và tăng khoảng 2\,000 lần khi số thread vượt số core. Spin thuần là lựa chọn tốt
 khi mỗi thread có core riêng. Khi vượt số core, chờ bằng \texttt{sched\_yield} nhanh nhất.
 
-RQ5. Không counter nào mở rộng. Fetch-and-add nhanh hơn vòng CAS 2,1 tới 2,7 lần từ 4 thread vì số lần
-CAS hỏng trên mỗi lần tăng tăng từ 0,09 ở 2 thread lên 1,59 ở 8 thread. Backoff đưa số lần hỏng về gần 0
+RQ5. Không counter nào mở rộng. Từ 4 thread, fetch-and-add nhanh hơn vòng CAS 2,1 tới 2,7 lần. Lý do là
+số lần CAS hỏng trên mỗi lần tăng tăng từ 0,09 ở 2 thread lên 1,59 ở 8 thread. Backoff đưa số lần hỏng về gần 0
 nhưng tuần tự hoá các thread. Mutex thư viện thắng fetch-and-add khi không có việc giữa hai lần tăng,
 vì người giữ lock tăng nhiều lần liên tiếp trên cache line nằm sẵn trong cache của mình.
 
 RQ6. Một phần. Trên \PCname{LAP1184} (x86-64, Linux trong máy ảo WSL2), mọi cài đặt cũng qua mọi bài
-kiểm tra, và các thứ hạng chính vẫn giữ: TTAS nhanh hơn TAS, MCS sụp khi mọi luồng phần cứng đều bận,
+kiểm tra. Các thứ hạng chính vẫn giữ: TTAS nhanh hơn TAS, MCS sụp khi mọi luồng phần cứng đều bận,
 fetch-and-add nhanh hơn vòng CAS. Ba khác biệt đến từ nền tảng. Với TSO, \texttt{seq\_cst} không tốn
 thêm gì (0,75 tới 1,14 lần \PCname{cas}), và stress test không bao giờ bắt được lỗi memory order. Barrier
 spin sụp ngay ở 12 thread, bằng số luồng phần cứng, có lẽ vì Windows phải lấy core của các CPU ảo.
@@ -36,15 +36,17 @@ biến thể ngủ chậm hơn nhiều.
 
 Bảy dự đoán viết trước khi đo bị số liệu bác bỏ toàn phần hoặc một phần. MCS không phải spinlock nhanh
 nhất khi số thread chưa vượt số core (D2.1). Lock chỉ bão hoà tại $p = 1 + \mathrm{OW}$ khi
-$1 + \mathrm{OW} \le 4$ (D2.3), và sleep backoff vẫn giúp TAS ở nhiều thread dù có việc ngoài
+$1 + \mathrm{OW} \le 4$ (D2.3). Sleep backoff vẫn giúp TAS ở nhiều thread dù có việc ngoài
 critical section (D3.2). Chi phí barrier không tăng theo một độ dốc duy nhất (D4.1).
 Mutex thư viện và vòng CAS ở 2 thread nhanh hơn fetch-and-add (D5.1). \texttt{seq\_cst} làm CAS chậm
 khoảng 2 lần (D5.4). Khi vượt số core, MCS mất cả tính công bằng (D3.3). Điểm chung của các dự đoán sai
 là chúng chỉ tính lưu lượng coherence mà bỏ qua scheduler của hệ điều hành và việc máy có hai loại core.
 
-Từ các kết quả này, nhóm khuyến nghị ba điều. Khi số thread có thể vượt số core, dùng lock thư viện
+Khi số thread có thể vượt số core, nhóm khuyến nghị dùng lock thư viện
 hoặc TTAS có backoff, và chỉ dùng MCS khi mỗi thread chắc chắn có core riêng. Dùng barrier spin khi số
 thread không vượt số core, và barrier có \texttt{sched\_yield} khi có thể vượt. Dùng fetch-and-add cho
-counter, và chia counter theo thread khi nó nằm trên đường nóng. Việc chưa làm gồm phiên bản phân tán bằng MPI-3 RMA
+counter, và chia counter theo thread khi nó nằm trên đường nóng.
+
+Việc chưa làm gồm phiên bản phân tán bằng MPI-3 RMA
 (phần 4 của đề), số đo trên các máy còn lại của nhóm, và một máy x86 chạy Linux trực tiếp để tách ảnh
 hưởng của máy ảo.

@@ -1,8 +1,9 @@
 % Mục 4.2. Nguồn: include/barrier.hpp; lệnh AArch64: c++ -O2 -S (Apple clang 21);
 % số lần bắt mutant: results/apple-m5/mutation.log.
 Barrier cho $n$ thread bảo đảm không thread nào ra khỏi lần gọi \texttt{wait()} thứ $k$ trước khi cả $n$
-thread đã gọi lần thứ $k$, và dùng lại được qua mọi episode. Barrier một cờ ``mở/đóng'' không dùng lại
+thread đã gọi lần thứ $k$. Barrier cũng dùng lại được qua mọi episode. Barrier một cờ ``mở/đóng'' không dùng lại
 được. Đóng cờ sớm thì thread chậm chờ mãi, đóng muộn thì thread nhanh qua luôn episode sau.
+
 Sense-reversing barrier~\cite{hensgen1988barrier} không đặt lại cờ mà đảo nó mỗi episode. Mỗi thread chờ
 cờ bằng \emph{local sense} của mình, nên hai episode kề nhau chờ hai giá trị khác nhau.
 \begin{lstlisting}

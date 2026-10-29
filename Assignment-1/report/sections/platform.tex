@@ -11,14 +11,15 @@ giữa các máy trả lời RQ6.
 \TODO{nhóm có mấy thành viên, và máy của các thành viên còn lại (sau khi họ chạy make bench)}
 
 Máy \PCname{apple-m5} là một Apple M5 với 10 core không đồng nhất, gồm 4 P-core (performance) và 6
-E-core (efficiency). Mỗi cụm có cache L2 riêng. Máy không có SMT. Ba đặc điểm của máy ảnh hưởng tới kết
-quả. Thứ nhất, khi số thread vượt 4, một phần thread chạy trên E-core chậm hơn, và cache line dùng chung
-phải đi qua lại giữa hai cụm. Thứ hai, macOS không cho gắn thread vào một core cố định, nên loại core
-của mỗi thread do scheduler quyết định và có thể đổi giữa các lần chạy. Nhóm giảm biến thiên này bằng
-cách lặp lại và lấy trung vị. Thứ ba, AArch64 có memory model yếu hơn x86-TSO. Các memory order khác
-nhau sinh ra các lệnh máy khác nhau (store \texttt{relaxed} là \texttt{str}, store \texttt{release} là
+E-core (efficiency). Mỗi cụm có cache L2 riêng. Máy không có SMT.
+
+Ba đặc điểm của máy ảnh hưởng tới kết quả. Thứ nhất, khi số thread vượt 4, một phần thread chạy trên
+E-core chậm hơn, và cache line dùng chung phải đi qua lại giữa hai cụm. Thứ hai, macOS không cho gắn
+thread vào một core cố định. Loại core của mỗi thread do scheduler quyết định và có thể đổi giữa các lần
+chạy. Nhóm giảm biến thiên này bằng cách lặp lại và lấy trung vị. Thứ ba, AArch64 có memory model yếu
+hơn x86-TSO. Các memory order khác nhau sinh ra các lệnh máy khác nhau (store \texttt{relaxed} là \texttt{str}, store \texttt{release} là
 \texttt{stlr}). Vì vậy lỗi chọn sai memory order có thể quan sát được trên máy này, trong khi trên x86 nó
-thường không bao giờ lộ ra. CPU có các lệnh atomic LSE của ARMv8.1, nên \texttt{fetch\_add} và
+thường không lộ ra. CPU có các lệnh atomic LSE của ARMv8.1, nên \texttt{fetch\_add} và
 \texttt{compare\_exchange} là một lệnh máy (\texttt{ldadd}, \texttt{cas}) chứ không phải vòng LL/SC.
 
 Hệ điều hành báo cache line, đơn vị dữ liệu mà phần cứng giữ nhất quán giữa các core, dài 128 byte.
@@ -35,16 +36,17 @@ Toàn bộ số đo đến từ một đợt đo duy nhất dài 1 giờ 26 phú
 7 lần lặp, và thứ tự các cấu hình xáo trộn trong từng lượt. Máy cắm sạc, chế độ tiết kiệm điện tắt, và
 không có tiến trình đo hay build nào khác chạy cùng lúc. Load average một phút lúc bắt đầu là 6,73,
 trong khoảng thường thấy của máy khi chỉ có ứng dụng nền. Không lần chạy nào sai kết quả kiểm tra.
-Có 9 lần vượt thời hạn, đều là cấu hình có MCS khi số thread vượt số core, và chúng được đo lại với số vòng
-lặp nhỏ hơn 100 lần (mục Phương pháp đo).
+Có 9 lần vượt thời hạn, đều là cấu hình có MCS khi số thread vượt số core. Các cấu hình này được đo lại
+với số vòng lặp nhỏ hơn 100 lần (mục Phương pháp đo).
 
 Máy \PCname{LAP1184} là một laptop Intel Core i5-1335U. Theo thông số của Intel, CPU này có 2 P-core với
-Hyper-Threading và 8 E-core, tức 10 core và 12 luồng phần cứng, cache L3 12~MiB dùng chung. Nhóm đo trong
-Ubuntu 20.04 chạy trên WSL2, một máy ảo Hyper-V của Windows 11. Ba đặc điểm của cách chạy này ảnh hưởng
-tới kết quả. Thứ nhất, máy ảo có 12 CPU ảo và báo chúng là 6 core, mỗi core 2 luồng. Báo cáo này không
-khớp với CPU thật, và Linux không biết CPU ảo nào nằm trên P-core hay E-core. Thứ hai, mỗi CPU ảo là một
-thread do scheduler của Windows quyết định, nên Linux không ghim được thread vào core thật dù có
-\texttt{sched\_setaffinity}. Thứ ba, load average trong máy ảo chỉ thấy tiến trình của Linux, không thấy
+Hyper-Threading và 8 E-core, tức 10 core và 12 luồng phần cứng. Cache L3 12~MiB dùng chung. Nhóm đo
+trong Ubuntu 20.04 chạy trên WSL2, một máy ảo Hyper-V của Windows 11.
+
+Ba đặc điểm của cách chạy này ảnh hưởng tới kết quả. Thứ nhất, máy ảo có 12 CPU ảo và báo chúng là 6
+core, mỗi core 2 luồng. Cách báo này không khớp với CPU thật. Linux cũng không biết CPU ảo nào nằm trên
+P-core hay E-core. Thứ hai, mỗi CPU ảo là một thread do scheduler của Windows quyết định. Vì vậy Linux
+không ghim được thread vào core thật dù có \texttt{sched\_setaffinity}. Thứ ba, load average trong máy ảo chỉ thấy tiến trình của Linux, không thấy
 tải của Windows. Vì vậy ngưỡng load average lúc bắt đầu chỉ kiểm được một phần độ rảnh của máy. x86-64
 có memory model TSO, cache line 64 byte, và mã nguồn đệm theo 64 byte.
 % nguồn: results/LAP1184/machine.txt (virtualization: Microsoft; physical_cores: 6; threads_per_core: 2;
@@ -57,8 +59,8 @@ và \texttt{\#pragma omp barrier}, nên có 13 lock, 9 barrier và 20 counter. �
 36 giây, gồm 14\,322 lần chạy, 7 lần lặp mỗi cấu hình, với số thread 1, 2, 3, 4, 6, 8, 10, 12, 16, 20 và
 24. Máy cắm sạc. Load average một phút lúc bắt đầu là 6,06, sau khi runner chờ tải từ các bài kiểm tra
 giảm xuống dưới 7. Không lần chạy nào sai kết quả kiểm tra. Có 12 lần vượt thời hạn, đều là MCS khi số
-thread từ 16 trở lên (6 ở lock, 6 ở counter), và chúng được đo lại với số vòng lặp nhỏ hơn 100 lần
-(Bảng~\ref{tab:LAP1184:campaign}).
+thread từ 16 trở lên (6 ở lock, 6 ở counter). Các cấu hình này được đo lại với số vòng lặp nhỏ hơn 100
+lần (Bảng~\ref{tab:LAP1184:campaign}).
 % nguồn: results/LAP1184/campaign.log (START ... load1=6.06; END duration=1:20:36 ok=14322 bad_check=0
 % timeout=12 skipped=0); tables.tex bảng campaign; lock.csv, counter.csv (dòng extra=timeout: 6 + 6,
 % đều mcs / lock_mcs với 16, 20, 24 thread).

@@ -202,8 +202,8 @@
 \makeatother
 
 % TODO(report): mỗi máy một dòng, ghi tên thành viên đã chạy đo trên máy đó.
-\PCsetowner{apple-m5}{\textit{(điền tên)}}
-\PCsetowner{LAP1184}{\textit{(điền tên)}}
+\PCsetowner{apple-m5}{\textit{[điền]}}
+\PCsetowner{LAP1184}{\textit{[điền]}}
 
 \ForEachHost{\PCload}
 \PCload{cross}
@@ -502,18 +502,21 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 % ====================================================================================================
 \appendix
 \section{Cách build và chạy lại}
-Yêu cầu: compiler C++20 (Apple clang, g++ hoặc clang++), \texttt{make}, Python~3; \texttt{matplotlib}
-và \texttt{numpy} để vẽ hình; XeLaTeX (TeX Live) để biên dịch báo cáo. Chi tiết trong \texttt{README.md}.
+Mã nguồn cần compiler C++20 (Apple clang, g++ hoặc clang++), \texttt{make} và Python~3. Phần vẽ hình
+cần thêm \texttt{matplotlib} và \texttt{numpy}. Báo cáo biên dịch bằng XeLaTeX (TeX Live). Chi tiết
+trong \texttt{README.md}.
 
 \begin{lstlisting}[language=bash]
 make                 # biên dịch các bài kiểm tra và các benchmark vào build/
 make test            # chạy mọi bài kiểm tra tính đúng đắn
 make tsan            # chạy lại dưới ThreadSanitizer
 make mutation        # các biến thể cố ý làm hỏng phải bị bộ kiểm tra bắt
-make bench           # chạy toàn bộ đợt đo trên máy rảnh -> results/<máy>/
+make check           # bốn lệnh trên, theo thứ tự
+make bench          # chạy toàn bộ đợt đo trên máy rảnh -> results/<máy>/
 make figures         # vẽ lại mọi hình và bảng từ results/ -> report/figures/
 make report          # biên dịch report/report.pdf
 make zip             # đóng gói bài nộp
+make full            # cả quy trình: check, bench, figures, report, zip
 \end{lstlisting}
 % TODO(report): thời gian chạy thật của `make bench` trên từng máy (campaign.log); ghi chú riêng
 % cho từng nền tảng nếu có (ví dụ cách cài matplotlib, compiler đã dùng).

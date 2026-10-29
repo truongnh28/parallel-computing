@@ -28,21 +28,23 @@ phải chờ nó, vì nếu bỏ đi thì thread đó chờ mãi. Trên AArch64 
 \texttt{stlr}, \texttt{ldaprb}, \texttt{casl}, \texttt{stlrb}. Nút \PCname{mcs_node} cũng chiếm riêng một
 line.
 
-MCS có hai giới hạn. Nút là biến \texttt{thread\_local} dùng chung cho mọi \PCname{lock_mcs}, vì giao
-diện không có tham số, nên một thread không giữ được hai lock MCS cùng lúc. Lock được giao cho đúng một
-thread, nên nếu thread đó bị preempt thì mọi thread phía sau phải chờ scheduler.
+Giới hạn thứ nhất của MCS là một thread không giữ được hai lock MCS cùng lúc, vì nút là biến
+\texttt{thread\_local} dùng chung cho mọi \PCname{lock_mcs} do giao diện không có tham số. Giới hạn thứ
+hai là lock được giao cho đúng một thread, nên nếu thread đó bị preempt thì mọi thread phía sau phải chờ
+scheduler.
 
 \PCname{lock_tas_bo<B>} và \PCname{lock_ttas_bo<B>} gọi chính sách \texttt{B} sau mỗi lần thử thất bại.
-TTAS chỉ lùi lại khi thua \texttt{exchange} (BackoffLock~\cite{herlihy2020art}). Ba chính sách là
-\PCname{sleep} theo mẫu của đề (\texttt{sleep\_for}, \texttt{delay} nhân đôi từ 100~ns tới
-\texttt{MAX\_DELAY} $= 100\,000$~ns), \PCname{spin} (quay ngẫu nhiên, cửa sổ nhân đôi từ 4 tới 1024 lần
-\texttt{cpu\_relax}) và \PCname{yield} (quay 64 lần rồi \texttt{yield}). \texttt{sleep\_for} là system
-call. Trên \PCname{apple-m5}, yêu cầu 100~ns ngủ trung vị 2\,670~ns (nhóm đo bằng
+TTAS chỉ lùi lại khi thua \texttt{exchange} (BackoffLock~\cite{herlihy2020art}). \texttt{B} là một trong
+ba chính sách. \PCname{sleep} theo mẫu của đề, gọi \texttt{sleep\_for} với \texttt{delay} nhân đôi từ
+100~ns tới \texttt{MAX\_DELAY} $= 100\,000$~ns. \PCname{spin} quay ngẫu nhiên, với cửa sổ nhân đôi từ 4
+tới 1024 lần \texttt{cpu\_relax}. \PCname{yield} quay 64 lần rồi gọi \texttt{yield}. \texttt{sleep\_for}
+là system call. Trên \PCname{apple-m5}, yêu cầu 100~ns ngủ trung vị 2\,670~ns (nhóm đo bằng
 \texttt{build/sleep\_latency}).
 % nguồn: tables.tex, bảng sleeplatency, sleep_for 100 ns: trung vị 2670 ns.
 
 Lock thư viện được bọc inline sau cùng giao diện. Đó là \texttt{std::mutex}, \texttt{pthread\_mutex\_t},
 \texttt{os\_unfair\_lock} (macOS), \texttt{pthread\_spinlock\_t} (Linux), \texttt{omp\_lock\_t} (khi có
-OpenMP). Vòng spin gọi \texttt{cpu\_relax()}, tức là \texttt{pause} trên x86, \texttt{isb} trên AArch64 vì
-\texttt{yield} của Apple gần như không làm gì (0,3~ns so với 12,1~ns của \texttt{isb}, cùng phép đo).
+OpenMP). Vòng spin gọi \texttt{cpu\_relax()}, tức là \texttt{pause} trên x86 và \texttt{isb} trên AArch64. Lệnh
+\texttt{isb} được chọn vì \texttt{yield} của Apple gần như không làm gì (0,3~ns so với 12,1~ns của
+\texttt{isb}, cùng phép đo).
 % nguồn: tables.tex, bảng sleeplatency: yield_insn trung vị 0,300 ns; isb trung vị 12,1 ns.

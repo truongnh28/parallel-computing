@@ -4,24 +4,28 @@
 % Giới hạn của việc đo chỉ nằm ở mục Các yếu tố đe dọa độ tin cậy. Bản dài: agent-corr/long/method.tex.
 
 Mỗi lần chạy in đúng một dòng CSV gồm tham số, thời gian, cột \texttt{ok} (phép kiểm của lần
-chạy) và load average. Đồng hồ chạy từ lúc mọi thread
-đã được tạo và cổng xuất phát chung mở ra tới khi lần \texttt{join} cuối trả về. Việc tạo thread nằm
+chạy) và load average. Đồng hồ chạy từ lúc mọi thread đã được tạo và cổng xuất phát chung mở ra tới
+khi lần \texttt{join} cuối trả về. Việc tạo thread nằm
 ngoài vùng đo.
 
 Trong khung của đề, compiler được phép xoá \texttt{is\_prime(N)} vì kết quả bị bỏ đi. Nhóm giữ
-\texttt{is\_prime} không inline, cho \texttt{N} đi qua \texttt{pc::opaque()} ở mỗi lời gọi, và kiểm tổng các kết quả ở cuối lần chạy (cột \texttt{ok}).
+\texttt{is\_prime} không inline và cho \texttt{N} đi qua \texttt{pc::opaque()} ở mỗi lời gọi. Nhóm
+cũng kiểm tổng các kết quả ở cuối lần chạy (cột \texttt{ok}).
 Bảng~\ref{tab:apple-m5:lockunit} xác nhận phần việc không bị xoá. Ở $N=1009$, thời gian một lời gọi
 $t$ chỉ thay đổi từ 504 tới 527~ns khi \texttt{OUTSIDE\_WORK} tăng từ 0 lên 15, và $t$ tỉ lệ với $N$.
 Cả 12\,152 lần chạy đều có \texttt{ok = 1}.
 % nguồn: tables.tex, bảng lockunit; campaign.log: bad_check=0
 
-Phần lock quét 12 lock qua ba lượt. Một lượt dùng $N=1009$ với \texttt{OUTSIDE\_WORK} (OW) bằng 0, 1, 3, 7, 15. Hai lượt còn lại dùng $N=11$
-và $N=10007$ với OW bằng 0 và 3. $N$ phải là số nguyên tố để \texttt{is\_prime} chạy đủ $N-2$ vòng. Ba
+Phần lock quét 12 lock qua ba lượt. Một lượt dùng $N=1009$ với \texttt{OUTSIDE\_WORK} (OW) bằng 0,
+1, 3, 7, 15. Hai lượt còn lại dùng $N=11$ và $N=10007$ với OW bằng 0 và 3. $N$ phải là số nguyên tố để \texttt{is\_prime} chạy đủ $N-2$ vòng. Ba
 giá trị cho critical section khoảng 5~ns, 0,5~\textmu s và 5~\textmu s. OW quyết định mức tranh chấp.
-Theo mô hình, lock bão hoà khi $p > 1+\text{OW}$. Barrier quét 7 cài đặt. Counter quét 19 cài đặt với OW bằng 0, 1, 8
-và $N=101$. Số thread trên \PCname{apple-m5} là 1, 2, 3, 4, 6, 8, 10, 12, 16, 20. Trong đó 4 là số P-core, 10 là
-mọi core, 12--20 là quá tải. Trên \PCname{LAP1184} lưới thêm 24 thread: 12 là mọi luồng phần cứng,
-16--24 là quá tải. Máy này có thêm các baseline Linux và OpenMP, nên quét 13 lock, 9 barrier và 20 counter.
+Theo mô hình, lock bão hoà khi $p > 1+\text{OW}$. Barrier quét 7 cài đặt. Counter quét 19 cài đặt
+với OW bằng 0, 1, 8 và $N=101$.
+
+Số thread trên \PCname{apple-m5} là 1, 2, 3, 4, 6, 8, 10, 12, 16, 20. Trong đó 4 là số P-core, 10 là
+mọi core, 12--20 là quá tải. Trên \PCname{LAP1184}, lưới thêm 24 thread. Ở máy này, 12 là mọi luồng
+phần cứng và 16--24 là quá tải. Máy này có thêm các baseline Linux và OpenMP, nên quét 13 lock, 9
+barrier và 20 counter.
 
 Với lock, số vòng mỗi thread là $I = W_N/\max(p,\,1+\text{OW})$, để cận dưới của mọi cấu hình khoảng
 0,19~s. Nhóm hiệu chỉnh $W_N$ một lần cho mỗi $N$ bằng \PCname{ttas}. Với barrier và counter, chi phí
@@ -38,8 +42,8 @@ lần, cũng đều là MCS quá tải (6 ở lock, 6 ở counter).
 Mỗi cấu hình chạy 7 lần. Hình báo cáo trung vị, thanh sai số đi từ min tới max. Nhóm không dùng trung
 bình vì phân bố lệch phải. Ở 33\,\% cấu hình lock, lần chậm nhất dài hơn 1,5 lần trung vị. Lần vượt
 thời hạn được tính là chậm nhất khi lấy trung vị. Trong mỗi lượt lặp, mọi cấu hình chạy theo thứ tự xáo
-trộn với seed cố định. Mỗi thời điểm chỉ
-có một tiến trình đo, và đợt đo chỉ bắt đầu khi load average không quá 7,0.
+trộn với seed cố định. Mỗi thời điểm chỉ có một tiến trình đo, và đợt đo chỉ bắt đầu khi load average
+không quá 7,0.
 % nguồn: agent-corr/stats.py trên lock.csv (ok=1): tỉ lệ cấu hình có max/median > 1,5 = 0,334
 
 Phần lock được so với cận dưới $T_{\min} = \max\bigl(p\,I\,t,\ (1+\text{OW})\,I\,t\bigr)$. Vế đầu là

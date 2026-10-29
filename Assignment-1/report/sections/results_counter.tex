@@ -8,39 +8,41 @@ tăng về một core. Lợi thế này mất khi có việc giữa hai lần t�
 
 Nhóm đo thời gian để mỗi thread tăng counter $10^6$ lần, với $\mathrm{OW}$ lời gọi
 \texttt{is\_prime(101)} giữa hai lần tăng (Hình~\ref{fig:apple-m5:counter_time},
-Bảng~\ref{tab:apple-m5:countertime}), cùng thời gian trung bình một lần tăng và độ công bằng như ở RQ3.
+Bảng~\ref{tab:apple-m5:countertime}). Nhóm cũng đo thời gian trung bình một lần tăng và độ công bằng
+như ở RQ3.
 
 \PCfigure{apple-m5}{counter_time}
 
 Không counter nào mở rộng. Với $\mathrm{OW} = 0$, thông lượng của \PCname{faa} giảm từ khoảng 610 triệu
-lần tăng mỗi giây với 1 thread xuống 42 triệu với 20 thread, vì mỗi lần tăng phải giữ cache line của
-counter ở trạng thái độc quyền.
+lần tăng mỗi giây với 1 thread xuống 42 triệu với 20 thread. Nguyên nhân là mỗi lần tăng phải giữ
+cache line của counter ở trạng thái độc quyền.
 % nguồn: faa OW=0, seconds/ops: p=1 1,64 ns; p=20 23,6 ns.
 
 \PCtable{apple-m5}{countertime}
 
-\PCname{cas} chậm hơn \PCname{faa} 2,1 tới 2,7 lần từ 4 thread, và số lần CAS hỏng trên mỗi lần tăng
-vượt 1 từ 8 thread (Hình~\ref{fig:apple-m5:counter_cas_failures}).
+\PCname{cas} chậm hơn \PCname{faa} 2,1 tới 2,7 lần từ 4 thread. Từ 8 thread, số lần CAS hỏng trên mỗi
+lần tăng vượt 1 (Hình~\ref{fig:apple-m5:counter_cas_failures}).
 % nguồn: t(cas)/t(faa) OW=0 p=4..20; cas_fail/ops p=8 1,59.
 
 \PCfigure{apple-m5}{counter_cas_failures}
 
-Một lần CAS hỏng đã trả giá một lần kéo cache line về mà không tiến được, còn \texttt{ldadd} của
-fetch-and-add đọc và ghi trong một bước. Nếu mỗi lần hỏng tốn một lần chuyển, thời gian của \PCname{cas} xấp xỉ thời gian của \PCname{faa} nhân
+Một lần CAS hỏng đã tốn một lần kéo cache line về mà không tăng được counter. Lệnh \texttt{ldadd} của
+fetch-and-add thì đọc và ghi trong một bước. Nếu mỗi lần hỏng tốn một lần chuyển, thời gian của \PCname{cas} xấp xỉ thời gian của \PCname{faa} nhân
 $1+f$, với $f$ là số lần hỏng mỗi lần tăng. Từ 6 tới 20 thread, mô hình lệch tỉ số đo được không quá 15\%.
+
 Ở 2 thread, ngược với D5.1, \PCname{cas} nhanh hơn \PCname{faa} khoảng 28\%. Ở đó chỉ có 0,09 lần
-CAS hỏng trên mỗi lần tăng, nên gần như mọi lần tăng thành công ngay lần đầu, và mô hình $1+f$ không giải
+CAS hỏng trên mỗi lần tăng, nên gần như mọi lần tăng thành công ngay lần đầu. Mô hình $1+f$ không giải
 thích được phần chênh còn lại. Kiến trúc ARMv8.1 cho phép phần cứng thực hiện \texttt{ldadd} ở gần cache
 dùng chung thay vì trong L1 của core gọi. Nếu M5 làm vậy, mỗi lần \texttt{ldadd} tốn một lượt đi về tới
 cache dùng chung. Một thread chạy vòng CAS thì có thể tăng vài lần liên tiếp trên line đang nằm sẵn trong
 L1 của nó. Đây là giả thuyết. Ghi lại giá trị trả về của
-từng lần tăng sẽ cho biết mỗi thread tăng liên tiếp bao nhiêu lần trước khi line rời core của nó, và
-kiểm được giả thuyết này.
+từng lần tăng sẽ cho biết mỗi thread tăng liên tiếp bao nhiêu lần trước khi line rời core của nó. Con
+số đó cho phép kiểm giả thuyết này.
 % nguồn: t(cas)/t(faa) OW=0 p=2: 4,21/5,85 = 0,72; cas_fail/ops p=2: 0,091.
 
 Khi $\mathrm{OW} \le 1$, counter dùng spinlock không backoff chậm nhất. Ở 20 thread, \PCname{lock_tas}
-chậm hơn \PCname{faa} 13,7 lần. \PCname{lock_mcs} chậm hơn \PCname{lock_tas} 3,2 lần ngay ở 2 thread,
-vì MCS trao lock theo thứ tự đến nên mỗi lần tăng chuyển lock và giá trị sang core khác.
+chậm hơn \PCname{faa} 13,7 lần. \PCname{lock_mcs} chậm hơn \PCname{lock_tas} 3,2 lần ngay ở 2 thread.
+MCS trao lock theo thứ tự đến, nên mỗi lần tăng chuyển lock và giá trị sang core khác.
 % nguồn: OW=0: lock_tas/faa p=20 13,67; lock_mcs/lock_tas p=2 3,23.
 
 Ngược với D5.1, ở $\mathrm{OW} = 0$ counter dùng \PCname{lock_pthread_mutex} và
@@ -48,21 +50,21 @@ Ngược với D5.1, ở $\mathrm{OW} = 0$ counter dùng \PCname{lock_pthread_mu
 so với 23,4~ns của \PCname{faa}. Với \PCname{faa}, mọi thread tiến đều nhau nên gần như mỗi lần tăng phải
 kéo line của counter từ core khác về. Một lần tăng dưới mutex rẻ hơn thế, nên tính trung bình nó tốn ít
 hơn một lần chuyển line. Người giữ lock thực hiện nhiều lần tăng liên tiếp trên line đã nằm trong cache
-của mình, trong khi các thread chờ ngủ trong kernel và không tranh line. Độ công bằng theo thời điểm kết
+của mình. Các thread chờ ngủ trong kernel và không tranh line. Độ công bằng theo thời điểm kết
 thúc của mutex vẫn khoảng 0,98, nên các chuỗi lần tăng liên tiếp này ngắn so với cả lần chạy. Khi có
 việc giữa hai lần tăng ($\mathrm{OW} = 8$, 20 thread), mỗi lần lấy lock gần như luôn phải đánh thức một
-thread đang ngủ, và \PCname{lock_pthread_mutex} chậm hơn \PCname{faa} 4,9 lần.
+thread đang ngủ. Khi đó \PCname{lock_pthread_mutex} chậm hơn \PCname{faa} 4,9 lần.
 % nguồn: OW=0 p=8 ns/op: pthread_mutex 12,41, std_mutex 14,10, faa 23,39; thr_min/thr_max mutex 0,97-0,98, faa 0,94; OW=8 p=20: 9,98 s / 2,03 s.
 
 Backoff dồn các lần tăng về một thread tại mỗi thời điểm. Thời gian một lần tăng của
-\PCname{cas_sleep} bằng giá trị 1 thread trong khoảng 11\% ở mọi số thread và mọi $\mathrm{OW}$, và độ
-công bằng của nó xấp xỉ $1/p$, đúng như khi các thread chạy lần lượt. Vì vậy ở 20 thread
+\PCname{cas_sleep} bằng giá trị 1 thread trong khoảng 11\% ở mọi số thread và mọi $\mathrm{OW}$. Độ
+công bằng của nó xấp xỉ $1/p$, đúng như khi các thread chạy lần lượt. Vì vậy, ở 20 thread,
 \PCname{cas_sleep} nhanh hơn \PCname{cas} 32 lần khi $\mathrm{OW} = 0$ nhưng chậm hơn 3,1 lần khi
-$\mathrm{OW} = 8$, lúc chạy tuần tự bỏ phí phần \texttt{is\_prime} lẽ ra chạy song song.
+$\mathrm{OW} = 8$. Trong trường hợp sau, chạy tuần tự bỏ phí phần \texttt{is\_prime} lẽ ra chạy song song.
 % nguồn: cas_sleep seconds/ops lệch p=1 tối đa 1,107; thr_min/thr_max p=20 0,049.
 
 Thứ tự \texttt{seq\_cst} không làm chậm fetch-and-add, nhưng làm \PCname{cas} chậm khoảng 2 lần ở
-$\mathrm{OW} = 0$ và gần gấp đôi số lần hỏng. Ở $\mathrm{OW} \ge 1$, khác biệt biến mất. Nhóm giả thuyết
+$\mathrm{OW} = 0$ và gần gấp đôi số lần hỏng. Ở $\mathrm{OW} \ge 1$, khác biệt biến mất. Nhóm giả thuyết rằng
 \texttt{ldar} và \texttt{casal} ngăn các lần lặp chồng lên nhau.
 % nguồn: t(cas_seqcst)/t(cas) OW=0: 1,29-2,61; OW=1,8: 0,83-1,10; t(faa_seqcst)/t(faa): 0,78-1,23.
 
@@ -70,6 +72,7 @@ $\mathrm{OW} = 0$ và gần gấp đôi số lần hỏng. Ở $\mathrm{OW} \ge 
 điểm đã nêu (mutex thư viện ở $\mathrm{OW} = 0$, và \PCname{cas} ở 2 thread). D5.2 đúng. Số lần CAS hỏng
 trên mỗi lần tăng tăng từ 0,09 ở 2 thread lên 1,59 ở 8 thread. D5.3 đúng và mạnh hơn dự đoán. Backoff
 đưa số lần hỏng về gần 0, nhưng bằng cách cho các thread chạy lần lượt, nên mất công bằng. D5.4 sai với
-CAS, vì \texttt{seq\_cst} làm CAS chậm khoảng 2 lần khi không có việc giữa hai lần tăng. Nhóm
-không phân tích \PCname{lock_mcs} trên 10 thread, vì các ô đó dựa trên 20--200 lần tăng mỗi thread và có
+CAS, vì \texttt{seq\_cst} làm CAS chậm khoảng 2 lần khi không có việc giữa hai lần tăng.
+
+Nhóm không phân tích \PCname{lock_mcs} trên 10 thread, vì các ô đó dựa trên 20--200 lần tăng mỗi thread và có
 3 lần vượt thời hạn (Bảng~\ref{tab:apple-m5:campaign}).

@@ -21,8 +21,8 @@ phân tán này phần lớn do thread rơi vào E-core, nhưng không tách đ�
 Load average ghi trong các dòng số liệu của phần lock nằm trong 12,4--51,2, cao hơn số thread của chính
 lần chạy. Phần lớn có thể do load average còn mang các lần chạy 20 thread trước đó. Nhóm không tách
 được phần do tiến trình nền. Nhóm không đọc nhiệt độ hay tần số CPU. Thời gian 1 thread không trôi quá
-3,4\,\% qua 7 lượt lặp. Với 7 lần lặp, nhóm không tính khoảng tin cậy. Trung vị che phân bố hai đỉnh và
-đuôi chậm, chỉ thanh min--max cho thấy phần này.
+3,4\,\% qua 7 lượt lặp. Với 7 lần lặp, nhóm không tính khoảng tin cậy. Trung vị không thể hiện phân bố hai
+đỉnh và đuôi chậm. Chỉ thanh min--max cho thấy phần này.
 % nguồn: scripts/report_numbers/corr_stats2.py (lock.csv, threads=1, n=1009); lock.csv cột load1: 12,42..51,18; scripts/report_numbers/corr_stats.py (tỉ số
 % theo lượt 0,977..1,034)
 
@@ -36,6 +36,6 @@ này không gán được cho loại core.
 (g++ 11.5, Linux trong máy ảo WSL2), cả hai đều \texttt{-O2}. Hai máy khác nhau cùng lúc ở kiến trúc,
 memory model, compiler, hệ điều hành và việc có máy ảo hay không. Vì vậy RQ6 chỉ tách được một khác
 biệt khi nó có bằng chứng riêng, như \texttt{seq\_cst} với TSO. Nhóm không có máy x86 chạy Linux trực
-tiếp, máy chạy Windows trực tiếp, hay máy nhiều socket. \texttt{is\_prime} không chạm dữ liệu dùng chung,
-trong khi critical section thật thường ghi dữ liệu dùng chung, nên chi phí chuyển giao lock thực tế có
-thể lớn hơn.
+tiếp, máy chạy Windows trực tiếp, hay máy nhiều socket. \texttt{is\_prime} không chạm dữ liệu dùng chung.
+Critical section thật thường ghi dữ liệu dùng chung, nên chi phí chuyển giao lock thực tế có thể lớn
+hơn.
