@@ -22,7 +22,7 @@ make check       # build, then every correctness check: tests, ThreadSanitizer, 
 make full        # the whole workflow: check, measurement campaign, figures, report, zip
 ```
 
-`make full` runs the steps one after another and stops at the first failure. The campaign takes about an hour and needs an idle machine (see [Running the measurement campaign](#running-the-measurement-campaign)); before it starts, the runner waits up to 10 minutes for the load left by the tests to fall. Figures and the report need matplotlib, numpy and XeLaTeX: with a virtual environment, run `make full PYTHON=.venv/bin/python` (see [Figures and report](#figures-and-report)).
+`make check` also saves the output of each check in `results/<host>/` (see [Running the measurement campaign](#running-the-measurement-campaign) for the host name). `make full` runs the steps one after another and stops at the first failure. The campaign takes about an hour and needs an idle machine (see [Running the measurement campaign](#running-the-measurement-campaign)); before it starts, the runner waits up to 10 minutes for the load left by the tests to fall. Figures and the report need matplotlib, numpy and XeLaTeX: with a virtual environment, run `make full PYTHON=.venv/bin/python` (see [Figures and report](#figures-and-report)).
 
 ## Repository layout
 
@@ -59,7 +59,7 @@ make             # build the tests and benchmarks into build/
 make test        # run every correctness test
 make tsan        # run the tests again under ThreadSanitizer, with smaller sizes
 make mutation    # build deliberately broken variants and check that the tests catch each one
-make check       # all four above, in order
+make check       # all four above, in order, saving the logs in results/<host>/
 ```
 
 To use another compiler: `make CXX=g++-14`.
@@ -71,12 +71,12 @@ CMake builds the same programs (`cmake -S . -B cmake-build-release && cmake --bu
 On each machine that should appear in the report:
 
 1. Plug in the power, turn off power saving, and close other programs (browser, IDE, video calls, cloud sync).
-2. `make && make test`
+2. `make check` builds everything, runs the correctness checks and saves their logs in `results/<host>/`.
 3. `make bench-dry` prints the parameter grid and the estimated duration without measuring anything.
 4. `make bench` runs the full campaign, about one hour on a 10-core laptop. Do not use the machine while it runs.
 5. Keep the folder `results/<host>/` as it is. Do not edit any file in it.
 
-The host name comes from the system hostname. To choose another one: `python3 scripts/run_bench.py --host my-machine`.
+The host name comes from the system hostname. To choose another one, pass the same name to every step: `make check HOST=my-machine` and `make bench HOST=my-machine` (or `python3 scripts/run_bench.py --host my-machine`).
 
 `results/<host>/` contains:
 
@@ -87,6 +87,8 @@ The host name comes from the system hostname. To choose another one: `python3 sc
 | `machine.txt` | The machine description written by `scripts/machine_info.sh` |
 | `sleep_latency.csv` | The real duration of `sleep_for`, `yield` and the spin-wait hint |
 | `campaign.log` | Start and end time, load average, number of timeouts |
+| `test.log`, `tsan.log`, `mutation.log` | The output of `make test`, `make tsan` and `make mutation`, written by `make check` |
+| `mutation_logs/` | The log of every run of every mutant, copied from `build/` by `make check` |
 | `lock_yield.csv` | Only after the optional `make bench-relax` |
 
 Common situations:

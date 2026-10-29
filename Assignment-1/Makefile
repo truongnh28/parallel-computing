@@ -5,7 +5,7 @@
 #   make test       run all correctness tests
 #   make tsan       run the tests under ThreadSanitizer (smaller sizes)
 #   make mutation   build the deliberately broken variants and show that the tests catch them
-#   make check      all of the above: build, test, tsan, mutation
+#   make check      all of the above: build, test, tsan, mutation; logs -> results/<host>/
 #   make full       the whole workflow: check, bench, figures, report, zip  (bench alone: about an hour)
 #   make bench      run the full measurement campaign -> results/<host>/*.csv   (run on an idle machine)
 #   make figures    draw every figure of the report from results/           (needs matplotlib)
@@ -19,6 +19,12 @@ CXXFLAGS ?= -std=c++20 -O2 -Wall -Wextra -pthread
 CPPFLAGS += -Iinclude
 PYTHON   ?= python3
 BUILD    := build
+SHELL    := /bin/bash
+
+# Name of this machine in results/: the short hostname, as the benchmark programs print it. Choose
+# another one with `make check HOST=my-machine`; `make bench` uses the same name.
+HOST ?= $(or $(PC_HOST),$(shell hostname | cut -d. -f1))
+LOGS := results/$(HOST)
 
 # OpenMP baselines are compiled only when the compiler accepts -fopenmp (g++ on Linux; Apple clang
 # needs Homebrew libomp). The code is under #ifdef _OPENMP.
@@ -61,16 +67,20 @@ tsan: $(TSAN_TARGETS)
 mutation: $(MUTATION_TARGETS)
 
 bench: all
-	$(PYTHON) scripts/run_bench.py $(BENCH_ARGS)
+	$(PYTHON) scripts/run_bench.py --host $(HOST) $(BENCH_ARGS)
 
 # The whole workflow in order. Each step is a separate make call so that `make -j` cannot run two
 # steps at once (a benchmark must run alone). Before the campaign, wait up to 10 minutes for the
-# load left by the tests to fall.
+# load left by the tests to fall. `check` also keeps the output of the test, TSan and mutation runs in
+# results/<host>/ (test.log, tsan.log, mutation.log, and the log of every mutant in mutation_logs/).
 check:
 	$(MAKE) all
-	$(MAKE) test
-	$(MAKE) tsan
-	$(MAKE) mutation
+	mkdir -p $(LOGS)
+	set -o pipefail; PC_HOST=$(HOST) $(MAKE) --no-print-directory test 2>&1 | tee $(LOGS)/test.log
+	set -o pipefail; PC_HOST=$(HOST) $(MAKE) --no-print-directory tsan 2>&1 | tee $(LOGS)/tsan.log
+	set -o pipefail; PC_HOST=$(HOST) $(MAKE) --no-print-directory mutation 2>&1 | tee $(LOGS)/mutation.log
+	rm -rf $(LOGS)/mutation_logs && mkdir -p $(LOGS)/mutation_logs
+	cp $(BUILD)/*mut*.log $(LOGS)/mutation_logs/
 
 full:
 	$(MAKE) check
