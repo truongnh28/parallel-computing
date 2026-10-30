@@ -1,0 +1,3 @@
+mutant nonatomic_count (PC_MUTANT=3, plain), 12 hardware threads
+  nonatomic_count        single     threads=1   episodes=10000     0.00 s
+FAIL nonatomic_count [reuse]: HANG, no thread advanced for 2.000000 s (watchdog). Episode reached by each thread: 2 2 2 2

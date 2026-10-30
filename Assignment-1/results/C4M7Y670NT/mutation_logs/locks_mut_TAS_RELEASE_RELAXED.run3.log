@@ -1,0 +1,5 @@
+# test_locks on C4M7Y670NT (arm64, macOS, clang-21.0), 12 hardware threads
+# per lock: mutual exclusion with fixed iterations (1, 2, 12 threads), then 300 ms timed runs;
+# columns show total acquisitions and the max/min per-thread ratio (fairness; 1.00 = even)
+PASS  tas                4t:   5180623 acq, max/min 1223.35  12t:    793991 acq, max/min 4.01     24t:    448023 acq, max/min 51.35  
+# 1 lock(s) tested, 0 failed

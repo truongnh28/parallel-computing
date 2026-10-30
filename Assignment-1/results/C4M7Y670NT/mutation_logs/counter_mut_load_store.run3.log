@@ -1,0 +1,8 @@
+test_counter: 12 hardware threads, full sizes, time budget 1.5 s per run
+FAIL  load_store: stress run, 12 threads, 1536000 increments: [final] get() = 156534, expected 1536000; [duplicate] 1379466 (e.g. value 39402); [missing] 1379466 (e.g. value 156534); [order] 271 values not above the thread's previous value;
+FAIL  load_store: oversubscribed run, 24 threads, 1536000 increments: [final] get() = 169736, expected 1536000; [duplicate] 1366264 (e.g. value 95090); [missing] 1366264 (e.g. value 169736); [order] 154 values not above the thread's previous value;
+FAIL  load_store: real-time run, 12 threads, 384000 increments: [final] get() = 263045, expected 384000; [duplicate] 120955 (e.g. value 50); [missing] 120955 (e.g. value 263045);
+FAIL  load_store: real-time oversubscribed run, 24 threads, 384000 increments: [final] get() = 269058, expected 384000; [duplicate] 114942 (e.g. value 41); [missing] 114942 (e.g. value 269058);
+FAIL  load_store             threads 1 / 12 / 24,   3968000 increments checked, 0.17 s
+CHECKS_FIRED: final duplicate missing order
+MUTANT load_store: caught by the value checks

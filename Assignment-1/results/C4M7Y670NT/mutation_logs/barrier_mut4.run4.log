@@ -1,0 +1,4 @@
+mutant fetch_add_release_only (PC_MUTANT=4, plain), 12 hardware threads
+  fetch_add_release_only single     threads=1   episodes=10000     0.00 s
+  fetch_add_release_only reuse      threads=4   episodes=300000    0.04 s
+FAIL fetch_add_release_only [all-cores]: WRONG EPISODE, thread 4 passed barrier 23689 EARLY: thread 5 is still in episode 23688
