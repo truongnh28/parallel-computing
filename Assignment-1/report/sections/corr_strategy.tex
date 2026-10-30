@@ -1,5 +1,5 @@
 % Mục 4.1: Chiến lược kiểm tra. Nguồn: tests/*.cpp, mk/part{1,2,3}.mk,
-% results/{apple-m5,LAP1184}/{test,tsan,mutation}.log. Bản dài không đưa vào bài nộp.
+% results/{apple-m5,C4M7Y670NT,LAP1184}/{test,tsan,mutation}.log.
 
 Nhóm kiểm hai nhóm tính chất. Tính an toàn (safety) nghĩa là không có hai thread
 cùng ở trong critical section, không thread nào ra khỏi barrier sớm, không giá trị counter nào bị trả
@@ -9,21 +9,21 @@ Cùng một bài kiểm tra dạng template chạy cho mọi cài đặt, kể c
 
 Nhóm dùng bốn kỹ thuật:
 \begin{itemize}[nosep]
-  \item stress test với 1 thread, số luồng phần cứng và gấp đôi số đó (trên \PCname{apple-m5}: 1, 10,
-    20), để thread bị tước core giữa giao thức;
+  \item stress test với ít thread (1--4), với số luồng phần cứng và với gấp đôi số đó (\PCname{apple-m5}:
+    10 và 20; \PCname{C4M7Y670NT} và \PCname{LAP1184}: 12 và 24); ở mức gấp đôi, thread bị tước core giữa giao thức;
   \item watchdog, thread giám sát báo \texttt{FAIL} khi bài kiểm tra ngừng tiến triển;
-  \item ThreadSanitizer (TSan), công cụ của compiler báo hai truy cập không atomic xung đột mà không có
-    quan hệ happens-before (atomic riêng của bài kiểm tra dùng \texttt{relaxed} để không tự tạo thứ tự);
+  \item ThreadSanitizer (TSan), công cụ của compiler báo hai truy cập xung đột, ít nhất một không atomic,
+    mà không có quan hệ happens-before (atomic riêng của bài kiểm tra dùng \texttt{relaxed} để không tự tạo
+    thứ tự, trừ đồng hồ \texttt{seq\_cst} của lượt kiểm thời gian thực);
   \item mutation testing, chạy bộ kiểm tra trên các biến thể cố ý làm hỏng.
 \end{itemize}
 Barrier dùng thêm schedule fuzzing. Counter dùng thêm phép kiểm thứ tự thời gian thực.
 
-Trên \PCname{apple-m5}, \texttt{make test} và \texttt{make tsan} đạt cho 12/12 lock, 7/7 barrier và
-19/19 counter, và TSan không báo data race nào. \texttt{make mutation} bắt cả 14 biến thể hỏng.
+Bảng~\ref{tab:corr:summary} (phụ lục) tóm tắt kết quả trên ba máy. Mọi cài đặt đạt mọi bài kiểm tra, TSan
+không báo data race nào trên mã đúng, và bộ kiểm tra bắt cả 14 biến thể hỏng. Bản TSan chạy với kích thước nhỏ hơn
+(ít vòng hơn 10--20 lần) vì TSan làm chương trình chậm đi nhiều. Đầu ra nằm trong
+\texttt{results/<máy>/}.
+% nguồn: tests/test_locks.cpp (small: chia 10, 100 ms), tests/test_counter.cpp (small: chia 16),
+% tests/test_barrier.cpp (small: g_size 0,05),
+% mk/*.mk (make tsan chạy với đối số small).
 
-Trên \PCname{LAP1184} (x86-64, Linux, stress test với 1, 12 và 24 thread), \texttt{make test} đạt cho 13/13
-lock, 9/9 barrier và 20/20 counter. \texttt{make tsan} đạt và không có cảnh báo, trừ ba baseline OpenMP
-bị bỏ qua vì TSan không phân tích được chúng (mục Giới hạn). \texttt{make mutation} cũng bắt cả 14 biến
-thể. Đầu ra nằm trong \texttt{results/<máy>/}.
-% nguồn: results/LAP1184/{test,tsan,mutation}.log
-\TODO{kết quả make test, make tsan, make mutation trên máy của các thành viên còn lại.}

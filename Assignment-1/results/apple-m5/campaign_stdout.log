@@ -1,0 +1,349 @@
+host apple-m5 (arm64, macOS, clang-21.0), 10 hardware threads, 4 performance/physical cores
+output: results/apple-m5
+  lock       12 implementations: mcs os_unfair_lock pthread_mutex std_mutex tas tas_bo_sleep tas_bo_spin tas_bo_yield ttas ttas_bo_sleep ttas_bo_spin ttas_bo_yield
+    sweep long_cs     240 configurations; threads 1,2,3,4,6,8,10,12,16,20; outside_work 0,3; n 10007
+    sweep main        600 configurations; threads 1,2,3,4,6,8,10,12,16,20; outside_work 0,1,3,7,15; n 1009
+    sweep short_cs    240 configurations; threads 1,2,3,4,6,8,10,12,16,20; outside_work 0,3; n 11
+  barrier     7 implementations: condvar sr sr_block sr_bo_sleep sr_bo_spin sr_bo_yield std_barrier
+    sweep episodes     70 configurations; threads 1,2,3,4,6,8,10,12,16,20
+  counter    19 implementations: cas cas_seqcst cas_sleep cas_spin cas_yield faa faa_seqcst lock_mcs lock_os_unfair_lock lock_pthread_mutex lock_std_mutex lock_tas lock_tas_bo_sleep lock_tas_bo_spin lock_tas_bo_yield lock_ttas lock_ttas_bo_sleep lock_ttas_bo_spin lock_ttas_bo_yield
+    sweep main        570 configurations; threads 1,2,3,4,6,8,10,12,16,20; outside_work 0,1,8; n 101
+  lock_yield  2 implementations: tas ttas
+    sweep relax        16 configurations; threads 1,4,10,20; outside_work 0,3; n 1009
+1736 configurations x 7 repetitions = 12152 runs to do
+estimated duration: 1:01:04 (model: lock runs 1.5 x their lower bound, the others at their pilot time, plus 20 ms per process; pilot runs not included)
+  runs above the model make it longer; a configuration that times out (timeouts of 10-30 s) is repeated with 100 times fewer iterations, and skipped after 2 timeouts
+load average 7.96 > 7.0, waiting ...
+calibrating 643 iteration counts (pilot runs) ...
+  220/643
+  counter|lock_mcs|t12|ow0|n101          iters=200         (lock_mcs, 12 threads, target 0.150 s)  ! calibration stopped: timeout after 10.0 s
+  366/643
+  counter|lock_mcs|t12|ow8|n101          iters=2000        (lock_mcs, 12 threads, target 0.150 s)  ! calibration stopped: timeout after 10.0 s
+  counter|lock_mcs|t16|ow0|n101          iters=200         (lock_mcs, 16 threads, target 0.150 s)  ! calibration stopped: timeout after 10.0 s
+  369/643
+  counter|lock_mcs|t16|ow8|n101          iters=200         (lock_mcs, 16 threads, target 0.150 s)  ! calibration stopped: timeout after 10.0 s
+  counter|lock_mcs|t20|ow0|n101          iters=200         (lock_mcs, 20 threads, target 0.150 s)  ! calibration stopped: timeout after 10.0 s
+  counter|lock_mcs|t20|ow1|n101          iters=200         (lock_mcs, 20 threads, target 0.150 s)  ! calibration stopped: timeout after 10.0 s
+  counter|lock_mcs|t20|ow8|n101          iters=200         (lock_mcs, 20 threads, target 0.150 s)  ! calibration stopped: timeout after 10.0 s
+  374/643
+  606/643
+calibration done in 2:04
+starting 12152 runs, estimated 1:01:44
+-- repetition 1/7: 1736 runs, load 48.03
+[rep 1/7     1/12152   0.0%] counter    lock_tas_bo_sleep   p=2   ow=8  n=101 -> 0.0548 s | elapsed 2:04, ETA 1:01:44
+[rep 1/7    47/12152   0.4%] counter    lock_ttas_bo_yield  p=3   ow=0  n=101 -> 0.2069 s | elapsed 2:19, ETA 1:01:31
+[rep 1/7    94/12152   0.8%] lock       tas_bo_sleep        p=2   ow=7  n=1009 -> 0.1915 s | elapsed 2:34, ETA 1:01:36
+[rep 1/7    96/12152   0.8%] lock       mcs                 p=12  ow=0  n=11 -> TIMEOUT (timeout after 30.0 s; repeating with iters=45) | elapsed 3:05, ETA 1:01:40
+[rep 1/7   145/12152   1.2%] lock       std_mutex           p=12  ow=0  n=1009 -> 0.6340 s | elapsed 3:21, ETA 1:01:21
+[rep 1/7   189/12152   1.6%] lock       pthread_mutex       p=3   ow=0  n=11 -> 0.0950 s | elapsed 3:36, ETA 1:01:13
+[rep 1/7   233/12152   1.9%] lock       ttas_bo_sleep       p=16  ow=3  n=1009 -> 3.2558 s | elapsed 3:54, ETA 1:01:21
+[rep 1/7   262/12152   2.2%] lock       mcs                 p=12  ow=7  n=1009 -> 2.4717 s | elapsed 4:11, ETA 1:02:11
+[rep 1/7   301/12152   2.5%] lock       std_mutex           p=10  ow=1  n=1009 -> 1.1436 s | elapsed 4:27, ETA 1:02:28
+[rep 1/7   303/12152   2.5%] lock       mcs                 p=20  ow=0  n=11 -> TIMEOUT (timeout after 30.0 s; repeating with iters=27) | elapsed 4:57, ETA 1:02:32
+[rep 1/7   344/12152   2.8%] lock       tas_bo_spin         p=12  ow=7  n=1009 -> 0.7426 s | elapsed 5:12, ETA 1:02:21
+[rep 1/7   390/12152   3.2%] lock       ttas_bo_spin        p=10  ow=3  n=1009 -> 0.2660 s | elapsed 5:27, ETA 1:02:29
+[rep 1/7   425/12152   3.5%] counter    lock_tas_bo_sleep   p=12  ow=1  n=101 -> 0.1620 s | elapsed 5:43, ETA 1:02:53
+[rep 1/7   470/12152   3.9%] counter    cas_spin            p=8   ow=0  n=101 -> 0.2468 s | elapsed 5:58, ETA 1:02:59
+[rep 1/7   513/12152   4.2%] lock       os_unfair_lock      p=12  ow=15 n=1009 -> 0.6823 s | elapsed 6:13, ETA 1:03:10
+[rep 1/7   548/12152   4.5%] lock       ttas_bo_spin        p=16  ow=1  n=1009 -> 0.3085 s | elapsed 6:28, ETA 1:03:18
+[rep 1/7   590/12152   4.9%] lock       tas_bo_spin         p=12  ow=3  n=10007 -> 0.7755 s | elapsed 6:43, ETA 1:02:55
+[rep 1/7   632/12152   5.2%] lock       tas_bo_yield        p=8   ow=1  n=1009 -> 0.6292 s | elapsed 6:58, ETA 1:03:08
+[rep 1/7   673/12152   5.5%] lock       tas_bo_spin         p=10  ow=3  n=1009 -> 0.8264 s | elapsed 7:14, ETA 1:03:17
+[rep 1/7   721/12152   5.9%] barrier    sr_bo_sleep         p=12  -> 0.2468 s | elapsed 7:29, ETA 1:03:05
+[rep 1/7   731/12152   6.0%] lock       mcs                 p=6   ow=7  n=1009 -> 0.3294 s | elapsed 7:44, ETA 1:03:58
+[rep 1/7   776/12152   6.4%] lock       ttas                p=16  ow=0  n=11 -> 0.6369 s | elapsed 8:00, ETA 1:03:49
+[rep 1/7   802/12152   6.6%] counter    faa                 p=3   ow=0  n=101 -> 0.1395 s | elapsed 8:15, ETA 1:04:12
+[rep 1/7   810/12152   6.7%] lock       mcs                 p=16  ow=0  n=11 -> TIMEOUT (timeout after 30.0 s; repeating with iters=33) | elapsed 8:47, ETA 1:04:13
+[rep 1/7   850/12152   7.0%] lock       mcs                 p=12  ow=3  n=11 -> TIMEOUT (timeout after 30.0 s; repeating with iters=45) | elapsed 9:32, ETA 1:03:50
+[rep 1/7   902/12152   7.4%] counter    lock_ttas           p=12  ow=0  n=101 -> 0.1634 s | elapsed 9:47, ETA 1:03:28
+[rep 1/7   943/12152   7.8%] lock       ttas_bo_yield       p=6   ow=0  n=1009 -> 0.2041 s | elapsed 10:02, ETA 1:03:23
+[rep 1/7   988/12152   8.1%] lock       tas_bo_spin         p=12  ow=3  n=1009 -> 0.9678 s | elapsed 10:18, ETA 1:03:23
+[rep 1/7  1006/12152   8.3%] lock       mcs                 p=20  ow=1  n=1009 -> 12.9083 s | elapsed 10:39, ETA 1:03:45
+[rep 1/7  1050/12152   8.6%] lock       pthread_mutex       p=6   ow=15 n=1009 -> 0.3368 s | elapsed 10:54, ETA 1:04:46
+[rep 1/7  1084/12152   8.9%] lock       std_mutex           p=20  ow=3  n=11 -> 0.4167 s | elapsed 11:09, ETA 1:05:13
+[rep 1/7  1120/12152   9.2%] lock       ttas_bo_sleep       p=16  ow=7  n=1009 -> 2.2124 s | elapsed 11:24, ETA 1:05:27
+[rep 1/7  1173/12152   9.7%] lock       tas                 p=10  ow=3  n=10007 -> 0.6771 s | elapsed 11:40, ETA 1:05:07
+[rep 1/7  1212/12152  10.0%] lock       ttas_bo_yield       p=8   ow=7  n=1009 -> 0.5159 s | elapsed 11:55, ETA 1:05:08
+[rep 1/7  1258/12152  10.4%] lock       tas_bo_spin         p=16  ow=0  n=10007 -> 0.3714 s | elapsed 12:10, ETA 1:05:21
+[rep 1/7  1310/12152  10.8%] lock       mcs                 p=16  ow=0  n=1009 -> 9.8624 s | elapsed 12:35, ETA 1:04:52
+[rep 1/7  1340/12152  11.0%] lock       mcs                 p=20  ow=3  n=11 -> TIMEOUT (timeout after 30.0 s; repeating with iters=27) | elapsed 13:16, ETA 1:05:45
+[rep 1/7  1351/12152  11.1%] counter    lock_mcs            p=12  ow=8  n=101 -> TIMEOUT (timeout after 10.0 s; repeating with iters=20) | elapsed 13:29, ETA 1:05:27
+[rep 1/7  1379/12152  11.3%] lock       ttas_bo_sleep       p=12  ow=1  n=1009 -> 0.2616 s | elapsed 13:45, ETA 1:06:01
+[rep 1/7  1400/12152  11.5%] counter    cas_spin            p=10  ow=8  n=101 -> 0.1678 s | elapsed 14:00, ETA 1:06:31
+[rep 1/7  1442/12152  11.9%] lock       ttas                p=8   ow=7  n=1009 -> 0.5286 s | elapsed 14:15, ETA 1:06:46
+[rep 1/7  1492/12152  12.3%] lock       tas_bo_spin         p=6   ow=0  n=10007 -> 0.2360 s | elapsed 14:30, ETA 1:06:26
+[rep 1/7  1543/12152  12.7%] lock       mcs                 p=10  ow=0  n=1009 -> 2.5257 s | elapsed 14:47, ETA 1:06:01
+[rep 1/7  1574/12152  13.0%] lock       mcs                 p=20  ow=15 n=1009 -> 12.2641 s | elapsed 15:07, ETA 1:06:01
+[rep 1/7  1621/12152  13.3%] lock       std_mutex           p=16  ow=0  n=10007 -> 0.2468 s | elapsed 15:22, ETA 1:06:37
+[rep 1/7  1651/12152  13.6%] lock       std_mutex           p=1   ow=0  n=11 -> 0.2733 s | elapsed 15:37, ETA 1:06:58
+[rep 1/7  1670/12152  13.7%] lock       mcs                 p=16  ow=3  n=11 -> TIMEOUT (timeout after 30.0 s; repeating with iters=33) | elapsed 16:12, ETA 1:06:54
+[rep 1/7  1720/12152  14.2%] lock       std_mutex           p=8   ow=1  n=1009 -> 0.7850 s | elapsed 16:28, ETA 1:06:31
+-- repetition 2/7: 1736 runs, load 36.17
+[rep 2/7  1773/12152  14.6%] lock       ttas_bo_sleep       p=8   ow=7  n=1009 -> 0.6841 s | elapsed 16:43, ETA 1:05:57
+[rep 2/7  1815/12152  14.9%] lock       mcs                 p=10  ow=3  n=1009 -> 1.0905 s | elapsed 16:58, ETA 1:05:30
+[rep 2/7  1862/12152  15.3%] barrier    std_barrier         p=1   -> 0.2520 s | elapsed 17:13, ETA 1:05:10
+[rep 2/7  1916/12152  15.8%] counter    lock_os_unfair_lock p=8   ow=1  n=101 -> 0.1433 s | elapsed 17:29, ETA 1:04:53
+[rep 2/7  1961/12152  16.1%] counter    cas                 p=8   ow=1  n=101 -> 0.1756 s | elapsed 17:44, ETA 1:04:35
+[rep 2/7  2000/12152  16.5%] lock       tas_bo_yield        p=4   ow=3  n=10007 -> 0.2099 s | elapsed 17:59, ETA 1:04:20
+[rep 2/7  2042/12152  16.8%] lock       pthread_mutex       p=4   ow=15 n=1009 -> 0.1909 s | elapsed 18:14, ETA 1:03:57
+[rep 2/7  2083/12152  17.1%] lock       ttas                p=20  ow=0  n=1009 -> 0.4349 s | elapsed 18:29, ETA 1:03:31
+[rep 2/7  2106/12152  17.3%] barrier    sr_bo_sleep         p=4   -> 0.2434 s | elapsed 18:44, ETA 1:02:29
+[rep 2/7  2143/12152  17.6%] lock       std_mutex           p=10  ow=1  n=1009 -> 0.8033 s | elapsed 19:00, ETA 1:01:34
+[rep 2/7  2184/12152  18.0%] lock       ttas_bo_yield       p=10  ow=1  n=1009 -> 0.2208 s | elapsed 19:15, ETA 1:01:30
+[rep 2/7  2229/12152  18.3%] lock       ttas_bo_spin        p=3   ow=1  n=1009 -> 0.2072 s | elapsed 19:30, ETA 1:01:07
+[rep 2/7  2260/12152  18.6%] lock       ttas                p=6   ow=0  n=11 -> 0.4109 s | elapsed 19:45, ETA 1:00:37
+[rep 2/7  2288/12152  18.8%] lock       mcs                 p=20  ow=3  n=1009 -> 12.2942 s | elapsed 20:08, ETA 1:00:27
+[rep 2/7  2310/12152  19.0%] counter    lock_mcs            p=20  ow=1  n=101 -> TIMEOUT (timeout after 10.0 s; repeating with iters=10) | elapsed 20:24, ETA 1:01:02
+[rep 2/7  2355/12152  19.4%] lock       ttas_bo_sleep       p=16  ow=7  n=1009 -> 3.1187 s | elapsed 20:42, ETA 1:00:38
+[rep 2/7  2410/12152  19.8%] lock       tas                 p=12  ow=0  n=11 -> 1.0847 s | elapsed 20:57, ETA 1:00:22
+[rep 2/7  2465/12152  20.3%] lock       pthread_mutex       p=4   ow=0  n=10007 -> 0.2452 s | elapsed 21:12, ETA 1:00:02
+[rep 2/7  2509/12152  20.6%] counter    cas                 p=10  ow=0  n=101 -> 0.1347 s | elapsed 21:28, ETA 59:45
+[rep 2/7  2551/12152  21.0%] counter    lock_mcs            p=16  ow=1  n=101 -> 2.2867 s | elapsed 21:43, ETA 59:17
+[rep 2/7  2597/12152  21.4%] counter    cas                 p=4   ow=0  n=101 -> 0.2800 s | elapsed 21:59, ETA 59:10
+[rep 2/7  2641/12152  21.7%] lock       tas                 p=16  ow=3  n=10007 -> 0.9760 s | elapsed 22:14, ETA 58:40
+[rep 2/7  2689/12152  22.1%] counter    lock_tas            p=6   ow=8  n=101 -> 0.1346 s | elapsed 22:29, ETA 57:04
+[rep 2/7  2733/12152  22.5%] lock       tas_bo_yield        p=12  ow=0  n=11 -> 0.7030 s | elapsed 22:44, ETA 56:48
+[rep 2/7  2781/12152  22.9%] lock       mcs                 p=20  ow=1  n=1009 -> 17.2558 s | elapsed 23:16, ETA 56:28
+[rep 2/7  2803/12152  23.1%] lock       mcs                 p=16  ow=1  n=1009 -> 7.9555 s | elapsed 23:34, ETA 56:13
+[rep 2/7  2834/12152  23.3%] lock       ttas_bo_sleep       p=16  ow=3  n=11 -> 1.6124 s | elapsed 23:50, ETA 55:43
+[rep 2/7  2874/12152  23.7%] counter    lock_tas_bo_spin    p=1   ow=0  n=101 -> 0.1683 s | elapsed 24:05, ETA 55:21
+[rep 2/7  2933/12152  24.1%] lock       os_unfair_lock      p=12  ow=0  n=11 -> 0.1125 s | elapsed 24:20, ETA 55:05
+[rep 2/7  2979/12152  24.5%] lock       mcs                 p=10  ow=3  n=11 -> 2.3580 s | elapsed 24:36, ETA 54:50
+[rep 2/7  3025/12152  24.9%] lock       std_mutex           p=20  ow=1  n=1009 -> 0.9132 s | elapsed 24:52, ETA 54:28
+[rep 2/7  3074/12152  25.3%] lock       ttas                p=20  ow=7  n=1009 -> 0.8813 s | elapsed 25:08, ETA 54:12
+[rep 2/7  3118/12152  25.7%] lock       ttas_bo_sleep       p=8   ow=15 n=1009 -> 0.3936 s | elapsed 25:23, ETA 53:48
+[rep 2/7  3159/12152  26.0%] lock       mcs                 p=6   ow=0  n=11 -> 0.6390 s | elapsed 25:38, ETA 53:26
+[rep 2/7  3208/12152  26.4%] lock       tas_bo_yield        p=3   ow=1  n=1009 -> 0.2090 s | elapsed 25:53, ETA 52:57
+[rep 2/7  3265/12152  26.9%] lock       ttas_bo_sleep       p=2   ow=3  n=11 -> 0.0490 s | elapsed 26:08, ETA 52:30
+[rep 2/7  3316/12152  27.3%] lock       tas                 p=1   ow=15 n=1009 -> 0.1848 s | elapsed 26:23, ETA 52:08
+[rep 2/7  3367/12152  27.7%] lock       tas                 p=20  ow=15 n=1009 -> 1.0904 s | elapsed 26:39, ETA 51:47
+[rep 2/7  3401/12152  28.0%] lock       mcs                 p=16  ow=3  n=1009 -> 7.1338 s | elapsed 26:57, ETA 51:33
+[rep 2/7  3451/12152  28.4%] lock       pthread_mutex       p=8   ow=1  n=1009 -> 0.7345 s | elapsed 27:12, ETA 51:48
+-- repetition 3/7: 1736 runs, load 20.97
+[rep 3/7  3507/12152  28.9%] lock       tas_bo_spin         p=16  ow=7  n=1009 -> 1.0223 s | elapsed 27:28, ETA 51:30
+[rep 3/7  3553/12152  29.2%] lock       tas_bo_spin         p=10  ow=3  n=10007 -> 0.6535 s | elapsed 27:43, ETA 50:52
+[rep 3/7  3606/12152  29.7%] lock       std_mutex           p=10  ow=7  n=1009 -> 0.7597 s | elapsed 27:59, ETA 50:39
+[rep 3/7  3657/12152  30.1%] lock       mcs                 p=20  ow=3  n=10007 -> 1.3252 s | elapsed 28:15, ETA 50:30
+[rep 3/7  3712/12152  30.5%] lock       tas_bo_sleep        p=12  ow=3  n=10007 -> 0.3638 s | elapsed 28:30, ETA 50:16
+[rep 3/7  3751/12152  30.9%] lock       ttas                p=20  ow=0  n=11 -> 0.5619 s | elapsed 28:46, ETA 50:00
+[rep 3/7  3796/12152  31.2%] lock       tas_bo_spin         p=8   ow=3  n=1009 -> 0.6964 s | elapsed 29:01, ETA 49:48
+[rep 3/7  3841/12152  31.6%] counter    lock_tas_bo_sleep   p=16  ow=8  n=101 -> 0.1494 s | elapsed 29:16, ETA 49:32
+[rep 3/7  3877/12152  31.9%] lock       tas                 p=16  ow=7  n=1009 -> 0.7608 s | elapsed 29:31, ETA 49:21
+[rep 3/7  3916/12152  32.2%] lock       os_unfair_lock      p=4   ow=3  n=1009 -> 0.4919 s | elapsed 29:47, ETA 49:18
+[rep 3/7  3975/12152  32.7%] lock       os_unfair_lock      p=8   ow=15 n=1009 -> 0.4505 s | elapsed 30:02, ETA 49:02
+[rep 3/7  4028/12152  33.1%] lock       ttas_bo_sleep       p=6   ow=3  n=10007 -> 0.3642 s | elapsed 30:17, ETA 48:01
+[rep 3/7  4074/12152  33.5%] lock       tas_bo_yield        p=12  ow=3  n=1009 -> 0.5955 s | elapsed 30:32, ETA 47:47
+[rep 3/7  4114/12152  33.9%] lock       ttas                p=1   ow=0  n=10007 -> 0.1699 s | elapsed 30:48, ETA 47:30
+[rep 3/7  4136/12152  34.0%] lock       pthread_mutex       p=12  ow=3  n=10007 -> 0.3237 s | elapsed 31:03, ETA 47:22
+[rep 3/7  4182/12152  34.4%] lock       tas_bo_yield        p=10  ow=3  n=11 -> 1.0138 s | elapsed 31:18, ETA 47:10
+[rep 3/7  4230/12152  34.8%] counter    lock_ttas_bo_sleep  p=8   ow=0  n=101 -> 0.1528 s | elapsed 31:33, ETA 46:59
+[rep 3/7  4267/12152  35.1%] lock       tas                 p=20  ow=3  n=1009 -> 1.4256 s | elapsed 31:49, ETA 46:43
+[rep 3/7  4307/12152  35.4%] lock       pthread_mutex       p=12  ow=7  n=1009 -> 0.7485 s | elapsed 32:04, ETA 46:27
+[rep 3/7  4351/12152  35.8%] lock       mcs                 p=16  ow=0  n=1009 -> 7.7682 s | elapsed 32:26, ETA 46:12
+[rep 3/7  4386/12152  36.1%] lock       tas_bo_spin         p=10  ow=3  n=1009 -> 0.8271 s | elapsed 32:41, ETA 46:04
+[rep 3/7  4431/12152  36.5%] counter    faa                 p=2   ow=1  n=101 -> 0.2117 s | elapsed 32:56, ETA 45:54
+[rep 3/7  4473/12152  36.8%] lock       tas_bo_sleep        p=1   ow=3  n=10007 -> 0.1895 s | elapsed 33:11, ETA 45:44
+[rep 3/7  4524/12152  37.2%] lock       ttas_bo_yield       p=2   ow=3  n=1009 -> 0.1902 s | elapsed 33:26, ETA 45:34
+[rep 3/7  4569/12152  37.6%] counter    lock_ttas_bo_yield  p=10  ow=8  n=101 -> 0.1516 s | elapsed 33:42, ETA 45:21
+[rep 3/7  4597/12152  37.8%] lock       mcs                 p=16  ow=7  n=1009 -> 9.6208 s | elapsed 34:01, ETA 45:11
+[rep 3/7  4650/12152  38.3%] lock       tas_bo_yield        p=12  ow=0  n=11 -> 0.6889 s | elapsed 34:17, ETA 45:08
+[rep 3/7  4703/12152  38.7%] lock       ttas                p=12  ow=0  n=11 -> 0.7015 s | elapsed 34:32, ETA 44:36
+[rep 3/7  4742/12152  39.0%] lock       ttas_bo_spin        p=16  ow=15 n=1009 -> 0.9759 s | elapsed 34:48, ETA 44:22
+[rep 3/7  4782/12152  39.4%] lock       ttas_bo_sleep       p=20  ow=0  n=1009 -> 0.5249 s | elapsed 35:04, ETA 44:05
+[rep 3/7  4827/12152  39.7%] lock       os_unfair_lock      p=8   ow=7  n=1009 -> 0.6737 s | elapsed 35:19, ETA 44:11
+[rep 3/7  4862/12152  40.0%] lock       ttas                p=6   ow=3  n=11 -> 0.4447 s | elapsed 35:34, ETA 43:53
+[rep 3/7  4903/12152  40.3%] counter    lock_tas            p=1   ow=0  n=101 -> 0.1762 s | elapsed 35:49, ETA 43:43
+[rep 3/7  4932/12152  40.6%] lock       tas                 p=20  ow=7  n=1009 -> 1.7462 s | elapsed 36:04, ETA 43:51
+[rep 3/7  4976/12152  40.9%] counter    lock_std_mutex      p=16  ow=0  n=101 -> 0.1628 s | elapsed 36:19, ETA 43:44
+[rep 3/7  5022/12152  41.3%] lock       tas_bo_sleep        p=8   ow=3  n=1009 -> 0.5061 s | elapsed 36:34, ETA 43:28
+[rep 3/7  5067/12152  41.7%] lock       os_unfair_lock      p=8   ow=1  n=1009 -> 0.3230 s | elapsed 36:50, ETA 43:11
+[rep 3/7  5080/12152  41.8%] lock       ttas_bo_yield       p=3   ow=0  n=1009 -> 0.1911 s | elapsed 37:05, ETA 42:49
+[rep 3/7  5129/12152  42.2%] lock       pthread_mutex       p=8   ow=15 n=1009 -> 0.4501 s | elapsed 37:20, ETA 42:35
+[rep 3/7  5145/12152  42.3%] lock       pthread_mutex       p=10  ow=3  n=1009 -> 0.7044 s | elapsed 37:35, ETA 41:51
+[rep 3/7  5199/12152  42.8%] counter    lock_std_mutex      p=16  ow=8  n=101 -> 0.1494 s | elapsed 37:50, ETA 41:33
+-- repetition 4/7: 1736 runs, load 22.79
+[rep 4/7  5243/12152  43.1%] lock       tas                 p=20  ow=15 n=1009 -> 1.0542 s | elapsed 38:06, ETA 41:23
+[rep 4/7  5298/12152  43.6%] lock       os_unfair_lock      p=16  ow=0  n=11 -> 0.1247 s | elapsed 38:21, ETA 41:07
+[rep 4/7  5348/12152  44.0%] counter    lock_pthread_mutex  p=16  ow=1  n=101 -> 0.1700 s | elapsed 38:36, ETA 40:57
+[rep 4/7  5391/12152  44.4%] lock       tas                 p=10  ow=15 n=1009 -> 0.4526 s | elapsed 38:51, ETA 40:45
+[rep 4/7  5424/12152  44.6%] lock       mcs                 p=10  ow=0  n=11 -> 2.3676 s | elapsed 39:07, ETA 40:27
+[rep 4/7  5466/12152  45.0%] lock       ttas_bo_spin        p=8   ow=3  n=11 -> 0.5525 s | elapsed 39:22, ETA 40:00
+[rep 4/7  5513/12152  45.4%] lock       std_mutex           p=12  ow=0  n=1009 -> 0.6453 s | elapsed 39:37, ETA 39:47
+[rep 4/7  5559/12152  45.7%] lock       os_unfair_lock      p=3   ow=7  n=1009 -> 0.2008 s | elapsed 39:53, ETA 39:27
+[rep 4/7  5606/12152  46.1%] counter    lock_mcs            p=10  ow=1  n=101 -> 0.6750 s | elapsed 40:08, ETA 39:13
+[rep 4/7  5618/12152  46.2%] lock       mcs                 p=20  ow=7  n=1009 -> 13.5144 s | elapsed 40:25, ETA 39:11
+[rep 4/7  5666/12152  46.6%] lock       tas_bo_spin         p=12  ow=15 n=1009 -> 0.7150 s | elapsed 40:41, ETA 39:39
+[rep 4/7  5710/12152  47.0%] lock       std_mutex           p=6   ow=3  n=11 -> 0.3949 s | elapsed 40:56, ETA 39:26
+[rep 4/7  5753/12152  47.3%] lock       os_unfair_lock      p=6   ow=3  n=10007 -> 0.3172 s | elapsed 41:11, ETA 39:10
+[rep 4/7  5802/12152  47.7%] lock       ttas                p=6   ow=15 n=1009 -> 0.2987 s | elapsed 41:26, ETA 38:56
+[rep 4/7  5849/12152  48.1%] lock       tas_bo_sleep        p=20  ow=0  n=10007 -> 0.1861 s | elapsed 41:41, ETA 38:40
+[rep 4/7  5896/12152  48.5%] counter    lock_mcs            p=16  ow=1  n=101 -> 0.0003 s | elapsed 41:57, ETA 38:24
+[rep 4/7  5948/12152  48.9%] lock       tas                 p=3   ow=7  n=1009 -> 0.1932 s | elapsed 42:12, ETA 38:10
+[rep 4/7  5989/12152  49.3%] lock       tas_bo_yield        p=12  ow=0  n=1009 -> 0.2011 s | elapsed 42:27, ETA 37:55
+[rep 4/7  6040/12152  49.7%] lock       ttas_bo_yield       p=10  ow=1  n=1009 -> 0.2458 s | elapsed 42:42, ETA 37:37
+[rep 4/7  6081/12152  50.0%] lock       ttas_bo_sleep       p=20  ow=1  n=1009 -> 2.0286 s | elapsed 42:58, ETA 37:16
+[rep 4/7  6123/12152  50.4%] lock       tas                 p=3   ow=3  n=11 -> 0.3865 s | elapsed 43:13, ETA 37:12
+[rep 4/7  6180/12152  50.9%] lock       tas                 p=20  ow=3  n=10007 -> 1.2848 s | elapsed 43:29, ETA 36:55
+[rep 4/7  6223/12152  51.2%] lock       mcs                 p=12  ow=7  n=1009 -> 2.4001 s | elapsed 43:45, ETA 36:40
+[rep 4/7  6239/12152  51.3%] lock       mcs                 p=20  ow=0  n=1009 -> 14.4616 s | elapsed 44:04, ETA 36:40
+[rep 4/7  6268/12152  51.6%] lock       mcs                 p=20  ow=3  n=1009 -> 18.3080 s | elapsed 44:28, ETA 36:40
+[rep 4/7  6312/12152  51.9%] lock       tas_bo_yield        p=16  ow=1  n=1009 -> 0.6967 s | elapsed 44:43, ETA 36:43
+[rep 4/7  6358/12152  52.3%] lock       tas_bo_spin         p=10  ow=3  n=11 -> 0.4918 s | elapsed 44:58, ETA 36:30
+[rep 4/7  6388/12152  52.6%] lock       mcs                 p=16  ow=15 n=1009 -> 2.0330 s | elapsed 45:15, ETA 36:20
+[rep 4/7  6420/12152  52.8%] lock       ttas                p=10  ow=3  n=10007 -> 0.8873 s | elapsed 45:30, ETA 36:16
+[rep 4/7  6467/12152  53.2%] lock       ttas                p=1   ow=0  n=11 -> 0.2060 s | elapsed 45:45, ETA 36:00
+[rep 4/7  6490/12152  53.4%] lock       ttas                p=20  ow=7  n=1009 -> 1.2347 s | elapsed 46:00, ETA 35:55
+[rep 4/7  6528/12152  53.7%] lock       pthread_mutex       p=20  ow=0  n=10007 -> 0.2507 s | elapsed 46:15, ETA 35:46
+[rep 4/7  6565/12152  54.0%] lock       tas_bo_spin         p=8   ow=1  n=1009 -> 0.7652 s | elapsed 46:31, ETA 35:32
+[rep 4/7  6615/12152  54.4%] lock       ttas                p=16  ow=3  n=11 -> 0.7447 s | elapsed 46:46, ETA 35:20
+[rep 4/7  6645/12152  54.7%] lock       mcs                 p=20  ow=15 n=1009 -> 15.7796 s | elapsed 47:12, ETA 35:11
+[rep 4/7  6689/12152  55.0%] lock       std_mutex           p=4   ow=7  n=1009 -> 0.3838 s | elapsed 47:27, ETA 35:53
+[rep 4/7  6724/12152  55.3%] lock       ttas_bo_sleep       p=20  ow=3  n=11 -> 0.9228 s | elapsed 47:42, ETA 35:34
+[rep 4/7  6761/12152  55.6%] lock       mcs                 p=16  ow=3  n=11 -> 0.8151 s | elapsed 47:57, ETA 35:21
+[rep 4/7  6815/12152  56.1%] lock       tas                 p=6   ow=1  n=1009 -> 0.6008 s | elapsed 48:12, ETA 35:04
+[rep 4/7  6861/12152  56.5%] lock       std_mutex           p=16  ow=15 n=1009 -> 0.9177 s | elapsed 48:28, ETA 34:45
+[rep 4/7  6893/12152  56.7%] lock       mcs                 p=20  ow=1  n=1009 -> 8.0683 s | elapsed 48:49, ETA 34:37
+[rep 4/7  6915/12152  56.9%] lock       mcs                 p=16  ow=0  n=1009 -> 11.1767 s | elapsed 49:08, ETA 33:32
+-- repetition 5/7: 1736 runs, load 31.59
+[rep 5/7  6971/12152  57.4%] barrier    sr_bo_spin          p=12  -> 0.3308 s | elapsed 49:23, ETA 33:17
+[rep 5/7  7008/12152  57.7%] lock       mcs                 p=12  ow=1  n=1009 -> 2.8187 s | elapsed 49:38, ETA 33:05
+[rep 5/7  7053/12152  58.0%] lock       mcs                 p=8   ow=3  n=1009 -> 0.7055 s | elapsed 49:54, ETA 32:51
+[rep 5/7  7093/12152  58.4%] lock       mcs                 p=4   ow=3  n=11 -> 0.6012 s | elapsed 50:09, ETA 32:44
+[rep 5/7  7112/12152  58.5%] lock       mcs                 p=20  ow=3  n=1009 -> 11.2233 s | elapsed 50:26, ETA 32:37
+[rep 5/7  7149/12152  58.8%] counter    lock_mcs            p=8   ow=1  n=101 -> 0.3537 s | elapsed 50:41, ETA 31:49
+[rep 5/7  7186/12152  59.1%] lock       tas_bo_sleep        p=10  ow=0  n=10007 -> 0.1905 s | elapsed 50:57, ETA 31:37
+[rep 5/7  7241/12152  59.6%] lock       ttas_bo_sleep       p=2   ow=0  n=11 -> 0.0319 s | elapsed 51:12, ETA 31:20
+[rep 5/7  7287/12152  60.0%] counter    cas_spin            p=16  ow=0  n=101 -> 0.1367 s | elapsed 51:27, ETA 31:07
+[rep 5/7  7334/12152  60.4%] lock       pthread_mutex       p=12  ow=7  n=1009 -> 0.7538 s | elapsed 51:42, ETA 30:55
+[rep 5/7  7377/12152  60.7%] lock       mcs                 p=20  ow=0  n=1009 -> 15.8156 s | elapsed 52:11, ETA 30:36
+[rep 5/7  7417/12152  61.0%] lock       ttas                p=4   ow=0  n=10007 -> 0.1898 s | elapsed 52:26, ETA 29:43
+[rep 5/7  7471/12152  61.5%] lock       ttas_bo_yield       p=1   ow=15 n=1009 -> 0.1797 s | elapsed 52:41, ETA 29:24
+[rep 5/7  7526/12152  61.9%] lock       mcs                 p=12  ow=0  n=1009 -> 2.9843 s | elapsed 52:59, ETA 29:10
+[rep 5/7  7570/12152  62.3%] lock       ttas_bo_yield       p=16  ow=7  n=1009 -> 0.7500 s | elapsed 53:15, ETA 28:46
+[rep 5/7  7611/12152  62.6%] lock       pthread_mutex       p=2   ow=15 n=1009 -> 0.1892 s | elapsed 53:30, ETA 28:32
+[rep 5/7  7659/12152  63.0%] lock       ttas_bo_yield       p=8   ow=0  n=10007 -> 0.2583 s | elapsed 53:45, ETA 28:19
+[rep 5/7  7700/12152  63.4%] lock       ttas                p=12  ow=3  n=1009 -> 0.4149 s | elapsed 54:00, ETA 27:58
+[rep 5/7  7754/12152  63.8%] lock       os_unfair_lock      p=8   ow=7  n=1009 -> 0.8474 s | elapsed 54:16, ETA 27:40
+[rep 5/7  7772/12152  64.0%] lock       tas_bo_spin         p=16  ow=3  n=1009 -> 1.0931 s | elapsed 54:32, ETA 27:18
+[rep 5/7  7823/12152  64.4%] lock       ttas_bo_sleep       p=8   ow=3  n=10007 -> 0.2418 s | elapsed 54:47, ETA 27:00
+[rep 5/7  7874/12152  64.8%] lock       mcs                 p=16  ow=15 n=1009 -> 10.6323 s | elapsed 55:12, ETA 26:35
+[rep 5/7  7907/12152  65.1%] lock       pthread_mutex       p=4   ow=0  n=10007 -> 0.2420 s | elapsed 55:27, ETA 26:32
+[rep 5/7  7958/12152  65.5%] lock       mcs                 p=10  ow=3  n=10007 -> 1.3714 s | elapsed 55:44, ETA 26:13
+[rep 5/7  8005/12152  65.9%] lock       std_mutex           p=3   ow=3  n=11 -> 0.2051 s | elapsed 55:59, ETA 25:56
+[rep 5/7  8052/12152  66.3%] lock       mcs                 p=10  ow=0  n=1009 -> 1.4439 s | elapsed 56:14, ETA 25:42
+[rep 5/7  8098/12152  66.6%] lock       os_unfair_lock      p=8   ow=15 n=1009 -> 0.4405 s | elapsed 56:30, ETA 25:15
+[rep 5/7  8150/12152  67.1%] counter    cas_spin            p=10  ow=0  n=101 -> 0.1549 s | elapsed 56:45, ETA 24:56
+[rep 5/7  8181/12152  67.3%] lock       ttas_bo_spin        p=10  ow=3  n=10007 -> 0.2883 s | elapsed 57:00, ETA 24:52
+[rep 5/7  8227/12152  67.7%] lock       pthread_mutex       p=12  ow=1  n=1009 -> 0.8099 s | elapsed 57:15, ETA 24:36
+[rep 5/7  8271/12152  68.1%] lock       os_unfair_lock      p=12  ow=7  n=1009 -> 0.8682 s | elapsed 57:31, ETA 24:25
+[rep 5/7  8314/12152  68.4%] counter    lock_ttas           p=10  ow=8  n=101 -> 0.1500 s | elapsed 57:46, ETA 23:23
+[rep 5/7  8352/12152  68.7%] lock       tas                 p=16  ow=0  n=11 -> 1.5335 s | elapsed 58:01, ETA 23:12
+[rep 5/7  8400/12152  69.1%] lock_yield tas                 p=10  ow=3  n=1009 -> 0.6569 s | elapsed 58:17, ETA 22:59
+[rep 5/7  8439/12152  69.4%] counter    lock_mcs            p=20  ow=0  n=101 -> TIMEOUT (timeout after 10.0 s; repeating with iters=10) | elapsed 58:40, ETA 22:44
+[rep 5/7  8461/12152  69.6%] barrier    sr_bo_spin          p=16  -> 0.6265 s | elapsed 58:56, ETA 22:29
+[rep 5/7  8501/12152  70.0%] lock       tas                 p=16  ow=3  n=11 -> 2.2473 s | elapsed 59:11, ETA 22:13
+[rep 5/7  8517/12152  70.1%] lock       tas_bo_spin         p=16  ow=7  n=1009 -> 0.9571 s | elapsed 59:27, ETA 22:20
+[rep 5/7  8564/12152  70.5%] lock       ttas_bo_yield       p=12  ow=0  n=10007 -> 0.5336 s | elapsed 59:42, ETA 22:06
+[rep 5/7  8604/12152  70.8%] barrier    sr_bo_yield         p=8   -> 1.4267 s | elapsed 59:59, ETA 21:55
+[rep 5/7  8633/12152  71.0%] barrier    std_barrier         p=16  -> 1.9369 s | elapsed 1:00:15, ETA 21:56
+[rep 5/7  8675/12152  71.4%] lock       ttas_bo_sleep       p=10  ow=3  n=11 -> 0.2718 s | elapsed 1:00:30, ETA 21:49
+-- repetition 6/7: 1736 runs, load 29.65
+[rep 6/7  8708/12152  71.7%] lock       tas                 p=12  ow=1  n=1009 -> 0.7705 s | elapsed 1:00:45, ETA 21:36
+[rep 6/7  8745/12152  72.0%] lock       tas_bo_yield        p=12  ow=1  n=1009 -> 0.2759 s | elapsed 1:01:00, ETA 21:29
+[rep 6/7  8793/12152  72.4%] lock       ttas_bo_sleep       p=2   ow=15 n=1009 -> 0.1643 s | elapsed 1:01:15, ETA 21:18
+[rep 6/7  8824/12152  72.6%] lock       ttas_bo_spin        p=12  ow=3  n=1009 -> 0.3827 s | elapsed 1:01:31, ETA 21:03
+[rep 6/7  8858/12152  72.9%] lock       ttas                p=12  ow=15 n=1009 -> 0.5832 s | elapsed 1:01:46, ETA 20:56
+[rep 6/7  8894/12152  73.2%] barrier    sr_bo_sleep         p=4   -> 0.4690 s | elapsed 1:02:01, ETA 20:45
+[rep 6/7  8938/12152  73.6%] counter    lock_ttas_bo_yield  p=1   ow=0  n=101 -> 0.1473 s | elapsed 1:02:16, ETA 20:35
+[rep 6/7  8985/12152  73.9%] lock       mcs                 p=8   ow=1  n=1009 -> 0.5850 s | elapsed 1:02:31, ETA 20:18
+[rep 6/7  9030/12152  74.3%] lock       tas_bo_spin         p=20  ow=3  n=1009 -> 1.4648 s | elapsed 1:02:47, ETA 20:00
+[rep 6/7  9078/12152  74.7%] lock       os_unfair_lock      p=12  ow=3  n=1009 -> 0.5024 s | elapsed 1:03:03, ETA 19:43
+[rep 6/7  9126/12152  75.1%] lock       mcs                 p=6   ow=3  n=1009 -> 0.3956 s | elapsed 1:03:18, ETA 19:26
+[rep 6/7  9171/12152  75.5%] lock       tas_bo_spin         p=10  ow=3  n=1009 -> 0.8448 s | elapsed 1:03:33, ETA 19:13
+[rep 6/7  9197/12152  75.7%] lock       ttas                p=16  ow=3  n=11 -> 0.8980 s | elapsed 1:03:49, ETA 19:12
+[rep 6/7  9241/12152  76.0%] barrier    sr_bo_sleep         p=16  -> 0.2717 s | elapsed 1:04:04, ETA 19:03
+[rep 6/7  9294/12152  76.5%] lock       ttas                p=8   ow=3  n=10007 -> 1.1398 s | elapsed 1:04:20, ETA 18:43
+[rep 6/7  9329/12152  76.8%] lock       mcs                 p=12  ow=1  n=1009 -> 2.3217 s | elapsed 1:04:36, ETA 18:26
+[rep 6/7  9378/12152  77.2%] lock       ttas_bo_sleep       p=10  ow=3  n=10007 -> 1.0047 s | elapsed 1:04:52, ETA 18:08
+[rep 6/7  9422/12152  77.5%] lock       ttas                p=20  ow=3  n=1009 -> 1.0247 s | elapsed 1:05:08, ETA 17:58
+[rep 6/7  9457/12152  77.8%] lock       std_mutex           p=2   ow=3  n=10007 -> 0.4266 s | elapsed 1:05:23, ETA 17:51
+[rep 6/7  9491/12152  78.1%] lock       ttas                p=10  ow=0  n=11 -> 0.4796 s | elapsed 1:05:38, ETA 17:45
+[rep 6/7  9522/12152  78.4%] lock       ttas                p=12  ow=7  n=1009 -> 0.6942 s | elapsed 1:05:53, ETA 17:38
+[rep 6/7  9549/12152  78.6%] barrier    std_barrier         p=16  -> 5.2468 s | elapsed 1:06:12, ETA 17:34
+[rep 6/7  9582/12152  78.9%] lock       std_mutex           p=4   ow=15 n=1009 -> 0.5540 s | elapsed 1:06:27, ETA 17:27
+[rep 6/7  9602/12152  79.0%] barrier    std_barrier         p=8   -> 3.7734 s | elapsed 1:06:43, ETA 17:28
+[rep 6/7  9646/12152  79.4%] lock       mcs                 p=8   ow=7  n=1009 -> 0.4654 s | elapsed 1:06:58, ETA 17:14
+[rep 6/7  9696/12152  79.8%] lock       std_mutex           p=20  ow=1  n=1009 -> 0.9186 s | elapsed 1:07:14, ETA 16:56
+[rep 6/7  9741/12152  80.2%] lock       ttas_bo_spin        p=12  ow=0  n=10007 -> 0.6382 s | elapsed 1:07:29, ETA 16:40
+[rep 6/7  9780/12152  80.5%] lock       mcs                 p=16  ow=0  n=1009 -> 9.0677 s | elapsed 1:07:48, ETA 16:31
+[rep 6/7  9805/12152  80.7%] lock       pthread_mutex       p=10  ow=15 n=1009 -> 0.6438 s | elapsed 1:08:03, ETA 16:18
+[rep 6/7  9837/12152  80.9%] lock       tas_bo_spin         p=1   ow=0  n=1009 -> 0.1886 s | elapsed 1:08:18, ETA 15:54
+[rep 6/7  9876/12152  81.3%] lock       ttas_bo_yield       p=10  ow=1  n=1009 -> 0.8611 s | elapsed 1:08:33, ETA 15:38
+[rep 6/7  9892/12152  81.4%] lock       mcs                 p=20  ow=1  n=1009 -> 13.2520 s | elapsed 1:09:01, ETA 15:21
+[rep 6/7  9940/12152  81.8%] lock_yield tas                 p=20  ow=0  n=1009 -> 0.7876 s | elapsed 1:09:16, ETA 15:04
+[rep 6/7  9970/12152  82.0%] counter    lock_std_mutex      p=20  ow=8  n=101 -> 0.1514 s | elapsed 1:09:31, ETA 14:53
+[rep 6/7 10001/12152  82.3%] lock       pthread_mutex       p=20  ow=15 n=1009 -> 1.0184 s | elapsed 1:09:46, ETA 14:39
+[rep 6/7 10036/12152  82.6%] lock       ttas_bo_sleep       p=16  ow=15 n=1009 -> 1.8088 s | elapsed 1:10:03, ETA 14:31
+[rep 6/7 10082/12152  83.0%] lock       tas                 p=20  ow=1  n=1009 -> 1.2291 s | elapsed 1:10:18, ETA 14:15
+[rep 6/7 10114/12152  83.2%] lock       ttas                p=16  ow=7  n=1009 -> 1.1105 s | elapsed 1:10:34, ETA 13:59
+[rep 6/7 10155/12152  83.6%] lock       ttas                p=20  ow=1  n=1009 -> 0.7816 s | elapsed 1:10:49, ETA 13:49
+[rep 6/7 10200/12152  83.9%] barrier    sr_bo_yield         p=20  -> 0.4178 s | elapsed 1:11:04, ETA 13:38
+[rep 6/7 10242/12152  84.3%] lock       pthread_mutex       p=6   ow=7  n=1009 -> 0.5208 s | elapsed 1:11:20, ETA 13:30
+[rep 6/7 10269/12152  84.5%] lock       os_unfair_lock      p=4   ow=3  n=1009 -> 0.3795 s | elapsed 1:11:35, ETA 13:16
+[rep 6/7 10276/12152  84.6%] lock       mcs                 p=20  ow=0  n=1009 -> 13.5550 s | elapsed 1:11:50, ETA 13:14
+[rep 6/7 10310/12152  84.8%] lock       std_mutex           p=4   ow=0  n=10007 -> 0.2329 s | elapsed 1:12:05, ETA 12:44
+[rep 6/7 10331/12152  85.0%] lock       mcs                 p=20  ow=3  n=1009 -> 15.0125 s | elapsed 1:12:28, ETA 12:37
+[rep 6/7 10366/12152  85.3%] counter    cas_yield           p=10  ow=0  n=101 -> 0.1493 s | elapsed 1:12:43, ETA 12:17
+[rep 6/7 10409/12152  85.7%] lock       std_mutex           p=10  ow=7  n=1009 -> 0.9712 s | elapsed 1:12:59, ETA 12:11
+-- repetition 7/7: 1736 runs, load 29.78
+[rep 7/7 10466/12152  86.1%] counter    lock_std_mutex      p=4   ow=8  n=101 -> 0.1680 s | elapsed 1:13:14, ETA 11:52
+[rep 7/7 10487/12152  86.3%] barrier    std_barrier         p=3   -> 0.3198 s | elapsed 1:13:29, ETA 11:32
+[rep 7/7 10526/12152  86.6%] lock       tas_bo_spin         p=8   ow=0  n=10007 -> 0.3134 s | elapsed 1:13:44, ETA 11:15
+[rep 7/7 10576/12152  87.0%] lock       ttas                p=12  ow=1  n=1009 -> 0.3429 s | elapsed 1:13:59, ETA 10:57
+[rep 7/7 10616/12152  87.4%] barrier    std_barrier         p=10  -> 0.9077 s | elapsed 1:14:14, ETA 10:40
+[rep 7/7 10641/12152  87.6%] barrier    sr_bo_yield         p=8   -> 0.9780 s | elapsed 1:14:30, ETA 10:26
+[rep 7/7 10662/12152  87.7%] counter    faa_seqcst          p=10  ow=0  n=101 -> 0.1630 s | elapsed 1:14:45, ETA 10:14
+[rep 7/7 10706/12152  88.1%] barrier    sr                  p=6   -> 0.2780 s | elapsed 1:15:00, ETA 10:01
+[rep 7/7 10751/12152  88.5%] lock       os_unfair_lock      p=20  ow=7  n=1009 -> 0.6399 s | elapsed 1:15:15, ETA 9:43
+[rep 7/7 10762/12152  88.6%] lock       mcs                 p=20  ow=15 n=1009 -> 17.4143 s | elapsed 1:15:36, ETA 9:38
+[rep 7/7 10792/12152  88.8%] barrier    sr                  p=8   -> 1.0242 s | elapsed 1:15:52, ETA 9:28
+[rep 7/7 10823/12152  89.1%] counter    lock_ttas           p=6   ow=8  n=101 -> 0.1638 s | elapsed 1:16:07, ETA 9:16
+[rep 7/7 10857/12152  89.3%] counter    lock_tas_bo_spin    p=16  ow=1  n=101 -> 0.1908 s | elapsed 1:16:22, ETA 9:00
+[rep 7/7 10893/12152  89.6%] lock       ttas                p=8   ow=3  n=1009 -> 0.3090 s | elapsed 1:16:37, ETA 8:44
+[rep 7/7 10912/12152  89.8%] lock       mcs                 p=16  ow=0  n=1009 -> 11.9806 s | elapsed 1:16:56, ETA 8:39
+[rep 7/7 10953/12152  90.1%] lock       tas_bo_sleep        p=20  ow=3  n=11 -> 0.1858 s | elapsed 1:17:11, ETA 8:16
+[rep 7/7 10993/12152  90.5%] lock       ttas_bo_yield       p=20  ow=15 n=1009 -> 1.0956 s | elapsed 1:17:27, ETA 8:03
+[rep 7/7 11038/12152  90.8%] lock       ttas_bo_sleep       p=6   ow=0  n=11 -> 0.0465 s | elapsed 1:17:42, ETA 7:40
+[rep 7/7 11078/12152  91.2%] lock       pthread_mutex       p=20  ow=7  n=1009 -> 0.8403 s | elapsed 1:17:58, ETA 7:15
+[rep 7/7 11121/12152  91.5%] lock       tas_bo_yield        p=6   ow=3  n=11 -> 0.4438 s | elapsed 1:18:13, ETA 7:01
+[rep 7/7 11138/12152  91.7%] lock       mcs                 p=20  ow=3  n=1009 -> 15.7451 s | elapsed 1:18:36, ETA 6:55
+[rep 7/7 11161/12152  91.8%] lock       std_mutex           p=6   ow=0  n=10007 -> 0.6752 s | elapsed 1:18:52, ETA 6:29
+[rep 7/7 11195/12152  92.1%] lock       ttas_bo_sleep       p=10  ow=3  n=10007 -> 1.0866 s | elapsed 1:19:08, ETA 6:18
+[rep 7/7 11225/12152  92.4%] lock       ttas_bo_spin        p=8   ow=3  n=11 -> 0.5098 s | elapsed 1:19:23, ETA 6:06
+[rep 7/7 11262/12152  92.7%] lock       ttas_bo_yield       p=16  ow=3  n=10007 -> 0.5302 s | elapsed 1:19:39, ETA 5:56
+[rep 7/7 11298/12152  93.0%] lock       os_unfair_lock      p=4   ow=1  n=1009 -> 1.0341 s | elapsed 1:19:54, ETA 5:43
+[rep 7/7 11312/12152  93.1%] lock       ttas_bo_sleep       p=3   ow=7  n=1009 -> 0.6959 s | elapsed 1:20:09, ETA 5:38
+[rep 7/7 11339/12152  93.3%] lock       tas_bo_yield        p=6   ow=7  n=1009 -> 1.5838 s | elapsed 1:20:24, ETA 5:29
+[rep 7/7 11358/12152  93.5%] counter    lock_tas_bo_sleep   p=8   ow=0  n=101 -> 0.2095 s | elapsed 1:20:40, ETA 5:18
+[rep 7/7 11399/12152  93.8%] counter    lock_ttas           p=1   ow=8  n=101 -> 0.3096 s | elapsed 1:20:55, ETA 5:07
+[rep 7/7 11442/12152  94.2%] lock       ttas_bo_sleep       p=8   ow=3  n=10007 -> 0.7527 s | elapsed 1:21:10, ETA 4:52
+[rep 7/7 11487/12152  94.5%] barrier    sr_bo_sleep         p=3   -> 0.2756 s | elapsed 1:21:25, ETA 4:35
+[rep 7/7 11531/12152  94.9%] counter    lock_tas_bo_spin    p=8   ow=0  n=101 -> 0.1521 s | elapsed 1:21:40, ETA 4:19
+[rep 7/7 11561/12152  95.1%] lock       mcs                 p=12  ow=3  n=1009 -> 3.8616 s | elapsed 1:21:57, ETA 4:06
+[rep 7/7 11600/12152  95.5%] lock       ttas_bo_yield       p=8   ow=3  n=11 -> 0.5880 s | elapsed 1:22:13, ETA 3:45
+[rep 7/7 11640/12152  95.8%] lock       pthread_mutex       p=12  ow=3  n=11 -> 0.3924 s | elapsed 1:22:28, ETA 3:32
+[rep 7/7 11661/12152  96.0%] lock       mcs                 p=16  ow=7  n=1009 -> 1.0986 s | elapsed 1:22:44, ETA 3:22
+[rep 7/7 11714/12152  96.4%] lock       tas_bo_yield        p=8   ow=3  n=11 -> 1.0302 s | elapsed 1:22:59, ETA 3:02
+[rep 7/7 11764/12152  96.8%] lock_yield ttas                p=20  ow=0  n=1009 -> 0.7872 s | elapsed 1:23:15, ETA 2:45
+[rep 7/7 11802/12152  97.1%] lock       tas_bo_yield        p=4   ow=3  n=11 -> 0.2612 s | elapsed 1:23:30, ETA 2:22
+[rep 7/7 11837/12152  97.4%] lock       tas_bo_spin         p=12  ow=3  n=10007 -> 0.9013 s | elapsed 1:23:45, ETA 2:07
+[rep 7/7 11882/12152  97.8%] lock       std_mutex           p=16  ow=1  n=1009 -> 0.8352 s | elapsed 1:24:01, ETA 1:50
+[rep 7/7 11914/12152  98.0%] lock       std_mutex           p=2   ow=7  n=1009 -> 0.1820 s | elapsed 1:24:16, ETA 1:36
+[rep 7/7 11958/12152  98.4%] lock       ttas_bo_sleep       p=20  ow=0  n=11 -> 0.4546 s | elapsed 1:24:31, ETA 1:20
+[rep 7/7 11987/12152  98.6%] lock       pthread_mutex       p=8   ow=7  n=1009 -> 0.6921 s | elapsed 1:24:47, ETA 1:00
+[rep 7/7 12029/12152  99.0%] counter    lock_std_mutex      p=1   ow=8  n=101 -> 0.1692 s | elapsed 1:25:02, ETA 0:46
+[rep 7/7 12079/12152  99.4%] lock       ttas_bo_spin        p=6   ow=3  n=10007 -> 0.3303 s | elapsed 1:25:17, ETA 0:31
+[rep 7/7 12112/12152  99.7%] lock       tas_bo_sleep        p=8   ow=3  n=10007 -> 0.2946 s | elapsed 1:25:32, ETA 0:15
+END after 1:25:45: 12152 rows ok, 0 with ok=0 from the program, 9 timeouts (9 configurations repeated with fewer iterations), 0 skipped after timeouts, 0 errors
+load average: 6.73 at start, 22.95 at end
+results in results/apple-m5

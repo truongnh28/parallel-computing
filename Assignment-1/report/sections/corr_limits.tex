@@ -1,17 +1,18 @@
+\label{sec:corr:limits}
 % Mục 4.6: Giới hạn của phương pháp kiểm tra (giới hạn của việc đo nằm ở mục Các yếu tố đe dọa).
 
 Stress test và fuzzing chỉ xét các lịch chạy đã xảy ra. Chúng chỉ ra được là có lỗi, không chứng minh
 được là không có lỗi. Tính đúng vì vậy dựa trên lập luận ở mục Cài đặt.
 
-Trên x86-64 (memory model TSO), các lỗi memory order sinh cùng lệnh máy với mã đúng nên không bao giờ
-lộ ra lúc chạy. Với loại lỗi này, nhóm chỉ có TSan. Mutation testing trên \PCname{LAP1184} xác nhận
-điều này. Stress test không bắt được hai biến thể memory order lần nào.
+Trên x86-64 (mô hình TSO, total store order), phần cứng chỉ đảo một phép store với phép load đứng sau.
+Lỗi cần giữ thứ tự này (\texttt{seq\_cst}) có thể lộ qua stress test, nhưng bộ biến thể không có lỗi
+loại này. Với lỗi memory order, nhóm dựa chủ yếu vào TSan.
 
-TSan chỉ tìm data race, chỉ thấy các đường đi đã chạy và cần mã được instrument.
-\PCname{pthread_spinlock} và \PCname{pthread_barrier} đã chạy dưới TSan trên Linux. Ba baseline OpenMP
-thì không kiểm được bằng TSan, vì libgomp không được instrument và TSan báo cảnh báo giả. Với chúng,
-nhóm chỉ có stress test.
+TSan chỉ tìm data race, chỉ thấy các đường đi đã chạy và chỉ thấy mã được instrument.
 
 Bộ kiểm tra không kiểm tiến triển (lock-free, wait-free) ngoài trường hợp treo. Nó cũng không kiểm
 \texttt{get()} trong lúc các thread đang tăng. Các biến thể hỏng do chính nhóm chọn, nên chúng chỉ
 chứng tỏ bộ kiểm tra nhạy với những lỗi đó.
+
+Mỗi máy chạy \texttt{make test}, \texttt{make tsan} và \texttt{make mutation} một lượt. Tỉ lệ bắt
+lỗi của bộ mutation (ví dụ 2/5 hay 1/5) vì vậy chỉ cho bậc độ lớn.

@@ -1,30 +1,36 @@
+\label{sec:corr:barrier}
 % Mục 4.3: Kiểm tra sense-reversing barrier. Nguồn: tests/test_barrier.cpp,
-% results/apple-m5/test.log, tsan.log.
+% results/{apple-m5,C4M7Y670NT,LAP1184}/test.log, tsan.log.
 
 Ở episode $e$ (lần thứ $e$ cả nhóm đi qua barrier), mỗi thread ghi $e$ vào ô của mình, gọi
 \texttt{wait}, rồi đọc mọi ô. Một ô nhỏ hơn $e$ nghĩa là thread này qua sớm. Một ô lớn hơn $e+1$ nghĩa
 là thread khác đã qua episode kế tiếp mà không chờ. Các ô là atomic \texttt{relaxed}, nên điều kiện chỉ
 đúng nhờ thứ tự do barrier tạo ra.
 
-Phép kiểm handoff dùng xen kẽ hai barrier với các ô là biến thường. Dưới TSan, nó kiểm memory order
-của barrier.
+Phép kiểm handoff dùng xen kẽ hai barrier với các ô là biến thường. Ở mọi bản, thread phải đọc đúng số
+episode từ mọi ô. Phép kiểm này bắt lỗi khi một thread dùng hai barrier. Dưới TSan, nó kiểm thêm memory
+order của barrier.
 
-Các pha chạy 1, 4, 10 và 20 thread, tới 300\,000 episode liên tiếp. Watchdog báo treo khi không thread
-nào tiến trong 10~s.
+Mỗi barrier chạy sáu pha: 1 thread; 4 thread dùng lại barrier qua tới 300\,000 episode liên tiếp; số luồng
+phần cứng; 4 thread có độ trễ ngẫu nhiên; gấp đôi số luồng phần cứng; và phép kiểm handoff với 4 thread
+(\PCname{apple-m5}: 1, 4, 10, 20; hai máy còn lại: 1, 4, 12, 24). Barrier chậm có số episode mục tiêu
+nhỏ hơn. Mỗi pha có ngân sách 1,5~s. Watchdog báo treo khi không thread nào tiến trong 10~s.
+% nguồn: tests/test_barrier.cpp:487-493 (các pha), g_cap_s = 1.5, g_stall_s = 10.
 
 Bản schedule fuzzing chèn một độ trễ ngẫu nhiên vào mỗi điểm giữa hai bước của giao thức, để một
 thread bị chậm đúng giữa hai bước.
 
-Trên \PCname{apple-m5}, cả 7 barrier đạt với tổng cộng 2\,198\,144 episode được kiểm. Bản fuzzing đạt
-cho 5 barrier tự viết. Pha 20 thread của \PCname{sr} và \PCname{sr_bo_spin} hết ngân sách 1,5~s sau 64
-và 80 episode. Dưới TSan cả 7 barrier đạt. Nhóm bỏ phép kiểm handoff riêng cho \PCname{std_barrier}.
-Lý do là libc++ của macOS không được instrument, nên TSan báo cảnh báo giả.
-% nguồn: results/apple-m5/test.log (cộng các dòng "PASS ... barrier episodes checked"), tsan.log
+Trên \PCname{apple-m5}, pha 20 thread của \PCname{sr} và \PCname{sr_bo_spin} hết ngân sách sau 64 và 80
+episode. Trên \PCname{C4M7Y670NT}, pha 24 thread của hai barrier này hết ngân sách sau 104 và 97 episode.
+Trên cả hai máy Apple, bản TSan bỏ phép kiểm handoff riêng cho \PCname{std_barrier}. Lý do là libc++ của macOS không
+được instrument, nên TSan báo cảnh báo giả.
+% nguồn: results/{apple-m5,C4M7Y670NT}/test.log (dòng oversub của sr, sr_bo_spin), tsan.log (dòng note std_barrier).
 
-Trên \PCname{LAP1184}, cả 9 barrier đạt, kể cả hai baseline chỉ có ở máy này là \PCname{pthread_barrier}
-và \PCname{omp_barrier}. Tổng cộng 2\,085\,088 episode được kiểm. Bản fuzzing đạt cho 5 barrier tự
-viết. Pha 24 thread của \PCname{sr} và \PCname{sr_bo_spin} hết ngân sách sau 70 và 59 episode. Dưới
-TSan 8 barrier đạt không có cảnh báo. libstdc++ cài \texttt{std::barrier} ngay trong header, nên TSan
-thấy nó. Vì vậy phép kiểm handoff của \PCname{std_barrier} được chạy đủ. \PCname{omp_barrier} bị bỏ qua vì libgomp không được instrument.
-% nguồn: results/LAP1184/test.log (cộng các dòng "PASS ... barrier episodes checked" của bản thường),
-% tsan.log (dòng note: omp_barrier skipped)
+Trên \PCname{LAP1184}, nhiều pha hết ngân sách 1,5~s trước khi đủ số episode mục tiêu: bốn barrier chờ
+chặn (\PCname{sr_block}, \PCname{std_barrier}, \PCname{condvar}, \PCname{pthread_barrier}) ở các pha 4, 12
+và 24 thread, cùng một số pha của \PCname{sr_bo_sleep}, \PCname{sr_bo_spin} và \PCname{omp_barrier}. Riêng
+pha 24 thread của \PCname{sr} và \PCname{sr_bo_spin} chỉ được 70 và 59 episode. libstdc++ cài
+\texttt{std::barrier} ngay trong header, nên TSan thấy nó và phép kiểm handoff của \PCname{std_barrier}
+được chạy đủ. Bản TSan bỏ qua \PCname{omp_barrier}, cùng lý do với \PCname{omp_lock}.
+% nguồn: results/LAP1184/test.log (các dòng "time budget reached" của bản thường), tsan.log (dòng note:
+% omp_barrier skipped).

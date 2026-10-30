@@ -1,41 +1,83 @@
 % Mục 7: Các yếu tố đe dọa độ tin cậy, ba đoạn Construct/Internal/External. Mỗi giới hạn chỉ nêu ở
-% đây. Nguồn: results/{apple-m5,LAP1184}/{campaign.log, lock.csv, counter.csv, barrier.csv}, tables.tex
-% (campaign, lockunit, locksingle). Số tự tính: scripts/report_numbers/corr_stats.py, scripts/report_numbers/corr_stats2.py.
+% đây. Nguồn: results/{apple-m5,C4M7Y670NT,LAP1184}/{campaign.log, machine.txt, lock.csv, counter.csv,
+% barrier.csv, calibration.json, tsan.log}, tables.tex (campaign, lockunit, locksingle), results/apple-m5/extra/.
+% Số tự tính: scripts/report_numbers/corr_stats.py, corr_stats2.py, extra_analyze.py, rlock_analyze.py.
 
 \emph{Construct validity.} Cận dưới của phần lock dùng $t$ đo ở 1 thread, nên chứa chi phí lấy và nhả
-lock của lock nhanh nhất. Ở $N=11$, chi phí này chênh 41\,\% giữa các lock. Cận dưới còn bỏ qua giới hạn
-10 core khi $p > 10$ và $\text{OW} > 0$. Ở 20 thread và $\text{OW}=15$, sàn thật cao hơn cận dưới vẽ
-trên hình 1,6 lần. Phép quy về cùng số vòng lặp giả định thời gian tỉ lệ với số vòng. Giả định này yếu nhất
-ở MCS quá tải (27--45 vòng mỗi thread) và ở các ô barrier sụp đổ (50--69 episode mỗi lần chạy). Ở các
-ô có lần vượt thời hạn, trung vị tính cả lần đó ở dạng cận dưới, nên khác trung vị chỉ trên các lần
-chạy thành công. Ở $\text{OW}=8$, thời gian của mọi counter, kể cả \PCname{faa}, tăng ít nhất gấp đôi
-từ 4 lên 10 thread. Nhóm không có phép đo đối chứng không counter để tách phần do E-core.
-% nguồn: locksingle N=11: 6,50/4,60 = 1,41; sàn 20 thread OW=15: p(1+OW)It/10 = 32It so với
-% max(p,1+OW)It = 20It -> 1,6; calibration.json (reduced|lock|mcs: 45/33/27); barrier.csv (sr,
-% sr_bo_spin, 12-20 thread: iters 69/66/50); counter.csv OW=8, giây/iters trung vị 10 thread / 4 thread:
-% faa 2,13 (nhỏ nhất) .. lock_mcs 6,44
+lock của lock nhanh nhất. Ở $N=11$, chi phí này chênh 41\,\% giữa các lock
+(Bảng~\ref{tab:apple-m5:locksingle}, phụ lục). Cận dưới bỏ qua giới hạn 10 core khi $p > 10$ và
+$\mathrm{OW} = 15$ (ở 20 thread sàn thật cao hơn 1,6 lần). Cận dưới còn giả định mọi core chạy
+\texttt{is\_prime} nhanh như ở lần chạy 1 thread. Khi số thread vượt số P-core, một phần việc chạy trên
+E-core chậm hơn, nên một phần độ chậm không do lock. Ở 6 thread và $\mathrm{OW} = 15$, khi lock chưa
+bận liên tục, mọi lock đã chậm 1,53--2,03 lần cận dưới.
+% nguồn: locksingle N=11: 6,50/4,60 = 1,41; sàn khi p > 10: p(1+OW)It/10 so với max(p,1+OW)It, chỉ lớn hơn
+% khi OW = 15 (p=12: 19,2/16 = 1,2; p=16, 20: 25,6/16 = 32/20 = 1,6); OW <= 7 thì p(1+OW)/10 <= p.
+% scripts/report_numbers/rlock_analyze.py, độ chậm N=1009 OW=15 p=6: 1,53 (mcs) .. 2,03 (os_unfair_lock).
+Phép quy về cùng số vòng lặp giả định thời gian tỉ lệ với số vòng. Giả định này yếu nhất ở MCS quá tải
+(18--286 vòng mỗi thread trên \PCname{apple-m5}, 15--195 trên \PCname{C4M7Y670NT}, 10--56 trên
+\PCname{LAP1184}), ở counter \PCname{lock_mcs} quá tải (10--200 lần tăng mỗi thread trên cả ba máy) và
+ở các ô barrier sụp (50--69 episode mỗi lần chạy). Trên \PCname{LAP1184}, ở $N=1009$ và
+$\mathrm{OW}=0$, phần lớn lần chạy MCS ở 16 và 24 thread xong trong vài mili giây, còn số ít mất 1,2--2,6~s.
+Trung vị của hai ô này rơi vào nhóm nhanh, nên chỉ là cận dưới của chi phí MCS. Vài ô MCS quá tải chỉ
+còn 4--6 giá trị sau khi vượt thời hạn (mục Phương pháp đo).
+% nguồn: plot.aggregate(peers=True) trên lock.csv, mcs reduced: iters apple-m5 18..286, C4M7Y670NT 15..195,
+% LAP1184 10..56 (N=10007: 10); counter.csv lock_mcs iters <= 200: apple-m5 từ 12 thread, C4M7Y670NT từ
+% 16 thread, LAP1184 từ 10 thread, iters 10..200; barrier.csv (sr, sr_bo_spin, 12-20 thread: iters 69/66/50);
+% LAP1184 lock.csv mcs N=1009 OW=0: p=16 5 lần 2,7..6,2 ms, 2 lần 1,18/1,73 s; p=24 6 lần 3,6..5,5 ms,
+% 1 lần 2,58 s.
+Ở $\mathrm{OW}=8$, thời gian của mọi counter, kể cả \PCname{faa}, tăng ít nhất gấp đôi từ 4 lên 10 thread,
+và nhóm không có phép đo đối chứng để tách phần do E-core. Phép đo khoảng trống trao lock thêm hai lần
+đọc đồng hồ vào mỗi critical section, nên báo cáo chỉ dùng thống kê khoảng trống của nó, không dùng thời
+gian chạy. Độ công bằng so thời điểm kết thúc của các thread, nên không thấy các đợt độc chiếm luân phiên
+ngắn.
+% nguồn: counter.csv OW=8, giây/iters trung vị 10 thread / 4 thread: faa 2,13 (nhỏ nhất) .. lock_mcs 6,44;
+% experiments/handoff_gap.cpp; định nghĩa độ công bằng: bench_lock.cpp, bench_counter.cpp (thr_min_s, thr_max_s).
 
-\emph{Internal validity.} macOS không cho ghim thread, và \PCname{apple-m5} có 4 P-core và 6 E-core. Ở
-$N=1009$, thời gian một lời gọi trong 420 lần chạy 1 thread đi từ 468 tới 1\,713~ns. Nhóm cho rằng độ
-phân tán này phần lớn do thread rơi vào E-core, nhưng không tách được ảnh hưởng của E-core với tải nền.
-Load average ghi trong các dòng số liệu của phần lock nằm trong 12,4--51,2, cao hơn số thread của chính
-lần chạy. Phần lớn có thể do load average còn mang các lần chạy 20 thread trước đó. Nhóm không tách
-được phần do tiến trình nền. Nhóm không đọc nhiệt độ hay tần số CPU. Thời gian 1 thread không trôi quá
-3,4\,\% qua 7 lượt lặp. Với 7 lần lặp, nhóm không tính khoảng tin cậy. Trung vị không thể hiện phân bố hai
-đỉnh và đuôi chậm. Chỉ thanh min--max cho thấy phần này.
-% nguồn: scripts/report_numbers/corr_stats2.py (lock.csv, threads=1, n=1009); lock.csv cột load1: 12,42..51,18; scripts/report_numbers/corr_stats.py (tỉ số
-% theo lượt 0,977..1,034)
+\emph{Internal validity.} Không lần chạy nào ghim thread vào core. \PCname{apple-m5} có 4 P-core và 6
+E-core, và macOS không cho ghim thread. Ở $N=1009$, thời gian một lời gọi \texttt{is\_prime} trong 420
+lần chạy 1 thread đi từ 468 tới 1\,713~ns. Nhóm cho rằng độ phân tán này phần lớn do thread rơi vào
+E-core, nhưng không tách được ảnh hưởng của E-core với tải nền. Load average 1 phút trong đợt đo lock
+có trung vị khoảng 25 ở mọi số thread, kể cả lần chạy 1 thread (12,4--51,2). Con số này cao gấp đôi số
+thread trung bình theo thời gian của đợt đo lock (12,0).
+% nguồn: lock.csv cột load1: 12,42..51,18, trung vị 25,4 (p=1: 25,2) (corr_stats.py); số thread trung bình
+% có trọng số seconds trên mọi dòng lock.csv apple-m5: 11,97 (chỉ dòng ok: 11,78).
+Nhóm đo lại năm lock (\PCname{tas}, \PCname{ttas}, \PCname{mcs}, \PCname{std_mutex},
+\PCname{os_unfair_lock}) ở $N = 1009$, $\mathrm{OW} = 0$, 1--10 thread, 7 lần lặp, mỗi lần chạy chỉ bắt
+đầu khi load average dưới 3 hoặc sau 2 phút chờ (trung vị 2,9). Ở cấu hình này, các đường cong giữ hình
+dạng khi tải thấp, còn điểm gãy của MCS ở 10 thread nhỏ đi một nửa (0,53 lần, tức chậm khoảng 7 lần
+cận dưới thay vì 13). Ngoài MCS ở 10 thread, trung vị mới bằng 0,83--1,05 lần trung vị của đợt đo
+chính, tức lệch tới 17\,\%. Báo cáo không diễn giải những khác biệt nhỏ hơn mức này. Lần đo lại khác
+đợt đo chính cả về load average lẫn phiên chạy và khoảng nghỉ giữa các lần chạy, nên không tách được
+riêng ảnh hưởng của tải. Vùng vượt số core chưa được đo lại.
+% nguồn: scripts/report_numbers/extra_analyze.py (results/apple-m5/extra/lowload.csv, 175 lần chạy, load1
+% 2,77..6,71, trung vị 2,89); ns/CS low/main ngoài mcs p=10: 0,83 (tas 10t) .. 1,05 (std_mutex 4t);
+% mcs p=10: 3\,545 / 6\,635 ns = 0,53; t(N=1009) = 6\,635/13,0 = 510 ns -> 3\,545/510 = 6,9.
+Nhóm không đọc nhiệt độ hay tần số CPU. Thời gian 1 thread không trôi quá 3,4\,\% qua 7 lượt lặp. Với 7
+lần lặp, nhóm không tính khoảng tin cậy. Trung vị không thể hiện phân bố hai đỉnh, và chỉ thanh min--max
+cho thấy phần này.
+% nguồn: scripts/report_numbers/corr_stats2.py (lock.csv, threads=1, n=1009, giây/(iters*(1+OW)));
+% scripts/report_numbers/corr_stats.py (tỉ số theo lượt 0,977..1,034)
+Trên \PCname{LAP1184}, load average (5,90--19,6) chỉ đếm tiến trình trong máy ảo. Tải của Windows, việc
+Windows xếp lịch cho các CPU ảo, nguồn điện và chế độ điện trong lúc đo không được ghi lại. Linux không
+biết CPU ảo nào nằm trên P-core hay E-core, và \texttt{lscpu} báo tần số cố định 2\,496~MHz, nên không
+thấy được throttling. Thời gian một lời gọi ở 1 thread, $N=1009$, đi từ 1\,463 tới 3\,176~ns qua 455
+lần chạy. \texttt{sleep\_for} với yêu cầu 100~ns ngủ trung vị khoảng 62~\textmu s. Trong con số này,
+nhóm không tách được phần của bộ hẹn giờ ảo của Hyper-V với phần của timer slack, tức khoảng trễ Linux
+được phép thêm vào khi đánh thức để gộp các lần hẹn giờ. Pause-loop exiting, cơ chế hypervisor tạm dừng
+một CPU ảo quay vòng chờ quá lâu, và việc đánh thức thread qua ngắt ảo là những giải thích khác, chưa
+đo, cho việc barrier spin chậm ngay ở 12 thread.
+% nguồn: figures/LAP1184/tables.tex (campaign); machine.txt (cpu MHz 2496.0, virtualization: Microsoft);
+% lock.csv LAP1184 threads=1, n=1009: 1463..3176 ns/lời gọi, 455 lần chạy; sleep_latency.csv
+% (sleep_for requested_ns=100: median_ns 61655).
 
-Trên \PCname{LAP1184}, load average trong các dòng số liệu nằm trong 5,90--19,6, nhưng nó chỉ đếm tiến
-trình trong máy ảo. Tải của Windows và việc Windows xếp lịch cho các CPU ảo không hiện ra ở đâu trong số
-liệu. Linux cũng không biết CPU ảo nào nằm trên P-core hay E-core, nên các điểm gãy theo số thread của máy
-này không gán được cho loại core.
-% nguồn: report/figures/LAP1184/tables.tex, bảng campaign (load average nhỏ nhất -- lớn nhất).
-
-\emph{External validity.} Số đo đến từ hai máy: một máy ARM (Apple clang 21, macOS) và một máy x86-64
-(g++ 11.5, Linux trong máy ảo WSL2), cả hai đều \texttt{-O2}. Hai máy khác nhau cùng lúc ở kiến trúc,
-memory model, compiler, hệ điều hành và việc có máy ảo hay không. Vì vậy RQ6 chỉ tách được một khác
-biệt khi nó có bằng chứng riêng, như \texttt{seq\_cst} với TSO. Nhóm không có máy x86 chạy Linux trực
-tiếp, máy chạy Windows trực tiếp, hay máy nhiều socket. \texttt{is\_prime} không chạm dữ liệu dùng chung.
-Critical section thật thường ghi dữ liệu dùng chung, nên chi phí chuyển giao lock thực tế có thể lớn
-hơn.
+\emph{External validity.} Số đo đến từ ba máy, gồm hai máy Apple Silicon (Apple clang 21, macOS) và một máy
+x86-64 (g++ 11.5, Linux trong máy ảo WSL2), cả ba đều \texttt{-O2}. Hai máy Apple khác nhau ở số P-core
+và số core, nhưng cũng ở thế hệ chip (M3 Pro, M5), dung lượng L2 mỗi cụm và phiên bản macOS. Vì vậy việc
+điểm gãy dời theo số P-core phù hợp với giải thích hai loại core, nhưng không chứng minh nó. Máy x86-64
+khác hai máy Apple cùng lúc ở kiến trúc, memory model, compiler, hệ điều hành và việc có máy ảo hay
+không. Vì vậy RQ6 chỉ gán một khác biệt của máy này cho một nguyên nhân khi có bằng chứng riêng, như
+\texttt{seq\_cst} với TSO. Nhóm không có máy x86 chạy Linux trực tiếp, máy chạy Windows trực tiếp, hay
+máy nhiều socket. \texttt{is\_prime} không chạm dữ liệu dùng chung. Critical section thật thường ghi dữ
+liệu dùng chung, nên chi phí chuyển giao lock thực tế có thể lớn hơn.
+% nguồn: machine.txt apple-m5 (l2_cache 16 MiB per 4 P cores / 6 MiB per 6 E cores; macOS 27.0.1) và
+% C4M7Y670NT (16 MiB per 6 P cores / 4 MiB per 6 E cores; macOS 26.7.1).

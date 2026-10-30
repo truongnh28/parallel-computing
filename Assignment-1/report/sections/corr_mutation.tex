@@ -1,17 +1,28 @@
-% Mục 4.5: Mutation testing, trả lời RQ1. Nguồn: results/{apple-m5,LAP1184}/mutation.log (toàn bộ).
-% Số episode lúc bắt lỗi: build/barrier_mut2.run{2,5}.log, build/barrier_mut2_fuzz.run1.log (cùng
-% lượt make mutation, không nằm trong results/).
+% Mục 4.5: Mutation testing, trả lời RQ1. Nguồn: results/{apple-m5,C4M7Y670NT,LAP1184}/mutation.log (toàn bộ).
+% Số episode lúc bắt lỗi: results/apple-m5/mutation_logs/barrier_mut2.run{2,5}.log,
+% barrier_mut2_fuzz.run{1..5}.log; barrier_mut4.run1.log, barrier_mut4_fuzz.run1.log;
+% results/C4M7Y670NT/mutation_logs/barrier_mut4.run{1,2,4,5}.log.
 
-\begin{rqanswer}\textbf{Trả lời RQ1.} Có. Trên \PCname{apple-m5}, mọi cài đặt (12 lock, 7 barrier,
-19 counter) đạt mọi bài kiểm tra và TSan không báo data race nào. Bộ kiểm tra bắt cả 14/14 biến thể cố
-ý làm hỏng. Riêng hai lỗi memory order thì stress test chỉ bắt được 1 trong 8 lần chạy. TSan bắt được
-cả hai. Dự đoán D1.1 đúng. Trên \PCname{LAP1184} (x86-64), 13 lock, 9 barrier và 20 counter cũng đạt. Bộ
-kiểm tra cũng bắt cả 14 biến thể. Với hai lỗi memory order, stress test không bắt được lần nào trong 8
-lần chạy. Kết luận dựa trên một lượt kiểm tra trên mỗi máy.\end{rqanswer}
-% nguồn: apple-m5/mutation.log: TAS_RELEASE_RELAXED stress 0/3, fetch_add_release_only plain 1/5 -> 1/8;
-% LAP1184/mutation.log: TAS_RELEASE_RELAXED 0/3, fetch_add_release_only plain 0/5 -> 0/8.
+\label{sec:corr:mutation}
+\begin{rqanswer}\textbf{Trả lời RQ1.} Không bài kiểm tra nào tìm thấy lỗi trên ba máy, và bộ kiểm tra bắt
+cả 14 biến thể hỏng. Tính đúng dựa trên lập luận ở mục Cài đặt. Kiểm thử củng cố lập luận đó. Trên
+\PCname{apple-m5}, \PCname{C4M7Y670NT} và \PCname{LAP1184}, mọi cài đặt đạt mọi bài kiểm tra (12 lock,
+7 barrier và 19 counter trên hai máy Apple, 13, 9 và 20 trên \PCname{LAP1184}), và TSan không báo data
+race nào. Hai lỗi memory order khó bắt nhất. Stress test không bắt \texttt{TAS\_RELEASE\_RELAXED} lần nào
+(0/3 trên cả ba máy). Bản thường bắt \texttt{fetch\_add\_release\_only} 1/5 lần trên \PCname{apple-m5},
+4/5 trên \PCname{C4M7Y670NT} và 0/5 trên \PCname{LAP1184}. TSan bắt cả hai lỗi trên mọi máy.\end{rqanswer}
+% nguồn: results/{apple-m5,C4M7Y670NT,LAP1184}/mutation.log: TAS_RELEASE_RELAXED MISSED 0/3, TSan CAUGHT (cả ba);
+% fetch_add_release_only plain caught 1/5 (apple-m5), 4/5 (C4M7Y670NT), SURVIVED 0/5 (LAP1184), DATA RACE reported (cả ba);
+% results/{máy}/test.log, tsan.log (số cài đặt, 0 cảnh báo).
 
-Mỗi biến thể sửa đúng một chỗ của một thuật toán đúng. Bảng~\ref{tab:corr:mutation} tóm tắt kết quả.
+\emph{Bằng chứng.} Bảng~\ref{tab:corr:mutation} tóm tắt kết quả trên \PCname{apple-m5}. Biến thể lock là
+macro sửa một chỗ trong \texttt{lock.h}. Biến thể barrier và counter là bản sao trong \texttt{tests/},
+mỗi bản cài một lỗi. Riêng \texttt{single\_flag} và \texttt{block\_reserve} là thuật toán khác hẳn. Khi
+chạy biến thể hỏng, watchdog báo treo sau 5~s với lock và 2~s với barrier, và mỗi pha barrier có ngân
+sách 0,5~s.
+% nguồn: include/lock.h (PC_MUTANT_TAS_*, PC_MUTANT_MCS_*), tests/test_barrier.cpp (namespace mutant, PC_MUTANT 1..5),
+% tests/test_counter.cpp (PC_MUTANT_plain_long..block_reserve); mk/part1.mk:44 (watchdog=5);
+% mk/part2.mk:63 (stall_s=2 cap_s=0.5).
 
 \begin{table}[tbp]\centering\scriptsize\setlength{\tabcolsep}{3pt}
 % nguồn: results/apple-m5/mutation.log
@@ -37,37 +48,62 @@ lock\_read\_outside & đọc giá trị trước \texttt{acquire()} & 3/3 final,
 block\_reserve & giữ trước 8 giá trị mỗi thread & 3/3 chỉ real-time & không & kiểm giá trị \\
 \bottomrule
 \end{tabularx}
-\caption{Mutation testing trên \PCname{apple-m5}: lock (trên), barrier (giữa), counter (dưới). Cột
-stress: số lần chạy bắt được trên số lần chạy (trong ngoặc: bản schedule fuzzing) và dấu hiệu. Với counter,
-dấu hiệu là các phép kiểm báo lỗi (final, duplicate, missing, order, real-time). Cột TSan: có báo data race không.}
+\caption{Mutation testing trên \PCname{apple-m5}: lock (trên), barrier (giữa), counter (dưới). Cột stress
+cho số lần chạy bắt được trên số lần chạy (trong ngoặc: bản schedule fuzzing) cùng dấu hiệu hoặc phép kiểm
+báo lỗi; cột TSan cho biết TSan có báo data race không.}
 \label{tab:corr:mutation}
 \end{table}
 
-Hai biến thể chỉ TSan bắt ổn định đều là lỗi memory order. \texttt{TAS\_RELEASE\_RELAXED} đổi lệnh
-nhả lock \texttt{stlrb} (store release) thành \texttt{strb}. Ba lần chạy không có cập nhật nào bị mất.
-Trên x86-64, biến thể này sinh đúng lệnh của bản đúng. TSan bắt nó vì store relaxed không tạo cạnh
-happens-before giữa hai chủ lock liên tiếp. \texttt{fetch\_add\_release\_only} đổi \texttt{ldaddal}
-thành \texttt{ldaddl}, nên thread tới cuối có thể đọc ô của thread khác trước khi \texttt{fetch\_add}
-của nó có hiệu lực. TSan bắt nó qua các ô thường của phép kiểm handoff.
+Trên \PCname{C4M7Y670NT}, mọi biến thể bị bắt bởi cùng kỹ thuật như trên \PCname{apple-m5}. Chỉ số lần
+stress test bắt được khác. Ở bản thường, \texttt{fetch\_add\_release\_only} bị bắt 4/5 lần (so với
+1/5) và \texttt{flip\_before\_reset} 1/5 lần (so với 2/5). Bản fuzzing cho cùng kết quả như trên
+\PCname{apple-m5} (0/5 và 5/5). Kết quả TSan của máy này chỉ dựa trên dòng tóm tắt trong
+\texttt{mutation.log}, vì log chi tiết của các lần chạy TSan không được lưu.
+% nguồn: results/C4M7Y670NT/mutation.log (Part 2: flip_before_reset caught 1/5 | caught 5/5;
+% fetch_add_release_only caught 4/5 | SURVIVED 0/5 | DATA RACE reported); các dòng còn lại trùng apple-m5.
+% results/C4M7Y670NT/mutation_logs/ không có *_tsan.log, counter_muttsan_*, locks_muttsan_*.
+
+Trên \PCname{LAP1184}, mọi biến thể bị bắt bởi cùng kỹ thuật như trên \PCname{apple-m5}, với ba khác
+biệt. Thứ nhất, \texttt{fetch\_add\_release\_only} không bị stress test bắt lần nào (0/5, fuzzing 0/5),
+chỉ TSan bắt. Thứ hai, bản thường bắt \texttt{flip\_before\_reset} 5/5 lần, so với 2/5 trên
+\PCname{apple-m5}. Thứ ba, với \texttt{thread\_local\_sense}, bản TSan dừng ngay khi phép kiểm handoff
+báo sai giá trị, và TSan không in cảnh báo nào trước đó. Trên máy này biến thể chỉ bị phép kiểm giá trị
+bắt (5/5 ở bản thường và bản fuzzing).
+% nguồn: results/LAP1184/mutation.log (Part 2: flip_before_reset caught 5/5 hang 5; fetch_add_release_only
+% SURVIVED 0/5 | SURVIVED 0/5 | DATA RACE reported; thread_local_sense: no report; checks: wrong
+% episode/value; Part 1: TAS_RELEASE_RELAXED MISSED 0/3, TSan CAUGHT);
+% results/LAP1184/mutation_logs/barrier_mut5_tsan.log (FAIL [handoff]: WRONG VALUE, không có dòng TSan).
+
+\emph{Vì sao.} Hai biến thể chỉ TSan bắt ổn định đều là lỗi memory order. \texttt{TAS\_RELEASE\_RELAXED}
+đổi lệnh nhả lock \texttt{stlrb} (store release) thành \texttt{strb}. TSan bắt nó vì store relaxed không
+tạo cạnh happens-before giữa hai chủ lock liên tiếp. Ba lần chạy stress không có cập nhật nào bị mất.
+Nhóm chưa đo vì sao lỗi không lộ trên ARM. Một khả năng là các phép ghi trong critical section thường
+đã tới cache trước khi phép ghi nhả lock được thấy, nên cửa sổ lỗi rất hẹp.
+\texttt{fetch\_add\_release\_only} đổi \texttt{ldaddal} thành \texttt{ldaddl}, nên thread tới cuối có
+thể đọc ô của thread khác trước khi \texttt{fetch\_add} của nó có hiệu lực. TSan bắt nó qua các ô thường
+của phép kiểm handoff.
+
+Trên x86-64, mọi \texttt{fetch\_add} đều là lệnh \texttt{lock xadd}. Mọi store, kể cả \texttt{relaxed}
+và \texttt{release}, đều là \texttt{mov}. Vì vậy trên \PCname{LAP1184} hai biến thể memory order chạy đúng
+lệnh máy của bản đúng, và không lịch chạy nào làm lộ lỗi.
+% nguồn: biên dịch include/lock.h, tests/test_barrier.cpp (bản đúng và hai biến thể) bằng Apple clang
+% -arch x86_64 -O2 -S: assembly của biến thể trùng bản đúng. LAP1184 dùng g++ 11.5, chưa so assembly riêng.
 
 Ngược lại, TSan im lặng với bảy biến thể chỉ dùng atomic hoặc gây treo. Không kỹ thuật nào một mình
-bắt được mọi biến thể.
+bắt được mọi biến thể. Stress test hoặc phép kiểm giá trị bắt mọi lỗi thuật toán. Bốn lỗi treo (hai biến
+thể MCS, \texttt{flip\_before\_reset}, \texttt{nonatomic\_count}) hiện ra qua watchdog.
 
-Dự đoán D1.1 đúng ở cả ba ý. Stress test hoặc phép kiểm giá trị bắt mọi lỗi thuật toán. Hai lỗi memory
-order chỉ lộ 1 trong 8 lần chạy và cần TSan. Bốn lỗi treo (hai biến thể MCS, \texttt{flip\_before\_reset},
-\texttt{nonatomic\_count}) hiện ra qua watchdog. Ngoài dự đoán của D1.1, fuzzing làm
-\texttt{flip\_before\_reset} treo sau 5 episode (bản thường cần 39\,896 và 289\,052 episode), nhưng làm
-lỗi thiếu acquire biến mất (0/5).
-% nguồn: build/barrier_mut2.run{2,5}.log, build/barrier_mut2_fuzz.run1.log (cùng lượt make mutation)
+Fuzzing làm \texttt{flip\_before\_reset} treo sau 3--7 episode (bản thường cần 39\,896 và 289\,052
+episode ở hai lần bắt được trên \PCname{apple-m5}). Bản fuzzing không bắt được lỗi thiếu acquire (0/5).
+Bản này chỉ chạy một phần mười số episode, và trên hai máy Apple bản thường chỉ bắt được lỗi sau hơn
+13\,000 episode của một pha. Nhóm chưa đo vì sao bản thường trên \PCname{LAP1184} bắt
+\texttt{flip\_before\_reset} thường hơn. Một khả năng là máy ảo tước core của thread nhiều hơn.
+% nguồn: results/apple-m5/mutation_logs/barrier_mut2.run{2,5}.log (39 896, 289 052),
+% barrier_mut2_fuzz.run{1..5}.log (5, 7, 7, 3, 5 episode); mutation.log (fetch_add_release_only fuzzing 0/5).
+% Episode lúc bắt fetch_add_release_only ở bản thường: apple-m5 barrier_mut4.run1.log 35 881 (pha reuse);
+% C4M7Y670NT barrier_mut4.run{1,2,4,5}.log 31 763, 13 373, 23 689, 26 190 (pha all-cores).
+% Bản fuzzing: g_size = 0.1 (tests/test_barrier.cpp, main), pha reuse 30 000 và all-cores 10 000 episode
+% (apple-m5/mutation_logs/barrier_mut4_fuzz.run1.log).
 
-Trên \PCname{LAP1184}, mọi biến thể bị bắt bởi cùng kỹ thuật như trên \PCname{apple-m5}, với hai khác
-biệt. Thứ nhất, \texttt{fetch\_add\_release\_only} không bị stress test bắt lần nào (0/5, fuzzing 0/5),
-chỉ TSan bắt. Trên x86-64, mọi \texttt{fetch\_add} đều là lệnh \texttt{lock xadd}. Mọi store, kể cả
-\texttt{relaxed} và \texttt{release}, đều là \texttt{mov}. Vì vậy hai biến thể memory order chạy đúng
-lệnh máy của bản đúng, và không lịch chạy nào làm lộ lỗi. Đây là bằng chứng trực tiếp cho nhận định ở
-mục Giới hạn rằng trên TSO chỉ TSan bắt được loại lỗi này.
-
-Thứ hai, bản thường bắt \texttt{flip\_before\_reset} 5/5 lần, so với 2/5 trên \PCname{apple-m5}. Nhóm
-không có số đo cho nguyên nhân. Một khả năng là máy ảo tước core của thread nhiều hơn.
-% nguồn: results/LAP1184/mutation.log (Part 2: flip_before_reset caught 5/5 hang 5; fetch_add_release_only
-% SURVIVED 0/5 | SURVIVED 0/5 | DATA RACE reported; Part 1: TAS_RELEASE_RELAXED MISSED 0/3, TSan CAUGHT).
+\emph{Độ vững.} Kết luận trên dựa trên một lượt chạy mỗi máy và chỉ trên các lịch chạy đã xảy ra.
+Mục~\ref{sec:corr:limits} nêu các giới hạn này.

@@ -1,0 +1,24 @@
+% Bảng tóm tắt kết quả kiểm tra tính đúng đắn (phụ lục), trỏ tới từ corr_strategy.tex.
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xlll@{}}
+\toprule
+ & \textbf{\PCname{apple-m5}} & \textbf{\PCname{C4M7Y670NT}} & \textbf{\PCname{LAP1184}} \\
+\midrule
+Số thread của stress test & 1, 2, 4, 10, 20 & 1, 2, 4, 12, 24 & 1, 2, 4, 12, 24 \\
+\texttt{make test}: lock, barrier, counter đạt & 12/12, 7/7, 19/19 & 12/12, 7/7, 19/19 & 13/13, 9/9, 20/20 \\
+\quad barrier với schedule fuzzing đạt & 5/5 & 5/5 & 5/5 \\
+\quad episode barrier được kiểm & 2\,198\,144 & 2\,198\,201 & 2\,085\,088 \\
+\quad lần tăng counter được kiểm & 121\,573\,312 & 144\,627\,911 & 148\,879\,205 \\
+\texttt{make tsan}: lock, barrier, counter đạt & 12/12, 7/7, 19/19 & 12/12, 7/7, 19/19 & 12/12, 8/8, 19/19 \\
+\quad bị bỏ qua & handoff của \PCname{std_barrier} & handoff của \PCname{std_barrier} & \PCname{omp_lock}, \PCname{omp_barrier}, \PCname{lock_omp_lock} \\
+\quad cảnh báo data race & 0 & 0 & 0 \\
+\texttt{make mutation}: biến thể bị bắt & 14/14 & 14/14 & 14/14 \\
+\bottomrule
+\end{tabularx}
+\caption{Kết quả kiểm tra tính đúng đắn trên ba máy, mỗi máy một lượt. Episode barrier chỉ tính bản
+thường. Lý do bỏ qua trong bản TSan nằm ở các Mục~\ref{sec:corr:lock}--\ref{sec:corr:counter}.}
+\label{tab:corr:summary}
+\end{table}
+% nguồn: results/{apple-m5,C4M7Y670NT,LAP1184}/test.log (dòng PASS; tổng episode và lần tăng cộng bằng awk;
+% episode barrier chỉ cộng các dòng PASS của phần "barrier correctness test (plain)"),
+% tsan.log (dòng SKIP, note), mutation.log.

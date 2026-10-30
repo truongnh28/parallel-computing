@@ -1,52 +1,134 @@
 % Mục 5: Phương pháp đo. Nguồn: scripts/run_bench.py (chú thích đầu file, khối "THE GRID"),
-% include/bench_common.hpp, include/workload.hpp, scripts/plot.py, results/apple-m5/{calibration.json,
-% campaign.log, *.csv}, tables.tex (campaign, lockunit). Số tự tính: scripts/report_numbers/corr_stats.py.
-% Giới hạn của việc đo chỉ nằm ở mục Các yếu tố đe dọa độ tin cậy. Bản dài: agent-corr/long/method.tex.
+% include/bench_common.hpp, include/platform.hpp, include/workload.hpp, bench/bench_{lock,barrier,counter}.cpp,
+% scripts/plot.py (unit_time, bound, Stat.close, plot_series, thread_axis),
+% results/{apple-m5,C4M7Y670NT,LAP1184}/{calibration.json, campaign.log, sleep_latency.csv, machine.txt, *.csv},
+% tables.tex (campaign, lockunit, sleeplatency). Số tự tính: scripts/report_numbers/corr_stats.py.
+% Giới hạn của việc đo chỉ nằm ở mục Các yếu tố đe dọa độ tin cậy.
 
-Mỗi lần chạy in đúng một dòng CSV gồm tham số, thời gian, cột \texttt{ok} (phép kiểm của lần
-chạy) và load average. Đồng hồ chạy từ lúc mọi thread đã được tạo và cổng xuất phát chung mở ra tới
-khi lần \texttt{join} cuối trả về. Việc tạo thread nằm
-ngoài vùng đo.
+Chương trình đo lock chạy vòng lặp của đề. Mỗi thread lặp $I$ lần. Mỗi vòng lấy lock, gọi
+\texttt{is\_prime(N)} trong critical section, nhả lock, rồi gọi \texttt{is\_prime(N)} thêm OW
+(\texttt{OUTSIDE\_WORK}) lần ở ngoài. $p$ là số thread. Chương trình đo counter thay critical
+section bằng một lần tăng counter, với OW lời gọi \texttt{is\_prime(101)} giữa hai lần tăng. Chương
+trình đo barrier gọi barrier $I$ lần liên tiếp, không có việc ở giữa, nên mỗi lần chạy có đúng $I$
+episode.
 
-Trong khung của đề, compiler được phép xoá \texttt{is\_prime(N)} vì kết quả bị bỏ đi. Nhóm giữ
-\texttt{is\_prime} không inline và cho \texttt{N} đi qua \texttt{pc::opaque()} ở mỗi lời gọi. Nhóm
-cũng kiểm tổng các kết quả ở cuối lần chạy (cột \texttt{ok}).
-Bảng~\ref{tab:apple-m5:lockunit} xác nhận phần việc không bị xoá. Ở $N=1009$, thời gian một lời gọi
-$t$ chỉ thay đổi từ 504 tới 527~ns khi \texttt{OUTSIDE\_WORK} tăng từ 0 lên 15, và $t$ tỉ lệ với $N$.
-Cả 12\,152 lần chạy đều có \texttt{ok = 1}.
-% nguồn: tables.tex, bảng lockunit; campaign.log: bad_check=0
+Đồng hồ là \texttt{std::chrono::steady\_clock}. Vùng đo bắt đầu khi mọi thread đã được tạo và cổng
+xuất phát chung mở ra, và kết thúc khi lần \texttt{join} cuối trả về. Đề yêu cầu thời gian của cả
+chương trình. Báo cáo khác đề ở điểm này. Việc tạo thread nằm ngoài vùng đo, vì nó không thuộc chi phí
+đồng bộ mà các cài đặt cần so. Đồng hồ trên hai máy Apple có độ phân giải 41,7~ns (bộ đếm 24~MHz,
+Bảng~\ref{tab:apple-m5:sleeplatency}, phụ lục).
+Trên \PCname{LAP1184}, một lần đọc đồng hồ tốn trung vị 20~ns, và CPU báo TSC ổn định, không đổi theo
+tần số. Cả hai mức này rất nhỏ so với một lần chạy, có độ dài trung vị 0,15--0,29~s tuỳ phần đo.
+% nguồn: include/platform.hpp:46 (now_s dùng steady_clock); include/bench_common.hpp timed_run;
+% machine.txt apple-m5 và C4M7Y670NT: hw.tbfrequency 24000000 (1/24 MHz = 41,7 ns); sleep_latency.csv dòng
+% clock: apple-m5 và C4M7Y670NT min 0, median 41, p99 42 (bước của bộ đếm); LAP1184 min 18, median 20;
+% results/LAP1184/machine.txt cờ constant_tsc nonstop_tsc tsc_reliable;
+% scripts/report_numbers/corr_stats.py apple-m5: seconds trung vị counter 0,153, barrier 0,261, lock 0,294.
 
-Phần lock quét 12 lock qua ba lượt. Một lượt dùng $N=1009$ với \texttt{OUTSIDE\_WORK} (OW) bằng 0,
-1, 3, 7, 15. Hai lượt còn lại dùng $N=11$ và $N=10007$ với OW bằng 0 và 3. $N$ phải là số nguyên tố để \texttt{is\_prime} chạy đủ $N-2$ vòng. Ba
-giá trị cho critical section khoảng 5~ns, 0,5~\textmu s và 5~\textmu s. OW quyết định mức tranh chấp.
-Theo mô hình, lock bão hoà khi $p > 1+\text{OW}$. Barrier quét 7 cài đặt. Counter quét 19 cài đặt
-với OW bằng 0, 1, 8 và $N=101$.
+Mỗi lần chạy in đúng một dòng CSV gồm tham số, thời gian, load average 1 phút và kết quả của một
+phép kiểm. Phép kiểm buộc mọi phần việc phải thật sự chạy. Trong khung của đề, compiler được phép xoá
+\texttt{is\_prime(N)} vì kết quả bị bỏ đi. Nhóm giữ \texttt{is\_prime} không inline và cho
+\texttt{N} đi qua \texttt{pc::opaque()} ở mỗi lời gọi. Mỗi kết quả được cộng vào tổng riêng của
+thread, và tổng này phải bằng số lời gọi. Với counter, phép kiểm còn đòi giá trị cuối bằng
+$M = pI$ và tổng các giá trị trả về bằng $0 + 1 + \dots + (M-1)$. Với barrier, mọi thread phải đi hết
+$I$ episode. Bảng~\ref{tab:apple-m5:lockunit} (phụ lục) xác nhận phần việc không bị xoá. Ở $N=1009$, thời gian
+một lời gọi $t$ nằm trong 504--527~ns ở mọi OW từ 0 tới 15, và $t$ tỉ lệ với $N$. Trên
+\PCname{apple-m5}, cả 12\,152 lần chạy hoàn thành đều qua phép kiểm kết quả. Các dòng không qua chỉ
+là lần vượt thời hạn. Trên \PCname{C4M7Y670NT} và \PCname{LAP1184}, cả 13\,244 và 14\,322 lần
+chạy hoàn thành cũng đều qua.
+% nguồn: bench/bench_lock.cpp (expected = iters*(1+outside_work)), bench/bench_counter.cpp (result
+% checks), bench/bench_barrier.cpp (episodes == iters); tables.tex bảng lockunit; t N=1009 theo OW
+% (scripts/report_numbers/rlock_analyze.py): 510,6 / 526,4 / 503,5 / 519,1 / 527,1 ns ở OW = 0/1/3/7/15;
+% campaign.log apple-m5: ok=12152 bad_check=0 timeout=9; C4M7Y670NT: ok=13244 bad_check=0 timeout=10;
+% LAP1184: ok=14322 bad_check=0 timeout=12.
+
+Phần lock quét 12 lock qua ba lượt. Một lượt dùng $N=1009$ với OW bằng 0, 1, 3, 7, 15. Hai lượt
+còn lại dùng $N=11$ và $N=10\,007$ với OW bằng 0 và 3. $N$ phải là số nguyên tố để
+\texttt{is\_prime} chạy đủ $N-2$ vòng. Ba giá trị cho critical section khoảng 5~ns, 0,5~\textmu s và
+5~\textmu s. OW quyết định mức tranh chấp. Barrier quét 7 cài đặt. Counter quét 19 cài đặt với OW bằng
+0, 1, 8. Một lượt phụ chạy lại TAS và TTAS với lệnh chờ \texttt{yield} thay \texttt{isb} ở 1, 4, 10,
+20 thread, $N=1009$, OW bằng 0 và 3 (cột Lock (\texttt{yield}) của Bảng~\ref{tab:apple-m5:campaign}).
+RQ3 dùng lượt này.
+% nguồn: run_bench.py GRID; results/apple-m5/lock_yield.csv (impl tas, ttas; threads 1,4,10,20; ow 0,3; n 1009)
 
 Số thread trên \PCname{apple-m5} là 1, 2, 3, 4, 6, 8, 10, 12, 16, 20. Trong đó 4 là số P-core, 10 là
-mọi core, 12--20 là quá tải. Trên \PCname{LAP1184}, lưới thêm 24 thread. Ở máy này, 12 là mọi luồng
-phần cứng và 16--24 là quá tải. Máy này có thêm các baseline Linux và OpenMP, nên quét 13 lock, 9
-barrier và 20 counter.
+mọi core, 12--20 là quá tải. Trên \PCname{C4M7Y670NT} và \PCname{LAP1184}, lưới thêm 24 thread. Ở hai
+máy này, 12 là mọi core trên \PCname{C4M7Y670NT} và mọi luồng phần cứng trên \PCname{LAP1184}, còn
+16--24 là quá tải. \PCname{C4M7Y670NT} có 6 P-core. \PCname{LAP1184} có thêm các baseline Linux và
+OpenMP, nên quét 13 lock, 9 barrier và 20 counter.
 
-Với lock, số vòng mỗi thread là $I = W_N/\max(p,\,1+\text{OW})$, để cận dưới của mọi cấu hình khoảng
-0,19~s. Nhóm hiệu chỉnh $W_N$ một lần cho mỗi $N$ bằng \PCname{ttas}. Với barrier và counter, chi phí
-một thao tác chênh nhau nhiều bậc, nên mỗi cấu hình có $I$ riêng suy từ một lần chạy thử, nhắm 0,25~s
-và 0,15~s. $I$ cố định cho cả đợt đo. Hình và bảng quy thời gian về cùng số vòng lặp.
+Với lock, số vòng mỗi thread là $I = W_N/\max(p,\,1+\mathrm{OW})$. $W_N$ là tổng số vòng lặp, cộng
+qua mọi thread (khi $p \ge 1+\mathrm{OW}$), để một lần chạy của \PCname{ttas} với OW $=0$ dài khoảng
+0,19~s. Nhóm hiệu chỉnh $W_N$ một lần cho mỗi $N$, ở 1 thread với $N = 1009$ và $10\,007$, ở 4 thread
+với $N=11$ (ở đó chi phí chính là việc trao lock). Riêng ở $N=11$, lần chạy 1 thread dùng $I$ gấp 8
+lần, vì $W_{11}$ hiệu chỉnh ở 4 thread. Trên \PCname{apple-m5}, $W_N$ bằng 5\,426\,304, 343\,663 và
+36\,381 cho $N$ = 11, 1009 và 10\,007. Với barrier và counter, chi phí một thao tác chênh nhau nhiều
+bậc, nên mỗi cấu hình có $I$ riêng suy từ một lần chạy thử, nhắm 0,25~s và 0,15~s. Trên
+\PCname{C4M7Y670NT}, runner thu mọi thời lượng mục tiêu lại 0,956 lần. Trên \PCname{LAP1184}, hệ số
+này là 0,885 (0,17, 0,22 và 0,13~s), để thời lượng ước tính còn khoảng 70 phút. $I$ cố định cho cả
+đợt đo. Hình và bảng quy thời gian về cùng số vòng lặp.
+% nguồn: run_bench.py (per_bound, bound_iters: ONE_THREAD_BOOST = 8 khi threads == 1 và at_threads > 1;
+% BUDGET_MIN = 70); calibration.json apple-m5 (lock|W|n11 w=5426304 at_threads=4; n1009 w=343663;
+% n10007 w=36381; target_s 0.19 / 0.25 / 0.15); campaign.log C4M7Y670NT scale=0.956, LAP1184
+% scale=0.885; calibration.json LAP1184 target_s 0.168175 / 0.221282 / 0.132769.
 
-Thời hạn mỗi lần chạy là 30~s cho lock và 10~s cho barrier và counter. Nhóm đo lock MCS quá tải với số
-vòng nhỏ hơn 100 lần ngay từ đầu (27 cấu hình). Lần chạy vượt thời hạn được ghi thành một dòng
-\texttt{ok=0}, không bỏ đi, rồi cấu hình đó chạy lại với số vòng nhỏ hơn 100 lần. Trên
-\PCname{apple-m5} có 9 lần như vậy, đều là MCS quá tải (6 ở lock, 3 ở counter). \PCname{LAP1184} có 12
-lần, cũng đều là MCS quá tải (6 ở lock, 6 ở counter).
-% nguồn: lock.csv, counter.csv (dòng extra=timeout); calibration.json (khoá reduced|...)
+Thời hạn mỗi lần chạy là 30~s cho lock và 10~s cho barrier và counter. Riêng barrier spin
+(\PCname{sr}, \PCname{sr_bo_spin}) khi quá tải có thời hạn 30~s, vì một episode có thể tốn cả một
+lượt lập lịch. Lock MCS quá tải được đo với số vòng nhỏ hơn 100 lần ngay từ đầu (27 cấu hình trên
+\PCname{apple-m5}). Lần vượt thời hạn được ghi lại. Cấu hình đó được đo tiếp với số vòng nhỏ hơn 100
+lần (không dưới 10), và trung vị chỉ dùng các lần chạy có cùng số vòng, là số vòng của đa số lần chạy. Lần vượt thời hạn chỉ được tính
+là lần chậm nhất khi nó có cùng số vòng đó. Không cấu hình nào trên ba máy có trung vị là một lần vượt
+thời hạn.
+% nguồn: run_bench.py TIMEOUT_S, LONG_TIMEOUTS, REDUCED_ITERS, REDUCE_FACTOR = 100, MIN_ITERS = 10;
+% scripts/plot.py Stat.close (số vòng chiếm đa số trong các lần qua phép kiểm; cens chỉ gồm lần vượt
+% thời hạn cùng số vòng); scripts/report_numbers/corr_stats.py (27 khoá reduced|lock|mcs trên apple-m5);
+% plot.aggregate trên lock.csv, counter.csv, barrier.csv của ba máy: không Stat nào censored.
 
-Mỗi cấu hình chạy 7 lần. Hình báo cáo trung vị, thanh sai số đi từ min tới max. Nhóm không dùng trung
-bình vì phân bố lệch phải. Ở 33\,\% cấu hình lock, lần chậm nhất dài hơn 1,5 lần trung vị. Lần vượt
-thời hạn được tính là chậm nhất khi lấy trung vị. Trong mỗi lượt lặp, mọi cấu hình chạy theo thứ tự xáo
-trộn với seed cố định. Mỗi thời điểm chỉ có một tiến trình đo, và đợt đo chỉ bắt đầu khi load average
-không quá 7,0.
-% nguồn: agent-corr/stats.py trên lock.csv (ok=1): tỉ lệ cấu hình có max/median > 1,5 = 0,334
+Trên \PCname{apple-m5}, 9 lần vượt thời hạn đều là MCS quá tải (6 ở lock, 3 ở counter), và 1 trong 9
+lần có cùng số vòng với các lần tính trung vị. Trên \PCname{C4M7Y670NT} có 10 lần (6 ở lock, 4 ở
+counter), 3 lần trong đó cùng số vòng. Trên \PCname{LAP1184} có 12 lần (6 ở lock, 6 ở counter), 1 lần
+cùng số vòng. Mọi lần vượt thời hạn ở lock là MCS ở $N=11$, vốn đã chạy với số vòng giảm sẵn, nên các
+cấu hình này được giảm thêm 100 lần. Vì vậy vài ô MCS quá tải chỉ còn 4--6 giá trị (2 ô trên
+\PCname{apple-m5}, 3 trên \PCname{C4M7Y670NT}, 7 trên \PCname{LAP1184}).
+% nguồn: lock.csv, counter.csv (dòng extra=timeout) của ba máy; so số vòng của lần vượt thời hạn với số vòng
+% chiếm đa số của các lần ok: apple-m5 cùng số vòng ở counter lock_mcs p=20 OW=0; C4M7Y670NT counter
+% lock_mcs p=20 OW=0, p=24 OW=0, p=24 OW=1; LAP1184 counter lock_mcs p=16 OW=1.
+% Lock: W_11/p/100 = số vòng của lần vượt thời hạn (apple-m5 5426304/12/100 = 4522; C4M7Y670NT
+% 17667288/16/100 = 11042; LAP1184 3545568/16/100 = 2216). Ô có reps < 7 (plot.aggregate): apple-m5
+% counter lock_mcs (20,0) 5, (20,1) 6; C4M7Y670NT counter lock_mcs (20,0) 5, (24,1) 5, (24,8) 6;
+% LAP1184 lock mcs N=11 (16,3) 5, (20,0) 6, (20,3) 6, (24,3) 6, counter lock_mcs (16,1) 6, (20,0) 5, (24,1) 4.
 
-Phần lock được so với cận dưới $T_{\min} = \max\bigl(p\,I\,t,\ (1+\text{OW})\,I\,t\bigr)$. Vế đầu là
-tổng các critical section chạy nối tiếp, vế sau là phần việc của riêng một thread. $t$ là trung vị lần
-chạy 1 thread của lock nhanh nhất chia cho $I(1+\text{OW})$. Thời gian đo chia cho $T_{\min}$ là hệ số
-chậm. Bảng~\ref{tab:apple-m5:campaign} tóm tắt đợt đo. Bảng~\ref{tab:apple-m5:lockunit} cho $t$.
+Mỗi cấu hình chạy 7 lần. Báo cáo dùng trung vị, không dùng trung bình, vì phân bố lệch phải. Ở
+33\,\% cấu hình lock, lần chậm nhất dài hơn 1,5 lần trung vị, với barrier là 49\,\%. Lượt lặp là vòng
+ngoài. Trong mỗi lượt, mọi cấu hình chạy theo thứ tự xáo trộn với seed cố định, nên tải nền trôi chậm
+không thiên vị cài đặt nào. Mỗi thời điểm chỉ có một tiến trình đo, và đợt đo chỉ bắt đầu khi load
+average 1 phút không quá 7,0.
+% nguồn: scripts/report_numbers/corr_stats.py trên apple-m5: tỉ lệ cấu hình có max/median > 1,5:
+% lock 0,334, barrier 0,486
+
+Phần lock được so với cận dưới lý tưởng
+\[ T_{\min} = \max(p,\ 1+\mathrm{OW})\cdot I\cdot t. \]
+Từ $p = 1+\mathrm{OW}$, lock phải bận liên tục, vì tổng thời gian critical section $p\,I\,t$ bằng
+hoặc vượt phần việc $(1+\mathrm{OW})\,I\,t$ của một thread. Khi đó các critical section chạy nối tiếp,
+nên cần ít nhất $p\,I\,t$. Khi $p < 1+\mathrm{OW}$, một thread cần ít nhất $(1+\mathrm{OW})\,I\,t$
+cho phần việc của riêng nó. $t$ là trung vị lần chạy 1
+thread của lock nhanh nhất ở cùng $N$ và OW, chia cho $I(1+\mathrm{OW})$. Báo cáo dùng hai đại lượng
+dẫn xuất:
+\begin{itemize}[nosep]
+  \item \emph{Độ chậm} là thời gian đo chia cho $T_{\min}$. Độ chậm 1 nghĩa là lock không thêm chi
+    phí nào.
+  \item \emph{Độ công bằng} là thời gian của thread xong sớm nhất chia cho thời gian của thread xong
+    muộn nhất trong một lần chạy. Mỗi thread tự đo vòng lặp của mình. Mọi thread làm cùng số vòng,
+    nên 1 là hoàn toàn đều. Lock và counter đều ghi đại lượng này.
+\end{itemize}
+Bảng~\ref{tab:apple-m5:campaign} (phụ lục) tóm tắt đợt đo. Bảng~\ref{tab:apple-m5:lockunit} cho $t$.
+% nguồn: scripts/plot.py unit_time, bound; bench/bench_lock.cpp và bench_counter.cpp (thr_min_s, thr_max_s)
+
+Mỗi điểm trên hình là trung vị của 7 lần lặp, và thanh sai số đi từ min tới max. Vạch dọc liền đánh
+dấu số core, hoặc số luồng phần cứng khi máy có SMT, còn vạch dọc chấm đánh dấu số P-core, hoặc số core
+do máy ảo báo. Vòng tròn lớn quanh một điểm cho biết cấu hình đó được đo với số vòng giảm 100 lần hoặc
+hơn rồi quy đổi tuyến tính. Tam giác rỗng đánh dấu trung vị là một lần vượt thời hạn, và khi đó thời gian thật
+lớn hơn giá trị vẽ.
+% nguồn: scripts/plot.py plot_series (errorbar median/min/max; marker "^" rỗng cho Stat censored, vẽ ở
+% thời hạn; marker "o" rỗng cho Stat reduced), thread_axis (axvline ncpu liền, host.mid chấm),
+% Host.__init__ (mid = performance_cores, nếu không có thì physical_cores khi máy ảo báo), ncpu_label.

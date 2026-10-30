@@ -1,54 +1,125 @@
 % RQ4. Nguồn: results/apple-m5/barrier.csv (trung vị 7 lần), bảng barrier, sleeplatency.
+% ns mỗi episode = 1e9 / trung vị ops_per_s của barrier.csv (cùng số với bảng barrier trong tables.tex).
+% Số tự tính: scripts/report_numbers/rbc_analyze.py (phần BARRIER: trung vị, min, max ops_per_s mỗi cấu hình).
+% Cơ chế chờ của libc++: header của Apple clang 21 (MacOSX.sdk/usr/include/c++/v1): __thread/poll_with_backoff.h
+% (64 lần đọc), __atomic/atomic_sync.h (atomic::wait ngủ bằng __libcpp_atomic_wait khi đã chờ quá 4 us),
+% <barrier> (wait dùng __libcpp_timed_backoff_policy), __thread/timed_backoff_policy.h (yield sau 4 us,
+% sleep_for sau 64 us).
 \subsubsection{RQ4: Chi phí một barrier episode}
 
 \begin{rqanswer}\textbf{Trả lời RQ4.} Với chờ spin, một episode tốn thêm khoảng 53~ns cho mỗi thread
-trong cụm 4 P-core. Độ dốc tăng gần gấp 6 khi thread tràn sang E-core. Tốc độ sụp khoảng 2\,000 lần
-khi số thread vượt số core. Khi mỗi thread có core riêng, spin thuần nhanh nhất. Khi vượt số core,
-\PCname{sr_bo_yield} nhanh nhất. Kết luận chỉ áp cho \PCname{apple-m5}.\end{rqanswer}
+trong cụm 4 P-core. Độ dốc tăng mạnh khi vượt 4 thread (số P-core), gần gấp 6 theo trung vị. Với \PCname{sr}, số episode
+mỗi giây giảm khoảng 2\,000 lần khi số thread vượt số core. Khi mỗi thread có core riêng, spin thuần
+nhanh nhất hoặc ngang \PCname{sr_bo_yield} (200 so với 195~ns ở 4 thread). Khi vượt số core,
+\PCname{sr_bo_yield} nhanh nhất. Số liệu của \PCname{apple-m5}. RQ6 kiểm lại trên hai máy còn
+lại.\end{rqanswer}
+% nguồn: barrier.csv, ns/episode p=4: sr 200,1, sr_bo_yield 195,2. sr: tốc độ p=10 / p=12 = 507\,861 / 245,7 = 2\,067.
 
-Nhóm đo số episode (một lần cả $p$ thread cùng qua barrier) mỗi giây khi giữa hai barrier không có việc
-gì (Hình~\ref{fig:apple-m5:barrier_rate}, Bảng~\ref{tab:apple-m5:barrier}).
+\emph{Bằng chứng.} Nhóm đo số episode (một lần cả $p$ thread cùng qua barrier) mỗi giây khi giữa hai
+barrier không có việc gì (Hình~\ref{fig:apple-m5:barrier_rate}, Bảng~\ref{tab:apple-m5:barrier}).
 
 \PCfigure{apple-m5}{barrier_rate}
 \PCtable{apple-m5}{barrier}
 
-Với \PCname{sr}, mỗi thread thêm vào tốn khoảng 53~ns từ 2 tới 4 thread và khoảng 295~ns từ 4 tới
-10 thread.
-% nguồn: 1e9/trung vị ops_per_s của sr: p=2 94,5; p=4 200,1; p=10 1969 ns.
-Phần tuyến tính đến từ $p$ phép \texttt{fetch\_add} lần lượt trên cache line của bộ đếm và $p-1$ lần
-đọc lại cờ sau khi cờ đảo. Chỗ gãy sau 4 thread trùng với số P-core. Kết quả lock cũng gãy ở cùng chỗ,
-ngay cả ở ô đối chứng mà lock gần như rảnh (RQ2). Vì vậy nó đến từ máy chứ không từ thuật toán barrier.
-Nhóm giả thuyết hai nguyên nhân là E-core chậm hơn và cache line phải đi giữa hai cụm L2. Vì không gắn
-được thread vào core, nhóm không tách được hai nguyên nhân này.
+Từ 1 lên 2 thread, một episode của \PCname{sr} tăng từ 1,7~ns lên 94,5~ns. Từ 2 tới 4 thread, mỗi
+thread thêm vào tốn khoảng 53~ns. Từ 4 tới 10 thread, mức này là khoảng 295~ns. Từ 10 lên 12 thread,
+\PCname{sr} chậm đi khoảng 2\,070 lần. Mỗi thread vượt số core thêm khoảng 2~ms vào một episode.
+\PCname{sr_bo_spin} sụp cùng chỗ (222 episode mỗi giây ở 12 thread).
+% nguồn: barrier.csv, ns/episode sr p=1 1,70, p=2 94,5; p=4 200,1; p=10 1\,969: (200,1-94,5)/2 = 53; (1\,969-200,1)/6 = 295.
+% sr: tốc độ p=10/p=12 = 2\,067; ms mỗi episode/(p-10), p=12..20: 1,7-2,0. tables.tex barrier p=12: sr_bo_spin 222.
 
-Từ 10 lên 12 thread, \PCname{sr} chậm đi khoảng 2\,070 lần. Mỗi thread vượt số core thêm khoảng
-2~ms vào một episode.
-% nguồn: sr: tốc độ p=10/p=12 = 2067; ms mỗi episode/(p-10), p=12..20: 1,7-2,0.
-Một episode cần mọi thread được chạy, nhưng thread đã tới thì quay và giữ core tới hết lượt lập lịch.
-Barrier giống MCS ở điểm này (RQ2).
+Tới 4 thread, \PCname{sr}, \PCname{sr_block} và \PCname{sr_bo_yield} gần nhau. \PCname{std_barrier}
+chậm hơn \PCname{sr} 1,6 lần, còn \PCname{sr_bo_spin}, \PCname{condvar} và \PCname{sr_bo_sleep} chậm
+hơn 3,9--31 lần. Từ 6 tới 10 thread, các barrier chờ chặn chậm hẳn so với \PCname{sr}. Khi vượt số
+core, thứ tự đảo lại. Năm barrier không quay thuần (mọi barrier trừ \PCname{sr} và \PCname{sr_bo_spin})
+nhanh hơn \PCname{sr} khoảng 170--680 lần, và \PCname{sr_bo_yield} nhanh nhất.
+% nguồn: barrier.csv, ns/episode p=4: sr 200,1, sr_block 251,2, sr_bo_yield 195,2, std_barrier 320,8 (1,60),
+% sr_bo_spin 786,5 (3,93), condvar 5\,175 (25,9), sr_bo_sleep 6\,112 (30,5).
+% p=12: sr 4\,069\,259 ns; sr_bo_yield 11\,555, std_barrier 13\,657, sr_block 18\,755, condvar 21\,068, sr_bo_sleep 24\,236
+% -> 168..352 lần. p=20: sr 16\,917\,611; sr_bo_yield 24\,990 .. sr_bo_sleep 38\,171 -> 443..677 lần.
 
-Chờ chặn hoà vốn đúng tại số core. Dưới đó, \PCname{sr_block} luôn chậm hơn \PCname{sr}, vì đánh thức
-qua kernel tốn vài micro giây. Ở 12 thread, nó nhanh hơn khoảng 217 lần.
-% nguồn: trung vị ops_per_s p=12: sr_block 53319, sr 245,7.
+\emph{Vì sao.} Ở 1 thread, bộ đếm và cờ nằm yên trong cache của một core. Từ 2 thread, cả hai cache
+line phải đi giữa các core ở mỗi episode. Phần tuyến tính đến từ $p$ phép \texttt{fetch\_add} lần lượt
+trên cache line của bộ đếm và $p-1$ lần đọc lại cờ sau khi cờ đảo. Chỗ gãy sau 4 thread trùng với số
+P-core. Kết quả lock cũng gãy ở cùng chỗ, ngay cả ở ô đối chứng mà lock gần như rảnh (RQ2). Vì vậy nhóm
+cho rằng nó đến từ máy chứ không từ thuật toán barrier. Hai nguyên nhân có thể là E-core chậm hơn và cache
+line phải đi giữa hai cụm L2 (xem mục Các yếu tố đe dọa độ tin cậy).
 
-\PCname{sr_bo_yield} nhanh hơn \PCname{std_barrier} ở mọi số thread từ 2 tới 20. Khi vượt số core, nó
-nhanh nhất trong mọi barrier (11,6~$\mu$s mỗi episode ở 12 thread). Thread chờ gọi
-\texttt{sched\_yield}, nhường core cho đúng thread chưa tới barrier. Nhờ vậy episode xong mà không phải chờ hết
-lượt lập lịch, và không phải trả một lần đánh thức qua kernel như \PCname{sr_block}. Khi mỗi thread có
-core riêng, lời gọi hệ thống này chỉ làm thread chậm nhận ra cờ đã đảo, nên \PCname{sr_bo_yield} chậm hơn
-\PCname{sr} tới 1,7 lần (8 thread).
-% nguồn: ns/episode (1e9/trung vị ops_per_s): p=12 sr_bo_yield 11555, std_barrier 13657, sr_block 18755; p=8 sr_bo_yield 1225, sr 733.
+Một episode cần mọi thread được chạy. Nhóm cho rằng khi vượt số core, thread đã tới barrier thì quay và
+giữ core tới hết lượt lập lịch, nên thread chưa tới phải chờ lượt sau mới được chạy. Barrier giống MCS ở
+điểm này (RQ2). Nhóm chưa đối chiếu con số 2~ms với độ dài lượt lập lịch của macOS.
+\PCname{sr_bo_spin} sụp cùng chỗ vì thread chờ của nó cũng giữ core.
+
+\PCname{sr_block} chờ bằng \texttt{std::atomic::wait}. Trong libc++ của Apple clang 21, lời gọi này đọc
+64 lần, đọc tiếp tới khi đã chờ 4~$\mu$s, rồi mới ngủ trong kernel. Tới 4 thread, episode ngắn hơn
+4~$\mu$s nhiều, nên \PCname{sr_block} gần bằng \PCname{sr} (124--251 so với 94--200~ns). Từ 6 thread nó
+chậm hẳn (1,1~$\mu$s ở 6, 6,8~$\mu$s ở 8, 16,1~$\mu$s ở 10 thread). Nhóm cho rằng ngày càng nhiều episode
+có thread chờ quá 4~$\mu$s, ngủ, rồi phải được đánh thức qua kernel. Điểm đổi chiều so với \PCname{sr}
+nằm giữa 10 và 12 thread. Ở 10 thread, \PCname{sr_block} (16,1~$\mu$s) vẫn chậm hơn \PCname{sr}
+(1,97~$\mu$s). Ở 12 thread, nó nhanh hơn khoảng 217 lần.
+% nguồn: barrier.csv, ns/episode sr_block p=2..4 123,6..251,2, sr 94,5..200,1; sr_block p=6/8/10 1\,095/6\,801/16\,064;
+% sr p=10 1\,969. Trung vị ops_per_s p=12: sr_block 53319, sr 245,7; 53319/245,7 = 217.
+
+\PCname{sr_bo_yield} đọc cờ 64 lần rồi mới gọi \texttt{sched\_yield} (\texttt{backoff.hpp}). Tới 4
+thread, nó ngang \PCname{sr}. Từ 6 thread, có lần chờ đủ dài để gọi \texttt{sched\_yield}, và lời gọi hệ
+thống này làm thread chậm nhận ra cờ đã đảo, nên \PCname{sr_bo_yield} chậm hơn \PCname{sr} tới 1,7 lần
+(8 thread). Khi vượt số core, spin sụp ngay và barrier chờ chặn thắng spin. Nhưng \PCname{sr_bo_yield}
+(không chặn) mới nhanh nhất. Ở 12 thread, một episode của nó tốn 11,6~$\mu$s, so với 13,7~$\mu$s của
+\PCname{std_barrier} và 18,8~$\mu$s của \PCname{sr_block}. Thread chờ nhường core, có thể cho thread chưa
+tới barrier (\texttt{sched\_yield} không bảo đảm điều này). Nhờ vậy episode xong mà không phải chờ hết
+lượt lập lịch, và không phải trả một lần đánh thức qua kernel như \PCname{sr_block}.
+% nguồn: include/backoff.hpp YieldBackoff (64 lần cpu_relax rồi yield). ns/episode (1e9/trung vị ops_per_s):
+% p=12 sr_bo_yield 11555, std_barrier 13657, sr_block 18755; p=8 sr_bo_yield 1225, sr 733.
+
+Hàm \texttt{wait} của \PCname{std_barrier} trong libc++ đọc tới khi đã chờ 4~$\mu$s, gọi
+\texttt{yield} tới 64~$\mu$s, sau đó mới ngủ bằng \texttt{sleep\_for}. Vì vậy từ 6 tới 10 thread nó chậm
+đi ít hơn \PCname{sr_block} (5,9 so với 16,1~$\mu$s ở 10 thread), và khi vượt số core nó gần
+\PCname{sr_bo_yield}. \PCname{sr_bo_yield} nhanh hơn \PCname{std_barrier} ở mọi số thread từ 2 tới 20.
+Ở 1 thread, một episode của \PCname{std_barrier} tốn 17~ns so với 1,7~ns của \PCname{sr}. Tới 4 thread
+nó chậm hơn \PCname{sr} 1,6--2,4 lần. Điều này phù hợp với việc phép tới barrier của libc++ đi qua một
+hàm thư viện (\texttt{\_\_arrive\_barrier\_algorithm\_base}) nặng hơn một lệnh \texttt{fetch\_add}. Từ 3
+lên 4 thread, một episode của \PCname{std_barrier} gần như không đổi (314 và 321~ns). Ở 3 thread các
+lần lặp dao động 202--482~ns, nên nhóm không diễn giải bước này.
+% nguồn: barrier.csv, ns/episode std_barrier p=1/2/3/4 17,2/164,0/313,9/320,8 so với sr 1,70/94,5/131,7/200,1
+% (1,74/2,38/1,60 ở p=2/3/4); p=10 std_barrier 5\,850, sr_block 16\,064. sr_bo_yield < std_barrier ở p=2..20
+% (97,8/164 .. 24\,990/32\,229 ns). std_barrier p=3, 7 lần lặp: 201,9..482,2 ns.
+
+\PCname{condvar} không có pha quay. Mọi thread chờ ngủ trong \texttt{pthread\_cond\_wait}, và thread tới
+cuối đánh thức tất cả bằng \texttt{notify\_all}. Vì vậy ngay ở 2 thread, mỗi episode đã tốn 1,77~$\mu$s,
+so với 124~ns của \PCname{sr_block}. Tới 4 thread, mỗi thread thêm vào tốn khoảng 1,7~$\mu$s. Điều này
+phù hợp với việc mỗi thread chờ trả một lần đánh thức qua kernel, cùng bậc với chi phí 1,5~$\mu$s ước
+lượng ở RQ2. Ở 1 thread, \PCname{condvar} tốn 5,7~ns so với 1,7~ns của \PCname{sr}, vì mỗi lần tới
+barrier vẫn lấy và nhả một mutex.
+% nguồn: barrier.csv, ns/episode condvar p=2/4 1\,771/5\,175; (5\,175 - 1\,771)/2 = 1\,702; sr_block p=2 123,6;
+% condvar p=1 5,70, sr p=1 1,70. include/barrier.hpp CondVarBarrier::wait (unique_lock trên mutex_ ở mọi lần gọi).
+
+Khi vượt số core, các barrier không quay thuần hội tụ về 18--38~$\mu$s mỗi episode ở 16--20 thread, tức
+1,1--1,9~$\mu$s cho mỗi thread. Nhóm cho rằng mỗi episode phải lập lịch lại từng thread một lần, và chi
+phí đó lấn át khác biệt giữa các cách chờ.
+% nguồn: barrier.csv, ns/episode p=16/20: sr_bo_sleep 27\,146/38\,171, sr_bo_yield 18\,280/24\,990, sr_block 26\,201/32\,929,
+% std_barrier 26\,934/32\,229, condvar 26\,843/31\,871; chia cho p: 1,14..1,91 us.
 
 Backoff làm barrier chậm đi khi mỗi thread có core riêng (\PCname{sr_bo_spin} chậm hơn \PCname{sr}
-2,3 tới 9,5 lần). Thread chờ chỉ đọc cờ, nên backoff không có tranh chấp nào để giảm. Một episode của
+2,3 tới 9,5 lần). Thread chờ chỉ đọc cờ, nên backoff không có tranh chấp nào để giảm. Cửa sổ quay của
+\PCname{sr_bo_spin} nhân đôi sau mỗi lần đọc thấy cờ chưa đảo, tới 1\,024 lần \texttt{cpu\_relax()}
+(\texttt{backoff.hpp}). Thread chờ càng lâu thì càng nhận ra cờ đảo muộn, nên khoảng cách với
+\PCname{sr} tăng theo số thread tới 8 thread (2,3 lần ở 2 thread, 9,5 lần ở 8 thread). Một episode của
 \PCname{sr_bo_sleep} ở 2 thread tốn 2,49~$\mu$s, xấp xỉ thời gian ngủ thật ngắn nhất của
-\texttt{sleep\_for} khi yêu cầu 100~ns (2,54~$\mu$s).
-% nguồn: sr_bo_sleep p=2: 1e9/401186 = 2493 ns; sleep_for 100 ns: nhỏ nhất 2540 ns.
+\texttt{sleep\_for} khi yêu cầu 100~ns (2,54~$\mu$s, Bảng~\ref{tab:apple-m5:sleeplatency}, phụ lục). Từ
+đó nó tăng lên 21,6~$\mu$s ở 10 thread. Nhóm cho rằng episode phải chờ thread ngủ muộn nhất, và thời
+gian ngủ yêu cầu nhân đôi sau mỗi lần thức dậy thấy cờ chưa đảo.
+% nguồn: barrier.csv, ns/episode sr_bo_spin/sr: p=2 217,1/94,5 = 2,30; p=8 6\,994/733 = 9,54; p=10 7,55.
+% sr_bo_sleep p=2: 1e9/401186 = 2493 ns; p=10 21\,600 ns; sleep_latency.csv sleep_for 100 ns: nhỏ nhất 2\,541 ns.
+% include/backoff.hpp: SpinBackoff PC_SPIN_MAX = 1024; SleepBackoff nhân đôi từ 100 ns tới 100 us.
 
-Đối chiếu với dự đoán, D4.1 chỉ đúng từng đoạn, vì chi phí tăng tuyến tính theo $p$ nhưng độ dốc đổi
-ở 4 thread. D4.2 đúng. Spin sụp ngay khi vượt số core, và chờ chặn chỉ nhanh hơn ở vùng đó. D4.3 đúng.
-Backoff làm barrier chậm khi mỗi thread có core riêng.
-
-Các ô sụp đổ dựa trên 50--69 episode mỗi lần chạy, nên chỉ cho biết bậc độ lớn. Khoảng
-cách 2--3 bậc vẫn lớn hơn nhiều độ phân tán giữa 7 lần lặp.
-% nguồn: cột iters của sr, p=12..20.
+\emph{Độ vững.} Độ dốc trong câu trả lời tính từ trung vị. Giữa 7 lần lặp, một episode của \PCname{sr}
+ở 4 thread dao động 163--340~ns. Tính riêng cho từng lượt lặp, độ dốc từ 4 tới 10 thread vẫn lớn hơn độ
+dốc từ 2 tới 4 thread ở cả 7 lượt, nhưng gấp 1,2 tới 10,7 lần. Vì vậy hướng tăng của độ dốc là chắc
+chắn, còn hệ số gần 6 thì không. Các ô sụp đổ chỉ cho biết bậc độ lớn (mục Các yếu tố đe dọa độ tin cậy).
+Khoảng cách 2--3 bậc vẫn lớn hơn nhiều độ phân tán giữa 7 lần lặp. Thanh sai số dài của
+\PCname{std_barrier} ở 16 thread đến từ hai lần lặp chậm 5 và 15 lần so với trung vị. Nhóm chưa giải
+thích hai lần này.
+% nguồn: barrier.csv sr p=4, 7 lần: 163,0..339,5 ns/episode. Độ dốc theo lượt (cột rep), (p4-p2)/2 và (p10-p4)/6, ns:
+% rep1 43,9/298,4; rep2 33,1/232,6; rep3 25,2/269,3; rep4 53,8/481,1; rep5 94,4/115,4; rep6 70,4/455,9; rep7 108,1/602,7
+% -> tỉ số 1,22..10,7. Cột iters của sr, p=12..20: 69/50/50. std_barrier p=16 ops_per_s: trung vị 37\,129,
+% hai lần chậm nhất 6\,760 và 2\,496 (5,5 và 14,9 lần), lần nhanh nhất 58\,907.

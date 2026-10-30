@@ -111,8 +111,8 @@ FIG_WIDTH = 7.2            # inches; the report includes every figure at \linewi
 WATERMARK = "DỮ LIỆU GIẢ – KHÔNG PHẢI SỐ ĐO"
 
 plt.rcParams.update({
-    "font.family": "DejaVu Sans", "font.size": 8, "axes.titlesize": 8, "axes.labelsize": 8,
-    "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
+    "font.family": "DejaVu Sans", "font.size": 10, "axes.titlesize": 10, "axes.labelsize": 10,
+    "xtick.labelsize": 9, "ytick.labelsize": 9, "legend.fontsize": 9,
     "axes.spines.top": False, "axes.spines.right": False, "axes.linewidth": 0.6,
     "axes.grid": True, "grid.color": "#e3e3e3", "grid.linewidth": 0.5, "axes.axisbelow": True,
     "xtick.major.width": 0.6, "ytick.major.width": 0.6, "xtick.minor.width": 0.4, "ytick.minor.width": 0.4,
@@ -351,7 +351,8 @@ class Host:
         if p and 0 < p < self.ncpu:
             self.mid, self.mid_label = p, "số P-core (%d)" % p
         elif phys and 0 < phys < self.ncpu:
-            self.mid, self.mid_label = phys, "số core vật lý (%d)" % phys
+            virt = " máy ảo báo" if self.machine.get("virtualization") else ""
+            self.mid, self.mid_label = phys, "số core vật lý%s (%d)" % (virt, phys)
         relax = {r["extra"].get("relax") for r in self.rows["lock"] if r["extra"].get("relax")}
         self.any_reduced = any(s.reduced for st in self.stats.values() for s in st.values())
         self.relax = ", ".join(sorted(relax))
@@ -490,10 +491,11 @@ class Flags:
                             markeredgecolor="0.25", markeredgewidth=1.1, label="vượt thời hạn (thời gian thật lớn hơn)"))
         if self.red:
             h.append(Line2D([], [], linestyle="none", marker="o", markersize=9.5, markerfacecolor="none",
-                            markeredgecolor="0.1", markeredgewidth=0.7, label="đo với số vòng lặp giảm 100 lần"))
+                            markeredgecolor="0.1", markeredgewidth=0.7, label="đo với số vòng lặp giảm 100 lần hoặc hơn"))
         return h
 
     def caption(self):
+        return ""  # the markers are explained once in the report (method section)
         t = ""
         if self.cens:
             t += (" Tam giác rỗng: trung vị của cấu hình vượt thời hạn của một lần chạy, thời gian thật lớn hơn "
@@ -516,15 +518,32 @@ def thread_axis(ax, threads, host):
     if host.mid:
         ax.axvline(host.mid, color="0.35", lw=0.9, ls=(0, (1, 2)), zorder=1.2)
     labels = ax.get_xticklabels()
-    for a, b, lab in zip(threads, threads[1:], labels[1:]):  # drop a label that would touch its neighbour
-        if math.log2(b / a) < 0.35 and len(threads) > 8 and b not in (host.ncpu, host.mid, threads[-1]):
+    keep = (host.ncpu, host.mid, threads[0], threads[-1])
+    shown = threads[0]
+    for i, (t, lab) in enumerate(zip(threads, labels)):  # drop labels that would touch a neighbour
+        if i == 0 or len(threads) <= 8:
+            continue
+        nxt = threads[i + 1] if i + 1 < len(threads) else None
+        close_prev = math.log2(t / shown) < 0.45
+        close_next = nxt is not None and nxt in keep and math.log2(nxt / t) < 0.45
+        if t not in keep and (close_prev or close_next):
             lab.set_visible(False)
+        else:
+            shown = t
+
+
+def ncpu_label(host):
+    """Name of the solid marker: with SMT the OS counts hardware threads, not cores."""
+    phys = host._int("physical_cores")
+    if phys and phys < host.ncpu:
+        return "số luồng phần cứng (%d)" % host.ncpu
+    return "số core của máy (%d)" % host.ncpu
 
 
 def core_handles(host):
     h = []
     if host.ncpu:
-        h.append(Line2D([], [], color="0.35", lw=0.9, label="số core của máy (%d)" % host.ncpu))
+        h.append(Line2D([], [], color="0.35", lw=0.9, label=ncpu_label(host)))
     if host.mid:
         h.append(Line2D([], [], color="0.35", lw=0.9, ls=(0, (1, 2)), label=host.mid_label))
     return h
@@ -588,8 +607,19 @@ def legend(fig, spare, handles, ncol=4, title=None):
                   handlelength=3.2)
     else:
         fig.legend(handles=uniq, loc="outside upper center", frameon=False, title=title,
-                   ncol=min(ncol, len(uniq)), handlelength=3.2, columnspacing=1.4)
+                   ncol=min(ncol, 4, len(uniq)), handlelength=2.4, columnspacing=1.0)
 
+
+
+def supylabel(fig, text, **kw):
+    """Y label for the figure. With a figure-level legend above a single row of panels, the label goes on the
+    first panel so that it is centred on the axes and does not run into the legend."""
+    first = [a for a in fig.axes if a.get_visible() and a.get_subplotspec() is not None
+             and a.get_subplotspec().is_first_col()]
+    if fig.legends and len(first) == 1:
+        first[0].set_ylabel(text, **kw)
+    else:
+        fig.supylabel(text, **kw)
 
 def proxy(style, label):
     return Line2D([], [], label=label, **style)
@@ -651,14 +681,12 @@ def synthetic_prefix(host):
 
 
 def stat_note(reps):
-    return "Điểm là trung vị của %d lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất." % reps
+    """Medians, error bars, markers and circles are explained once in the report (method section)."""
+    return ""
 
 
 def cores_note(host):
-    s = " Vạch dọc liền: số core của máy (%d)" % host.ncpu
-    if host.mid:
-        s += "; vạch chấm: " + host.mid_label.replace("(", "(").replace("số", "số")
-    return s + "."
+    return ""
 
 
 # ---- figures: locks ------------------------------------------------------------------------------------------
@@ -701,12 +729,12 @@ def fig_lock_time(host, sty, out, cap):
             thread_axis(ax, threads, host)
             log_y(ax)
             ax.set_title("OUTSIDE_WORK = %d\n(%s %% việc nằm trong critical section)" % (ow, vn(100.0 / (1 + ow), 3)),
-                         fontsize=7.5)
+                         fontsize=9.5)
         handles = [proxy(sty.get("lock", i), i) for i in impls]
         handles.append(Line2D([], [], color=BLACK, lw=1.0, ls=(0, (4, 2)), label="cận dưới lý tưởng"))
         legend(fig, spare, handles + core_handles(host) + fl.handles())
-        fig.supxlabel("Số thread", fontsize=8)
-        fig.supylabel("Thời gian chạy (s)", fontsize=8)
+        fig.supxlabel("Số thread", fontsize=10)
+        supylabel(fig, "Thời gian chạy (s)", fontsize=10)
         tighten_log_y(axs)
         save(fig, host, out, "lock_time" + suffix, host.synthetic)
         cap["lock_time" + suffix] = (
@@ -757,13 +785,13 @@ def fig_lock_throughput(host, sty, out, cap):
         thread_axis(ax, threads, host)
         ax.set_ylim(bottom=0)
         comma_axis(ax)
-        ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=7.5)
+        ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=9.5)
     handles = [proxy(sty.get("lock", i), i) for i in impls]
     handles.append(Line2D([], [], color=BLACK, lw=1.0, ls=(0, (4, 2)), label="cận trên lý tưởng"))
     legend(fig, spare, handles + core_handles(host) + fl.handles()
            + ([Line2D([], [], **MISSING_HANDLE)] if skipped else []))
-    fig.supxlabel("Số thread", fontsize=8)
-    fig.supylabel("Số critical section mỗi giây" + (" (%s)" % uname if uname else ""), fontsize=8)
+    fig.supxlabel("Số thread", fontsize=10)
+    supylabel(fig, "Số critical section mỗi giây" + (" (%s)" % uname if uname else ""), fontsize=10)
     save(fig, host, out, "lock_throughput", host.synthetic)
     cap["lock_throughput"] = (
         synthetic_prefix(host) +
@@ -798,19 +826,20 @@ def fig_lock_slowdown(host, sty, out, cap):
             ax.axhline(1.0, color=BLACK, lw=1.0, ls=(0, (4, 2)), zorder=1.5)
             thread_axis(ax, threads, host)
             log_y(ax)
-            ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=7.5)
+            ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=9.5)
         handles = [proxy(sty.get("lock", i), i) for i in impls]
         handles.append(Line2D([], [], color=BLACK, lw=1.0, ls=(0, (4, 2)), label="cận dưới lý tưởng (= 1)"))
         legend(fig, spare, handles + core_handles(host) + fl.handles())
-        fig.supxlabel("Số thread", fontsize=8)
-        fig.supylabel("Thời gian đo / cận dưới lý tưởng", fontsize=8)
+        fig.supxlabel("Số thread", fontsize=10)
+        supylabel(fig, "Thời gian đo / cận dưới lý tưởng", fontsize=10)
         tighten_log_y(axs)
         save(fig, host, out, "lock_slowdown" + suffix, host.synthetic)
         cap["lock_slowdown" + suffix] = (
             synthetic_prefix(host) +
-            r"Thời gian đo chia cho cận dưới lý tưởng $\max\bigl(p\,I\,t,\ (1+\mathrm{OW})\,I\,t\bigr)$, $N = %d$: "
-            r"giá trị 1 nghĩa là lock không thêm chi phí nào ngoài phần việc bắt buộc tuần tự. %s%s%s"
-            % (n, stat_note(host.reps("lock")), cores_note(host), fl.caption()))
+            r"Thời gian đo chia cho cận dưới lý tưởng $\max\bigl(p\,I\,t,\ (1+\mathrm{OW})\,I\,t\bigr)$, $N = %d$, mỗi ô "
+            r"một mức \texttt{OUTSIDE\_WORK}. Giá trị 1 nghĩa là lock không thêm chi phí nào ngoài phần việc tuần tự "
+            r"bắt buộc." % n
+)
 
 
 def fig_lock_cs_length(host, sty, out, cap):
@@ -842,28 +871,26 @@ def fig_lock_cs_length(host, sty, out, cap):
             for n in ns:
                 s = st.get((impl, p, ow, n))
                 if s and s.valid and s.iters:
-                    pts.append((n,) + s.triple(1.0 / bound(s.iters, tn[n], p, ow)))
+                    pts.append((ns.index(n),) + s.triple(1.0 / bound(s.iters, tn[n], p, ow)))
             fl.add(draw(ax, pts, sty.get("lock", impl)))
         ax.axhline(1.0, color=BLACK, lw=1.0, ls=(0, (4, 2)), zorder=1.5)
-        ax.set_xscale("log")
-        ax.set_xticks(ns)
+        ax.set_xticks(range(len(ns)))
         ax.set_xticklabels(["%d\n%s" % (n, si_time(tn[n], False)) for n in ns])
-        ax.xaxis.set_minor_locator(ticker.NullLocator())
-        ax.set_xlim(ns[0] / 2.2, ns[-1] * 2.2)
+        ax.set_xlim(-0.4, len(ns) - 0.6)
         log_y(ax)
-        ax.set_title("%d thread" % p, fontsize=7.5)
+        ax.set_title("%d thread" % p, fontsize=9.5)
     handles = [proxy(sty.get("lock", i), i) for i in impls]
     handles.append(Line2D([], [], color=BLACK, lw=1.0, ls=(0, (4, 2)), label="cận dưới lý tưởng (= 1)"))
     legend(fig, spare, handles + fl.handles(), ncol=4)
-    fig.supxlabel("N và thời gian của một lời gọi is_prime(N), tức độ dài critical section", fontsize=8)
-    fig.supylabel("Thời gian đo / cận dưới lý tưởng", fontsize=8)
+    fig.supxlabel("N và thời gian một lời gọi is_prime(N)", fontsize=10)
+    supylabel(fig, "Thời gian đo / cận dưới lý tưởng", fontsize=10)
     tighten_log_y(axs)
     save(fig, host, out, "lock_cs_length", host.synthetic)
     cap["lock_cs_length"] = (
         synthetic_prefix(host) +
-        r"Ảnh hưởng của độ dài critical section: thời gian đo chia cho cận dưới lý tưởng theo $N$, "
-        r"\texttt{OUTSIDE\_WORK} = %d, mỗi ô một số thread. Dưới mỗi $N$ là thời gian của một lời gọi "
-        r"\texttt{is\_prime(N)}. %s%s" % (ow, stat_note(host.reps("lock")), fl.caption()))
+        r"Thời gian đo chia cho cận dưới lý tưởng theo độ dài critical section, \texttt{OUTSIDE\_WORK} = %d, mỗi ô "
+        r"một số thread. Dưới mỗi $N$ là thời gian của một lời gọi \texttt{is\_prime(N)}." % ow
+)
 
 
 def variant_figure(host, sty, part, bases, ows, n, name, out):
@@ -896,15 +923,15 @@ def variant_figure(host, sty, part, bases, ows, n, name, out):
             lo, hi = ax.get_ylim()                     # never zoom into the noise around 1
             ax.set_ylim(min(lo, 0.5), max(hi, 2.0))
             if r == 0:
-                ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=7.5)
+                ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=9.5)
             if c == 0:
-                ax.set_ylabel("so với %s" % base, fontsize=7.5)
+                ax.set_ylabel("so với %s" % base, fontsize=9.5)
         handles += [Line2D([], [], color=sty.get(part, base)["color"], lw=1.1, label="%s (= 1)" % base)]
         handles += [proxy(sty.get(part, v), v) for v in variants]
     fig.legend(handles=handles + core_handles(host) + fl.handles(), loc="outside upper center",
                frameon=False, ncol=4, handlelength=3.2)
-    fig.supxlabel("Số thread", fontsize=8)
-    fig.supylabel("Thời gian chạy so với bản gốc (nhỏ hơn 1: nhanh hơn)", fontsize=8)
+    fig.supxlabel("Số thread", fontsize=10)
+    supylabel(fig, "So với bản gốc (< 1: nhanh hơn)", fontsize=10)
     tighten_log_y(list(axs.flat))
     save(fig, host, out, name, host.synthetic)
     return fl
@@ -931,12 +958,11 @@ def fig_lock_backoff(host, sty, out, cap):
             return note("  lock_backoff: no backoff variant found, skipped")
         cap["lock_backoff" + suffix] = (
             synthetic_prefix(host) +
-            r"Tác dụng của backoff, $N = %d$ (critical section khoảng %s): thời gian chạy của từng biến thể có backoff "
-            r"chia cho trung vị của lock gốc không backoff (đường ngang ở 1). Hàng trên: họ TAS; hàng dưới: họ TTAS. "
-            r"Kiểu đường và kiểu tô của điểm cho biết chính sách chờ: ngủ bằng \texttt{sleep\_for} như mẫu của đề "
-            r"(\texttt{\_bo\_sleep}), quay trong user space (\texttt{\_bo\_spin}), quay rồi nhường core "
-            r"(\texttt{\_bo\_yield}). %s%s%s"
-            % (n, si_time(unit_time_any(st, n, ows[0])), stat_note(host.reps("lock")), cores_note(host), fl.caption()))
+            r"Thời gian của từng biến thể có backoff chia cho lock gốc không backoff (đường ngang ở 1), $N = %d$; "
+            r"hàng trên là họ TAS, hàng dưới là họ TTAS. Kiểu đường cho biết chính sách chờ: ngủ bằng "
+            r"\texttt{sleep\_for} (\texttt{\_bo\_sleep}), quay (\texttt{\_bo\_spin}), quay rồi nhường core "
+            r"(\texttt{\_bo\_yield})." % n
+)
 
 
 def fig_lock_fairness(host, sty, out, cap):
@@ -957,18 +983,16 @@ def fig_lock_fairness(host, sty, out, cap):
         thread_axis(ax, threads, host)
         ax.set_ylim(0, 1.05)
         comma_axis(ax)
-        ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=7.5)
+        ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=9.5)
     legend(fig, spare, [proxy(sty.get("lock", i), i) for i in impls] + core_handles(host) + fl.handles(), ncol=5)
-    fig.supxlabel("Số thread", fontsize=8)
-    fig.supylabel("Thread xong sớm nhất / thread xong muộn nhất", fontsize=8)
+    fig.supxlabel("Số thread", fontsize=10)
+    supylabel(fig, "Độ công bằng", fontsize=10)
     save(fig, host, out, "lock_fairness", host.synthetic)
     cap["lock_fairness"] = (
         synthetic_prefix(host) +
-        r"Độ công bằng, $N = %d$. Mọi thread lấy lock cùng số lần, nên lock không công bằng lộ ra qua thời gian: "
-        r"có thread chạy xong vòng lặp của mình sớm hơn nhiều so với thread khác. Trục tung là thời gian của thread "
-        r"xong sớm nhất chia cho thời gian của thread xong muộn nhất trong cùng một lần chạy; 1 là hoàn toàn đều. "
-        r"%s%s Cấu hình có trung vị vượt thời hạn không được vẽ.%s"
-        % (n, stat_note(host.reps("lock")), cores_note(host), fl.caption()))
+        r"Độ công bằng, $N = %d$: thời gian của thread xong sớm nhất chia cho thread xong muộn nhất trong cùng một "
+        r"lần chạy (1 là hoàn toàn đều). Cấu hình có trung vị vượt thời hạn không được vẽ." % n
+)
 
 
 def fig_lock_relax(host, sty, out, cap):
@@ -999,12 +1023,12 @@ def fig_lock_relax(host, sty, out, cap):
         log_y(ax)
         lo, hi = ax.get_ylim()
         ax.set_ylim(min(lo, 0.5), max(hi, 2.0))
-        ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=7.5)
+        ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=9.5)
     handles = [proxy(sty.get("lock", i), i) for i in impls]
     handles.append(Line2D([], [], color=BLACK, lw=1.0, ls=(0, (4, 2)), label="bản mặc định (= 1)"))
     legend(fig, spare, handles + core_handles(host) + fl.handles(), ncol=4)
-    fig.supxlabel("Số thread", fontsize=8)
-    fig.supylabel("Thời gian với lệnh %s / thời gian với lệnh %s" % (hint, host.relax or "mặc định"), fontsize=8)
+    fig.supxlabel("Số thread", fontsize=10)
+    supylabel(fig, "Thời gian với lệnh %s / thời gian với lệnh %s" % (hint, host.relax or "mặc định"), fontsize=10)
     tighten_log_y(axs)
     save(fig, host, out, "lock_relax", host.synthetic)
     cap["lock_relax"] = (
@@ -1045,12 +1069,10 @@ def fig_barrier(host, sty, out, cap):
     save(fig, host, out, "barrier_rate", host.synthetic)
     cap["barrier_rate"] = (
         synthetic_prefix(host) +
-        r"Số barrier episode hoàn thành mỗi giây theo số thread; giữa hai barrier không có việc gì, nên đây là "
-        r"chi phí thuần của việc đồng bộ. Trục tung theo thang logarit. \texttt{sr}: sense-reversing barrier chờ bằng "
-        r"vòng spin; \texttt{sr\_bo\_*}: thêm backoff; \texttt{sr\_block}: chờ chặn. Số episode của mỗi cấu hình "
-        r"được hiệu chỉnh riêng để mọi lần chạy dài cỡ như nhau. %s%s%s"
-        % (stat_note(host.reps("barrier")), cores_note(host),
-           MISSING_NOTE if skipped else ""))
+        r"Số barrier episode mỗi giây theo số thread, không có việc giữa hai barrier (trục tung logarit). "
+        r"\texttt{sr} chờ bằng vòng spin, \texttt{sr\_bo\_*} thêm backoff, \texttt{sr\_block} chờ chặn.%s"
+        % (MISSING_NOTE if skipped else "")
+)
 
 
 # ---- figures: counters -------------------------------------------------------------------------------------------
@@ -1079,22 +1101,19 @@ def fig_counter_time(host, sty, out, cap):
             fl.add(draw(ax, pts, sty.get("counter", impl)))
         thread_axis(ax, threads, host)
         log_y(ax)
-        ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=7.5)
+        ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=9.5)
     fl.red = False                                            # every counter run is scaled; no ring needed
     legend(fig, spare, [proxy(sty.get("counter", i), i) for i in impls] + core_handles(host) + fl.handles(), ncol=5)
-    fig.supxlabel("Số thread", fontsize=8)
-    fig.supylabel("Thời gian chạy cho $10^6$ lần tăng mỗi thread (s)", fontsize=8)
+    fig.supxlabel("Số thread", fontsize=10)
+    supylabel(fig, "Thời gian cho $10^6$ lần tăng (s)", fontsize=10)
     tighten_log_y(axs)
     save(fig, host, out, "counter_time", host.synthetic)
     cap["counter_time"] = (
         synthetic_prefix(host) +
-        r"Thời gian chạy của các counter theo số thread $p$, mỗi ô một lượng việc giữa hai lần tăng "
-        r"(\texttt{OUTSIDE\_WORK} lời gọi \texttt{is\_prime(%d)}). Mỗi thread tăng counter $I$ lần; vì một lần tăng tốn "
-        r"từ vài nanosecond tới hàng trăm microsecond tuỳ cấu hình, $I$ được hiệu chỉnh riêng cho từng cấu hình để "
-        r"mỗi lần chạy dài cỡ như nhau, và hình vẽ thời gian đo nhân với $10^6/I$, tức thời gian chạy nếu mỗi thread "
-        r"tăng $10^6$ lần. \texttt{faa}: fetch-and-add; \texttt{cas}: vòng lặp compare-and-swap; \texttt{lock\_X}: "
-        r"counter bảo vệ bằng lock \texttt{X} của phần 1. Các biến thể có backoff và \texttt{seq\_cst} nằm ở hình "
-        r"riêng. %s%s%s" % (n, stat_note(host.reps("counter")), cores_note(host), fl.caption()))
+        r"Thời gian chạy quy về $10^6$ lần tăng mỗi thread, mỗi ô một lượng việc \texttt{OUTSIDE\_WORK} (lời gọi "
+        r"\texttt{is\_prime(%d)}) giữa hai lần tăng. Các biến thể có backoff và \texttt{seq\_cst} chỉ có trong "
+        r"bảng thời gian của counter." % n
+)
 
 
 def fig_counter_variants(host, sty, out, cap):
@@ -1131,26 +1150,35 @@ def fig_counter_cas(host, sty, out, cap):
     ows = sorted({s.ow for s in st.values() if s.n == n})
     threads = sorted({s.threads for s in st.values() if s.n == n})
     fig, axs, spare = panels(len(ows), height=2.5, sharey=False)
+    # the CAS variants share one colour in the counter style; give each its own colour here
+    palette = ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#000000"]
+    style = {}
+    for k, i in enumerate(impls):
+        c, st_i = palette[k % len(palette)], dict(sty.get("counter", i))
+        st_i.update(color=c, markeredgecolor=c)
+        if st_i["markerfacecolor"] != "white":
+            st_i["markerfacecolor"] = c
+        style[i] = st_i
     for ax, ow in zip(axs, ows):
         for impl in impls:
             pts = [(p,) + st[(impl, p, ow, n)].xtriple("cas_fail")[:4] + (False,) for p in threads
                    if (impl, p, ow, n) in st and st[(impl, p, ow, n)].xtriple("cas_fail")]
-            draw(ax, pts, sty.get("counter", impl), zero_ok=True)
+            draw(ax, pts, style[impl], zero_ok=True)
         thread_axis(ax, threads, host)
         ax.set_yscale("symlog", linthresh=0.01)
         ax.set_ylim(bottom=0)
         ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, p: vn_plain(round(v, 6))))
         ax.yaxis.set_minor_locator(ticker.NullLocator())
-        ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=7.5)
-    legend(fig, spare, [proxy(sty.get("counter", i), i) for i in impls] + core_handles(host), ncol=5)
-    fig.supxlabel("Số thread", fontsize=8)
-    fig.supylabel("Số lần CAS hỏng mỗi lần tăng", fontsize=8)
+        ax.set_title("OUTSIDE_WORK = %d" % ow, fontsize=9.5)
+    legend(fig, spare, [proxy(style[i], i) for i in impls] + core_handles(host), ncol=5)
+    fig.supxlabel("Số thread", fontsize=10)
+    supylabel(fig, "Số lần CAS hỏng mỗi lần tăng", fontsize=10)
     save(fig, host, out, "counter_cas_failures", host.synthetic)
     cap["counter_cas_failures"] = (
         synthetic_prefix(host) +
-        r"Số lần compare-and-swap hỏng trên mỗi lần tăng thành công của các counter dùng CAS: bằng chứng trực tiếp "
-        r"về mức tranh chấp. Trục tung tuyến tính dưới 0,01 và logarit phía trên; 0 nghĩa là không lần thử nào hỏng. "
-        r"%s%s" % (stat_note(host.reps("counter")), cores_note(host)))
+        r"Số lần compare-and-swap hỏng trên mỗi lần tăng thành công của các counter dùng CAS. Trục tung tuyến tính "
+        r"dưới 0,01 và logarit phía trên; 0 nghĩa là không lần thử nào hỏng."
+)
 
 
 # ---- figures: cross-machine -----------------------------------------------------------------------------------------
@@ -1161,30 +1189,32 @@ def fig_cross(hosts, sty, out, cap):
         hs = [h for h in hosts if h.stats[part]]
         if len(hs) < 2:
             return None
-        fig, axs, _ = panels(len(hs), ncols=min(3, len(hs)), height=2.7)
+        fig, axs, _ = panels(len(hs), ncols=min(3, len(hs)), height=3.1)
         used, fl = [], Flags()
         for ax, h in zip(axs, hs):
             for impl in draw_host(ax, h, fl):
                 if impl not in used:
                     used.append(impl)
             log_y(ax)
-            ax.set_title("%s (%s, %d core)" % (h.name, h.machine.get("cpu_model", h.arch), h.ncpu), fontsize=7.5)
-        extra = [Line2D([], [], color="0.35", lw=0.9, label="số core của từng máy"),
-                 Line2D([], [], color="0.35", lw=0.9, ls=(0, (1, 2)), label="số P-core hoặc số core vật lý")]
+            cpu = re.sub(r"^\d+th Gen Intel\(R\) Core\(TM\) ", "", h.machine.get("cpu_model", h.arch))
+            unit = "luồng phần cứng" if "luồng" in ncpu_label(h) else "core"
+            ax.set_title("%s\n%s, %d %s" % (h.name, cpu, h.ncpu, unit), fontsize=9)
+        extra = [Line2D([], [], color="0.35", lw=0.9, label="số luồng phần cứng của từng máy"),
+                 Line2D([], [], color="0.35", lw=0.9, ls=(0, (1, 2)), label="số P-core, hoặc số core máy ảo báo")]
         if part == "lock":
             extra.insert(0, Line2D([], [], color=BLACK, lw=1.0, ls=(0, (4, 2)), label="cận dưới lý tưởng (= 1)"))
         if part == "counter":
             fl.red = False
         fig.legend(handles=[proxy(sty.get(part, i), i) for i in sty.order(part, used)] + extra + fl.handles(),
-                   loc="outside upper center", frameon=False, ncol=5, handlelength=3.2)
-        fig.supxlabel("Số thread", fontsize=8)
-        fig.supylabel(ylabel, fontsize=8)
+                   loc="outside upper center", frameon=False, ncol=4, handlelength=2.6)
+        fig.supxlabel("Số thread", fontsize=10)
+        supylabel(fig, ylabel, fontsize=10)
         tighten_log_y(axs)
         save(fig, None, out, name, synthetic)
         return fl
 
     pre = r"\textbf{[DỮ LIỆU GIẢ để thử công cụ]} " if synthetic else ""
-    marks = " Vạch dọc liền: số core của từng máy; vạch chấm: số P-core hoặc số core vật lý."
+    marks = " Vạch dọc liền: số luồng phần cứng của từng máy (bằng số core nếu không có SMT); vạch chấm: số P-core hoặc số core vật lý."
     # locks: slowdown over the bound at each machine's main N and the highest common contention
     sets = [{s.ow for s in h.stats["lock"].values() if s.n == main_n(h.stats["lock"])} for h in hosts if h.stats["lock"]]
     common = set.intersection(*sets) if sets else set()
@@ -1210,10 +1240,8 @@ def fig_cross(hosts, sty, out, cap):
     if common_ow is not None:
         fl = frame("lock", lock_host, "Thời gian đo / cận dưới lý tưởng", "lock")
         if fl:
-            cap["lock"] = (pre + r"So sánh giữa các máy, phần lock: thời gian đo chia cho cận dưới lý tưởng của chính "
-                           r"máy đó, \texttt{OUTSIDE\_WORK} = %d, mỗi ô một máy, cùng thang đo. Chia cho cận dưới khử "
-                           r"khác biệt về tốc độ core, nên các ô so được với nhau dù số vòng lặp được hiệu chỉnh riêng "
-                           r"cho từng máy.%s%s" % (common_ow, marks, fl.caption()))
+            cap["lock"] = (pre + r"So sánh các máy, phần lock: thời gian đo chia cho cận dưới lý tưởng của chính máy đó, "
+                           r"\texttt{OUTSIDE\_WORK} = %d, cùng thang đo. Chia cho cận dưới khử khác biệt về tốc độ core." % common_ow)
 
     def barrier_host(ax, h, fl):
         st = h.stats["barrier"]
@@ -1228,8 +1256,7 @@ def fig_cross(hosts, sty, out, cap):
         return impls
 
     if frame("barrier", barrier_host, "Số episode mỗi giây", "barrier"):
-        cap["barrier"] = (pre + r"So sánh giữa các máy, phần barrier: số episode mỗi giây theo số thread, mỗi ô một "
-                          r"máy, cùng thang đo." + marks)
+        cap["barrier"] = (pre + r"So sánh các máy, phần barrier: số episode mỗi giây theo số thread, cùng thang đo.")
 
     def counter_host(ax, h, fl):
         st, n = h.stats["counter"], counter_n(h.stats["counter"])
@@ -1244,11 +1271,10 @@ def fig_cross(hosts, sty, out, cap):
             thread_axis(ax, threads, h)
         return impls
 
-    fl = frame("counter", counter_host, "Thời gian chạy cho $10^6$ lần tăng mỗi thread (s)", "counter")
+    fl = frame("counter", counter_host, "Thời gian cho $10^6$ lần tăng (s)", "counter")
     if fl:
-        cap["counter"] = (pre + r"So sánh giữa các máy, phần counter ở mức tranh chấp cao nhất (\texttt{OUTSIDE\_WORK} "
-                          r"nhỏ nhất của từng máy): thời gian chạy quy về $10^6$ lần tăng mỗi thread, mỗi ô một máy, "
-                          r"cùng thang đo.%s%s" % (marks, fl.caption()))
+        cap["counter"] = (pre + r"So sánh các máy, phần counter ở mức tranh chấp cao nhất (\texttt{OUTSIDE\_WORK} nhỏ nhất của "
+                          r"từng máy): thời gian chạy quy về $10^6$ lần tăng mỗi thread, cùng thang đo.")
 
 
 # ---- tables -----------------------------------------------------------------------------------------------------------
@@ -1257,13 +1283,47 @@ PINNING_VN = [("not available", "không có (macOS trên Apple Silicon không c�
 POWER_VN = {"AC Power": "cắm sạc", "Battery Power": "pin"}
 
 
+def vn_size(v):
+    """'48K' -> '48 KiB', '1280K' -> '1,25 MiB', '7.607 GiB' -> '7,6 GiB', 'per 6 P cores' -> 'cho 6 P-core'."""
+    if not v:
+        return "–"
+    m = re.fullmatch(r"(\d+)K", v.strip())
+    if m:
+        k = int(m.group(1))
+        if k >= 1024:
+            mib = k / 1024
+            return ("%g MiB" % round(mib, 2)).replace(".", ",")
+        return "%d KiB" % k
+    v = re.sub(r"(\d+)\.(\d+) GiB", lambda g: ("%g GiB" % round(float(g.group(0)[:-4]), 1)).replace(".", ","), v)
+    v = re.sub(r"per (\d+) ([PE]) cores", r"cho \1 \2-core", v)
+    return v
+
+
+def power_note(h):
+    """Power source, flagged when machine.txt was written after the campaign ended."""
+    m = h.machine
+    text = POWER_VN.get(m.get("power", ""), m.get("power", "–"))
+    try:
+        end = None
+        for line in open(os.path.join(h.dir, "campaign.log")):
+            if " END " in line:
+                end = line.split()[0]
+        written = m.get("date", "")[:19].replace(" ", "T")
+        if end and written and written > end[:19]:
+            text += " (ghi sau đợt đo)"
+    except OSError:
+        pass
+    return text
+
+
 def machine_rows(h):
     m = h.machine
     cores = str(h.ncpu or m.get("logical_cpus", "–"))
     if m.get("performance_cores") and m.get("efficiency_cores"):
         cores += " (%s P-core + %s E-core)" % (m["performance_cores"], m["efficiency_cores"])
     elif m.get("physical_cores") and m.get("physical_cores") != m.get("logical_cpus"):
-        cores = "%s luồng phần cứng trên %s core vật lý" % (m.get("logical_cpus", cores), m["physical_cores"])
+        cores = "%s luồng phần cứng trên %s core vật lý%s" % (m.get("logical_cpus", cores), m["physical_cores"],
+                                                              " (máy ảo báo)" if m.get("virtualization") else "")
     pin = m.get("thread_pinning", "")
     for key, text in PINNING_VN:
         if pin.startswith(key):
@@ -1279,10 +1339,10 @@ def machine_rows(h):
         ("Số core", tex(cores)),
         ("Cache line (hệ thống báo)", tex(cl + " B") if cl else "–"),
         ("Cache line dùng để đệm trong mã", tex(used + " B") if used else "–"),
-        ("Cache L1d", tex(m.get("l1d_cache", "–"))),
-        ("Cache L2", tex(m.get("l2_cache", "–"))),
-        ("Cache L3", tex(m.get("l3_cache", "") or "–")),
-        ("RAM", tex(m.get("ram", "–"))),
+        ("Cache L1d", tex(vn_size(m.get("l1d_cache", "")))),
+        ("Cache L2", tex(vn_size(m.get("l2_cache", "")))),
+        ("Cache L3", tex(vn_size(m.get("l3_cache", "")))),
+        ("RAM", tex(vn_size(m.get("ram", "")))),
         ("Hệ điều hành", tex(m.get("os", h.os or "–"))),
         ("Nhân", tex(m.get("kernel", "–"))),
         ("Compiler", tex(m.get("compiler", h.compiler or "–"))),
@@ -1290,7 +1350,7 @@ def machine_rows(h):
         ("OpenMP", {"yes": "có", "no": r"không (không có baseline OpenMP)"}.get(m.get("openmp", ""), "–")),
         ("Lệnh chờ trong vòng spin", tt(h.relax) if h.relax else "–"),
         ("Ghim thread vào core", pin or "–"),
-        ("Nguồn điện lúc đo", tex(POWER_VN.get(m.get("power", ""), m.get("power", "–")))),
+        ("Nguồn điện lúc đo", tex(power_note(h))),
         ("Thành viên chạy đo", r"\PCowner{%s}" % h.name),
     ]
 
@@ -1584,8 +1644,8 @@ def main():
     if not os.path.isdir(args.results):
         note("no results directory %s: nothing to draw" % args.results)
         return 0
-    dirs = sorted(d for d in os.listdir(args.results)
-                  if os.path.isdir(os.path.join(args.results, d)) and not d.startswith((".", "old-")))
+    dirs = sorted((d for d in os.listdir(args.results)
+                   if os.path.isdir(os.path.join(args.results, d)) and not d.startswith((".", "old-"))), key=str.lower)
     if args.host:
         dirs = [d for d in dirs if d in args.host]
     hosts = []

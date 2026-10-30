@@ -4,7 +4,9 @@ Counter bắt đầu từ 0. \texttt{increment()} cộng 1 và trả về giá t
 phải trả về đúng $0, \dots, M - 1$, mỗi giá trị một lần, và theo thứ tự thời gian thực
 (linearizable~\cite{herlihy1990linearizability}). Ba cài đặt là \PCname{counter_lock<L>} (biến
 \texttt{long} trong critical section của mỗi lock ở phần 1), \PCname{counter_cas} (lock-free, có biến thể
-backoff) và \PCname{counter_faa} (wait-free). Trên \PCname{apple-m5} có \PCval{apple-m5}{ncounters} counter.
+backoff) và \PCname{counter_faa} (wait-free khi phần cứng có lệnh cộng atomic, tức LSE trên ARM hoặc
+\texttt{lock xadd} trên x86).
+Trên \PCname{apple-m5} có \PCval{apple-m5}{ncounters} counter.
 \begin{lstlisting}
 long old = value_.load(relaxed);                   // a guess; the CAS checks it
 while (!value_.compare_exchange_weak(old, old + 1, Order, relaxed)) {
@@ -16,11 +18,13 @@ return old;
 \end{lstlisting}
 
 Thứ tự mặc định là \texttt{relaxed}, vì tính atomic của phép đọc-sửa-ghi và thứ tự toàn phần của mọi phép
-ghi lên một biến atomic đúng với mọi memory order. Counter cũng không bảo vệ dữ liệu nào khác. Biến thể
+ghi lên một biến atomic đúng với mọi memory order. Điểm tuyến tính hoá là phép đọc-sửa-ghi
+(\texttt{fetch\_add} hoặc CAS thành công). Một phép đọc-sửa-ghi luôn đọc giá trị mới nhất của biến trong
+thứ tự sửa đổi, nên không hai lần tăng đọc cùng một giá trị. Counter cũng không bảo vệ dữ liệu nào khác. Biến thể
 \PCname{faa_seqcst}, \PCname{cas_seqcst} đo cái giá của \texttt{seq\_cst}. Counter dùng lock không có
 atomic riêng. Nó đúng nhờ cặp release--acquire của lock.
 
-Apple clang bật LSE (lệnh atomic đơn của ARMv8.1) mặc định. \texttt{fetch\_add} là một lệnh
+Apple clang bật LSE mặc định. \texttt{fetch\_add} là một lệnh
 \texttt{ldadd} (\texttt{ldaddal} với \texttt{seq\_cst}), không vòng lặp. CAS là một lệnh \texttt{cas}
 (\texttt{casal}), chỉ hỏng khi giá trị thật sự đã đổi, nên mỗi lần \texttt{cas\_fail} là một xung đột thật.
 Khi tắt LSE, cả hai thành \texttt{ldxr}/\texttt{stxr} (LL/SC), và CAS weak có thể hỏng giả. Trên x86-64

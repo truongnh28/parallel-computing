@@ -1,25 +1,45 @@
-% Mục 4.4: Kiểm tra concurrent counter. Nguồn: tests/test_counter.cpp, results/apple-m5/test.log,
+\label{sec:corr:counter}
+% Mục 4.4: Kiểm tra concurrent counter. Nguồn: tests/test_counter.cpp, results/{apple-m5,C4M7Y670NT,LAP1184}/test.log,
 % tsan.log. Bẫy trình tối ưu: thí nghiệm phụ lúc phát triển (docs/part3.md mục 5.3, không trong results/).
 
-\texttt{increment()} trả về giá trị trước khi tăng. Nhóm lưu mọi giá trị trả về và kiểm rằng tập giá
-trị trả về đúng là $\{0,\dots,M-1\}$. Dãy của mỗi thread phải tăng ngặt. Ở một lượt riêng, nếu lần gọi
-A trả về trước khi B bắt đầu thì giá trị của A phải nhỏ hơn.
+\texttt{increment()} trả về giá trị trước khi tăng. Bài kiểm tra có năm phép kiểm, mang nhãn như trong
+Bảng~\ref{tab:corr:mutation}. Sau $M$ lần tăng, phép kiểm \emph{final} đòi \texttt{get()} bằng $M$.
+Nhóm lưu mọi giá trị trả về. Phép kiểm \emph{dup} tìm giá trị bị trả về hai lần, và \emph{miss} tìm giá
+trị trong $\{0,\dots,M-1\}$ không được trả về. Phép kiểm \emph{order} đòi dãy giá trị của mỗi thread
+tăng ngặt.
 
-Các phép kiểm này là bằng chứng linearizability~\cite{herlihy1990linearizability}. Tập giá trị đúng là
-$\{0,\dots,M-1\}$ khi và chỉ khi có một thứ tự tuần tự hợp lệ. Hai phép kiểm thứ tự xác nhận thứ tự
-đó tôn trọng thời gian thực.
+Phép kiểm \emph{real-time} chạy ở một lượt riêng. Mỗi lần gọi được kẹp giữa hai lần \texttt{fetch\_add}
+\texttt{seq\_cst} lên một đồng hồ logic dùng chung, một trước lời gọi (inv) và một sau khi trả về (resp).
+Mọi nhịp của đồng hồ có một thứ tự toàn phần. Nếu $\mathrm{resp}(A) < \mathrm{inv}(B)$ thì A đã trả về
+trước khi B bắt đầu, nên A phải nhận giá trị nhỏ hơn.
 
-Ở \texttt{-O2}, compiler gộp một vòng tăng không atomic thành một lần đọc và một lần ghi. Vì vậy bài
-kiểm tra chỉ so giá trị cuối gần như luôn đạt với một counter không đồng bộ. Bài kiểm tra của nhóm lưu
-mọi giá trị trả về. Nó cũng cho địa chỉ counter đi qua \texttt{pc::opaque()} ở mỗi vòng, nên mỗi lần
+Các phép kiểm này kiểm linearizability~\cite{herlihy1990linearizability} trên các lịch chạy đã xảy ra.
+Tập giá trị trả về đúng là $\{0,\dots,M-1\}$ khi và chỉ khi có một thứ tự tuần tự hợp lệ. Phép kiểm
+\emph{order} và \emph{real-time} xác nhận thứ tự đó tôn trọng thời gian thực.
+% nguồn: tests/test_counter.cpp:278-295 (final, duplicate, missing, order, real-time),
+% 340-411 (đồng hồ logic seq_cst, inv/resp, phép kiểm real-time).
+
+Mỗi counter chạy năm lượt: 1 thread, số luồng phần cứng, gấp đôi số đó, và hai lượt kiểm thời gian thực
+với số luồng phần cứng và gấp đôi. Ở hai lượt đầu, mỗi thread tăng 512\,000 lần với counter atomic, và
+128\,000 lần với counter dùng lock và \PCname{cas_sleep}. Ba lượt sau dùng $1/2$, $1/4$ và $1/8$ số đó. Mỗi
+lượt có ngân sách 1,5~s. Hết ngân sách thì các thread dừng sớm, và phép kiểm chạy trên số lần tăng đã làm.
+% nguồn: tests/test_counter.cpp:433-458, 515-542 (base_iters 512000 fast / 128000 medium = lock_*, cas_sleep;
+% runs 1, hw, 2hw (iters/2),
+% real-time hw (iters/4), real-time 2hw (iters/8)); soft_s = 1.5.
+
+Ở \texttt{-O2}, compiler gộp một vòng tăng không atomic thành một lần đọc và một lần ghi. Trong một thí
+nghiệm phụ lúc phát triển, bài kiểm tra chỉ so giá trị cuối không phát hiện lỗi của một counter không
+đồng bộ ở 198/200 lần chạy với 2 thread cùng xuất phát. Với 10 thread không cùng xuất phát, nó không
+phát hiện lỗi ở cả 200/200 lần chạy.
+% nguồn: docs/part3.md mục 5.3 (không trong results/): 2 thread có start gate sai 2/200;
+% 10 thread không start gate sai 0/200; 10 thread có start gate sai 183/200.
+Bài kiểm tra của nhóm lưu mọi giá trị trả về. Nó cũng cho địa chỉ counter đi qua \texttt{pc::opaque()} ở mỗi vòng, nên mỗi lần
 tăng phải đọc và ghi thật.
 
-Trên \PCname{apple-m5}, cả 19 counter đạt, tổng cộng hơn 121 triệu lần tăng được kiểm. Riêng
-\PCname{lock_mcs} hết ngân sách thời gian ở 20 thread và chỉ được kiểm qua 1\,765\,312 lần tăng. Dưới TSan cả 19 counter đạt, không có
-cảnh báo.
-% nguồn: results/apple-m5/test.log (tổng 121 573 312 cộng bằng python), tsan.log
-
-Trên \PCname{LAP1184}, cả 20 counter đạt, tổng cộng hơn 148 triệu lần tăng được kiểm. \PCname{lock_mcs}
-lại hết ngân sách thời gian và chỉ được kiểm qua 2\,063\,205 lần tăng. Dưới TSan 19 counter đạt không có
-cảnh báo. \PCname{lock_omp_lock} bị bỏ qua vì cùng lý do với \PCname{omp_lock} ở trên.
-% nguồn: results/LAP1184/test.log (tổng 148 879 205 cộng bằng python), tsan.log (dòng SKIP lock_omp_lock)
+Trên cả ba máy, \PCname{lock_mcs} hết ngân sách thời gian và chỉ được kiểm qua 1\,765\,312 lần tăng
+trên \PCname{apple-m5}, 2\,049\,423 lần trên \PCname{C4M7Y670NT} và 2\,063\,205 lần trên
+\PCname{LAP1184}. Trên \PCname{C4M7Y670NT}, \PCname{cas_seqcst} cũng hết ngân sách (15\,602\,488 lần
+tăng). Bản TSan trên \PCname{LAP1184} bỏ qua \PCname{lock_omp_lock}, cùng lý do với
+\PCname{omp_lock}.
+% nguồn: results/{apple-m5,C4M7Y670NT,LAP1184}/test.log (dòng lock_mcs, cas_seqcst, "time budget reached");
+% results/LAP1184/tsan.log (dòng SKIP lock_omp_lock).

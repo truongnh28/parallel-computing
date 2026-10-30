@@ -1,0 +1,52 @@
+% Bảng tên cài đặt. Nguồn: include/lock.h (PC_FOR_EACH_LOCK), bench/bench_barrier.cpp (danh sách barrier),
+% bench/bench_counter.cpp (PC_COUNTERS_ATOMIC, PC_COUNTERS_LOCK), include/workload.hpp (pc::opaque).
+\section{Tên các cài đặt}
+
+Bảng~\ref{tab:impl:names} cho tên của mọi cài đặt, đúng như trong hình, bảng và log. Lock và barrier
+thư viện chỉ dùng để so sánh.
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}Xl@{}}
+\toprule
+\textbf{Tên} & \textbf{Mô tả} & \textbf{Hệ điều hành} \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Lock}} \\
+\PCname{tas} & TAS: lặp \texttt{exchange(acquire)}, nhả bằng \texttt{store(release)} & mọi máy \\
+\PCname{ttas} & TTAS: chờ bằng \texttt{load(relaxed)}, rồi mới \texttt{exchange} & mọi máy \\
+\PCname{mcs} & MCS: hàng đợi FIFO, mỗi thread chờ trên nút riêng & mọi máy \\
+\PCname{tas_bo_{sleep,spin,yield}} & TAS, gọi chính sách chờ sau mỗi lần thử hỏng (\texttt{sleep\_for} nhân đôi; quay ngẫu nhiên; quay 64 lần rồi \texttt{yield}) & mọi máy \\
+\PCname{ttas_bo_{sleep,spin,yield}} & TTAS, gọi chính sách chờ khi thua \texttt{exchange} & mọi máy \\
+\PCname{std_mutex}, \PCname{pthread_mutex} & \texttt{std::mutex}, \texttt{pthread\_mutex\_t} & mọi máy \\
+\PCname{os_unfair_lock} & \texttt{os\_unfair\_lock} của macOS & macOS \\
+\PCname{pthread_spinlock} & \texttt{pthread\_spinlock\_t} & Linux \\
+\PCname{omp_lock} & \texttt{omp\_lock\_t} (cần bản dựng có OpenMP) & Linux \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Barrier}} \\
+\PCname{sr} & sense-reversing barrier, chờ bằng quay & mọi máy \\
+\PCname{sr_bo_{sleep,spin,yield}} & \PCname{sr}, gọi chính sách chờ như lock giữa hai lần đọc cờ & mọi máy \\
+\PCname{sr_block} & \PCname{sr}, chờ chặn bằng \texttt{std::atomic::wait} và \texttt{notify\_all} & mọi máy \\
+\PCname{std_barrier} & \texttt{std::barrier} (C++20) & mọi máy \\
+\PCname{condvar} & mutex, condition variable và bộ đếm thế hệ & mọi máy \\
+\PCname{pthread_barrier} & \texttt{pthread\_barrier\_t} (macOS không có) & Linux \\
+\PCname{omp_barrier} & \texttt{\#pragma omp barrier} (cần bản dựng có OpenMP) & Linux \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Counter}} \\
+\PCname{faa}, \PCname{faa_seqcst} & \texttt{fetch\_add}, thứ tự \texttt{relaxed} hoặc \texttt{seq\_cst} & mọi máy \\
+\PCname{cas}, \PCname{cas_seqcst} & vòng CAS không backoff, thứ tự \texttt{relaxed} hoặc \texttt{seq\_cst} & mọi máy \\
+\PCname{cas_{sleep,spin,yield}} & vòng CAS, gọi chính sách chờ sau mỗi lần CAS hỏng & mọi máy \\
+\PCname{lock_X} & biến \texttt{long} trong critical section của lock \PCname{X} (mọi lock ở trên) & như lock \PCname{X} \\
+\bottomrule
+\end{tabularx}
+\caption{Tên các cài đặt. Hai máy macOS (\PCname{apple-m5}, \PCname{C4M7Y670NT}) có 12 lock, 7 barrier
+và 19 counter. \PCname{LAP1184} (Linux, có OpenMP) có 13 lock, 9 barrier và 20 counter.}
+\label{tab:impl:names}
+\end{table}
+% nguồn: results/{apple-m5,C4M7Y670NT}/test.log (12 lock, 7 barrier, 19 counter); results/LAP1184/test.log (13, 9, 20).
+
+Benchmark và bộ kiểm tra cho các giá trị mà compiler có thể gộp hoặc xoá đi qua \texttt{pc::opaque()}:
+đối số $N$ của mỗi lời gọi \texttt{is\_prime}, địa chỉ counter ở mỗi vòng của bài kiểm tra counter, và
+giá trị đọc ra của biến đếm trong bài kiểm tra lock. Hàm này chỉ là một lệnh \texttt{asm volatile} rỗng
+với ràng buộc \texttt{+r}. Compiler phải coi giá trị trong thanh ghi đã bị sửa, nên không chứng minh được
+hai lời gọi giống nhau và không gộp hay xoá chúng. Hàm không sinh lệnh máy nào.
+% nguồn: include/workload.hpp (opaque); bench/bench_lock.cpp:81, bench/bench_counter.cpp:102,
+% tests/test_counter.cpp:326, tests/test_locks.cpp:116.

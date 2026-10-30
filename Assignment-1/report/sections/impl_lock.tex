@@ -1,13 +1,21 @@
 % Mục 4.1. Nguồn: include/lock.h, backoff.hpp, platform.hpp. Lệnh AArch64: c++ -O2 -S (Apple clang 21).
 Mọi lock trong \texttt{include/lock.h} có đúng \texttt{acquire()} và \texttt{release()} không tham số như
-khung của đề. \texttt{using pc::lock\_mcs;} cho dòng \texttt{lock\_mcs lock;} biên dịch nguyên văn. Lấy
-lock dùng acquire, nhả lock dùng release. Cặp này làm mọi phép ghi trong critical section trước nhìn thấy
+khung của đề. Với khai báo \texttt{using pc::lock\_mcs;}, dòng \texttt{lock\_mcs lock;} của khung đề
+biên dịch nguyên văn. Lấy lock dùng acquire, nhả lock dùng release. Cặp này làm mọi phép ghi trong critical section trước nhìn thấy
 được ở chủ lock sau. Trạng thái lock được khai báo \texttt{alignas(kCacheLine)}, nên mỗi lock chiếm riêng
-một line 128 byte, không false sharing.
+một cache line (128 byte trên hai máy Apple, 64 byte trên \PCname{LAP1184}). Nhờ vậy không có false
+sharing, tức hai biến độc lập nằm chung một line và làm mất hiệu lực line của nhau.
+% nguồn: include/platform.hpp, kCacheLine = 128 khi __APPLE__ && __aarch64__, 64 ở nơi khác.
 
 TAS lặp \texttt{exchange(true, acquire)} (lệnh \texttt{swpab}) tới khi đọc được \texttt{false}. TAS nhả lock bằng
 \texttt{store(false, release)} (\texttt{stlrb}). TTAS chờ bằng \texttt{load(relaxed)} (\texttt{ldrb}) rồi
 mới \texttt{exchange}. Phép đọc chỉ là gợi ý, \texttt{exchange} thắng mới là phép acquire.
+
+Mọi vòng spin gọi \texttt{cpu\_relax()} giữa hai lần thử, tức là \texttt{pause} trên x86 và \texttt{isb}
+trên AArch64. Lệnh \texttt{isb} được chọn vì \texttt{yield} của Apple gần như không làm gì (0,3~ns so với
+12,1~ns của \texttt{isb}, cùng phép đo). \texttt{isb} dừng pipeline trong khoảng thời gian đó, nên
+thread chờ đọc lock thưa hơn.
+% nguồn: tables.tex, bảng sleeplatency: yield_insn trung vị 0,300 ns; isb trung vị 12,1 ns.
 
 MCS~\cite{mellorcrummey1991mcs} giữ \texttt{tail\_} (\texttt{nullptr} là rảnh). Mỗi thread chờ trên cờ
 \texttt{locked} trong nút của mình, nên mỗi lần chuyển giao chỉ ghi một line của một thread, theo thứ tự
@@ -19,14 +27,21 @@ pred = tail_.exchange(me, acq_rel);                 // release: publish node; ac
 if (pred == nullptr) return;
 pred->next.store(me, release);
 while (me->locked.load(acquire)) cpu_relax();       // spin on own cache line
-// release(): if next == null, CAS tail_ me -> null (release); on failure wait for next
+// release(): succ = next.load(acquire); if null, CAS tail_ me -> null (release);
+//            on failure wait until next != null (acquire)
 succ->locked.store(false, release);                 // hand over
 \end{lstlisting}
 Hai phép ghi relaxed an toàn vì nút chỉ trở nên với tới được qua hai phép release theo sau. Nếu CAS
 \texttt{tail\_} thất bại, một thread đã đổi \texttt{tail\_} nhưng chưa nối vào \texttt{next}. Chủ lock
-phải chờ nó, vì nếu bỏ đi thì thread đó chờ mãi. Trên AArch64 các thao tác thành \texttt{swpal},
-\texttt{stlr}, \texttt{ldaprb}, \texttt{casl}, \texttt{stlrb}. Nút \PCname{mcs_node} cũng chiếm riêng một
-line.
+phải chờ nó, vì nếu bỏ đi thì thread đó chờ mãi. Vòng chờ này ngắn, vì thread kia đã \texttt{exchange}
+xong và lệnh kế tiếp của nó là ghi \texttt{next}. Một thread chỉ vào critical section khi nó thấy
+\texttt{tail\_} rỗng hoặc khi thread trước nó đặt \texttt{locked} của nó về \texttt{false}, nên tại mỗi
+lúc chỉ có một chủ lock. Hàng đợi theo thứ tự FIFO, nên không thread nào bị
+đói. Trên AArch64 các thao tác thành \texttt{swpal}
+(\texttt{exchange} lên \texttt{tail\_}), \texttt{stlr} (nối \texttt{next}), \texttt{ldaprb} (chờ
+\texttt{locked}), \texttt{ldapr} (\texttt{release()} đọc \texttt{next}), \texttt{casl} (CAS
+\texttt{tail\_}) và \texttt{stlrb} (trao lock). Nút \PCname{mcs_node} cũng chiếm riêng một line.
+% nguồn: c++ -O2 -S của mcs_acq/mcs_rel (Apple clang 21): swpal, stlr, ldaprb; ldapr, casl, stlrb.
 
 Giới hạn thứ nhất của MCS là một thread không giữ được hai lock MCS cùng lúc, vì nút là biến
 \texttt{thread\_local} dùng chung cho mọi \PCname{lock_mcs} do giao diện không có tham số. Giới hạn thứ
@@ -34,17 +49,15 @@ hai là lock được giao cho đúng một thread, nên nếu thread đó bị 
 scheduler.
 
 \PCname{lock_tas_bo<B>} và \PCname{lock_ttas_bo<B>} gọi chính sách \texttt{B} sau mỗi lần thử thất bại.
-TTAS chỉ lùi lại khi thua \texttt{exchange} (BackoffLock~\cite{herlihy2020art}). \texttt{B} là một trong
+TTAS chỉ lùi lại khi thua \texttt{exchange} (BackoffLock~\cite{herlihy2020art}). Memory order giống TAS và
+TTAS, nên lập luận về tính đúng ở trên giữ nguyên. \texttt{B} là một trong
 ba chính sách. \PCname{sleep} theo mẫu của đề, gọi \texttt{sleep\_for} với \texttt{delay} nhân đôi từ
 100~ns tới \texttt{MAX\_DELAY} $= 100\,000$~ns. \PCname{spin} quay ngẫu nhiên, với cửa sổ nhân đôi từ 4
 tới 1024 lần \texttt{cpu\_relax}. \PCname{yield} quay 64 lần rồi gọi \texttt{yield}. \texttt{sleep\_for}
 là system call. Trên \PCname{apple-m5}, yêu cầu 100~ns ngủ trung vị 2\,670~ns (nhóm đo bằng
-\texttt{build/sleep\_latency}).
+\texttt{bench/sleep\_latency.cpp}).
 % nguồn: tables.tex, bảng sleeplatency, sleep_for 100 ns: trung vị 2670 ns.
 
 Lock thư viện được bọc inline sau cùng giao diện. Đó là \texttt{std::mutex}, \texttt{pthread\_mutex\_t},
 \texttt{os\_unfair\_lock} (macOS), \texttt{pthread\_spinlock\_t} (Linux), \texttt{omp\_lock\_t} (khi có
-OpenMP). Vòng spin gọi \texttt{cpu\_relax()}, tức là \texttt{pause} trên x86 và \texttt{isb} trên AArch64. Lệnh
-\texttt{isb} được chọn vì \texttt{yield} của Apple gần như không làm gì (0,3~ns so với 12,1~ns của
-\texttt{isb}, cùng phép đo).
-% nguồn: tables.tex, bảng sleeplatency: yield_insn trung vị 0,300 ns; isb trung vị 12,1 ns.
+OpenMP). Bảng~\ref{tab:impl:names} (phụ lục) liệt kê tên mọi cài đặt và máy có chúng.

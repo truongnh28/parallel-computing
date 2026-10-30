@@ -12,13 +12,13 @@ Cấu hình của máy \texttt{LAP1184}.%
 \midrule
 CPU & 13th Gen Intel(R) Core(TM) i5-1335U \\
 Kiến trúc & x86\_64 \\
-Số core & 12 luồng phần cứng trên 6 core vật lý \\
+Số core & 12 luồng phần cứng trên 6 core vật lý (máy ảo báo) \\
 Cache line (hệ thống báo) & 64 B \\
 Cache line dùng để đệm trong mã & 64 B \\
-Cache L1d & 48K \\
-Cache L2 & 1280K \\
-Cache L3 & 12288K \\
-RAM & 7.607 GiB \\
+Cache L1d & 48 KiB \\
+Cache L2 & 1,25 MiB \\
+Cache L3 & 12 MiB \\
+RAM & 7,6 GiB \\
 Hệ điều hành & Ubuntu 20.04 LTS \\
 Nhân & Linux 5.15.153.1-microsoft-standard-WSL2 \\
 Compiler & c++ (Ubuntu 11.5.0-10ubuntu1\textasciitilde{}20\textasciitilde{}ppa3) 11.5.0 \\
@@ -26,7 +26,7 @@ Cờ biên dịch & \texttt{-std=c++20 -O2 -Wall -Wextra -pthread -fopenmp} \\
 OpenMP & có \\
 Lệnh chờ trong vòng spin & \texttt{pause} \\
 Ghim thread vào core & có (\texttt{sched\_setaffinity}) nhưng các benchmark không dùng \\
-Nguồn điện lúc đo & cắm sạc \\
+Nguồn điện lúc đo & cắm sạc (ghi sau đợt đo) \\
 Thành viên chạy đo & \PCowner{LAP1184} \\
 \bottomrule
 \end{tabular}
@@ -398,43 +398,43 @@ Counter \textbackslash{} số thread & 1 & 2 & 3 & 4 & 6 & 8 & 10 & 12 & 16 & 20
 \end{table}%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@lock_time\endcsname{%
-Thời gian chạy của chương trình khung theo số thread, mỗi ô một giá trị \texttt{OUTSIDE\_WORK}, $N = 1009$ (một lời gọi \texttt{is\_prime} tốn khoảng 1,64\,µs). Số vòng lặp của mỗi thread được chọn riêng cho từng cấu hình để mọi lần chạy dài cỡ như nhau; hình vẽ thời gian đo nhân với $I/I_{\text{đo}}$, tức thời gian chạy nếu mỗi thread làm cùng $I$ vòng lặp như lần chạy 1 thread của ô đó (bảng~\ref{tab:LAP1184:lockunit}). Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Đường đứt nét: cận dưới lý tưởng $\max\bigl(p\,I\,t,\ (1+\mathrm{OW})\,I\,t\bigr)$, với $t$ suy ra từ lần chạy 1 thread nhanh nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6). Điểm có vòng tròn bao quanh: cấu hình sụp đổ (hoặc đã vượt thời hạn ở số vòng lặp đầy đủ) nên được đo với số vòng lặp nhỏ hơn 100 lần; giá trị vẽ đã quy đổi tuyến tính về cùng số vòng lặp với các điểm khác.%
+Thời gian chạy của chương trình khung theo số thread, mỗi ô một giá trị \texttt{OUTSIDE\_WORK}, $N = 1009$ (một lời gọi \texttt{is\_prime} tốn khoảng 1,64\,µs). Số vòng lặp của mỗi thread được chọn riêng cho từng cấu hình để mọi lần chạy dài cỡ như nhau; hình vẽ thời gian đo nhân với $I/I_{\text{đo}}$, tức thời gian chạy nếu mỗi thread làm cùng $I$ vòng lặp như lần chạy 1 thread của ô đó (bảng~\ref{tab:LAP1184:lockunit}).  Đường đứt nét: cận dưới lý tưởng $\max\bigl(p\,I\,t,\ (1+\mathrm{OW})\,I\,t\bigr)$, với $t$ suy ra từ lần chạy 1 thread nhanh nhất.%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@lock_time_short\endcsname{%
-Thời gian chạy của chương trình khung theo số thread, mỗi ô một giá trị \texttt{OUTSIDE\_WORK}, $N = 11$ (một lời gọi \texttt{is\_prime} tốn khoảng 13,0\,ns). Số vòng lặp của mỗi thread được chọn riêng cho từng cấu hình để mọi lần chạy dài cỡ như nhau; hình vẽ thời gian đo nhân với $I/I_{\text{đo}}$, tức thời gian chạy nếu mỗi thread làm cùng $I$ vòng lặp như lần chạy 1 thread của ô đó (bảng~\ref{tab:LAP1184:lockunit}). Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Đường đứt nét: cận dưới lý tưởng $\max\bigl(p\,I\,t,\ (1+\mathrm{OW})\,I\,t\bigr)$, với $t$ suy ra từ lần chạy 1 thread nhanh nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6). Điểm có vòng tròn bao quanh: cấu hình sụp đổ (hoặc đã vượt thời hạn ở số vòng lặp đầy đủ) nên được đo với số vòng lặp nhỏ hơn 100 lần; giá trị vẽ đã quy đổi tuyến tính về cùng số vòng lặp với các điểm khác.%
+Thời gian chạy của chương trình khung theo số thread, mỗi ô một giá trị \texttt{OUTSIDE\_WORK}, $N = 11$ (một lời gọi \texttt{is\_prime} tốn khoảng 13,0\,ns). Số vòng lặp của mỗi thread được chọn riêng cho từng cấu hình để mọi lần chạy dài cỡ như nhau; hình vẽ thời gian đo nhân với $I/I_{\text{đo}}$, tức thời gian chạy nếu mỗi thread làm cùng $I$ vòng lặp như lần chạy 1 thread của ô đó (bảng~\ref{tab:LAP1184:lockunit}).  Đường đứt nét: cận dưới lý tưởng $\max\bigl(p\,I\,t,\ (1+\mathrm{OW})\,I\,t\bigr)$, với $t$ suy ra từ lần chạy 1 thread nhanh nhất.%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@lock_throughput\endcsname{%
-Cùng số liệu với hình thời gian chạy, vẽ theo thông lượng: số critical section hoàn thành mỗi giây (tổng của mọi thread), $N = 1009$. Đường đứt nét: cận trên lý tưởng $p / \bigl(\max(p,\ 1+\mathrm{OW})\,t\bigr)$; lock bão hoà khi $p > 1 + \mathrm{OW}$. Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6). Điểm có vòng tròn bao quanh: cấu hình sụp đổ (hoặc đã vượt thời hạn ở số vòng lặp đầy đủ) nên được đo với số vòng lặp nhỏ hơn 100 lần; giá trị vẽ đã quy đổi tuyến tính về cùng số vòng lặp với các điểm khác.%
+Cùng số liệu với hình thời gian chạy, vẽ theo thông lượng: số critical section hoàn thành mỗi giây (tổng của mọi thread), $N = 1009$. Đường đứt nét: cận trên lý tưởng $p / \bigl(\max(p,\ 1+\mathrm{OW})\,t\bigr)$; lock bão hoà khi $p > 1 + \mathrm{OW}$. %
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@lock_slowdown\endcsname{%
-Thời gian đo chia cho cận dưới lý tưởng $\max\bigl(p\,I\,t,\ (1+\mathrm{OW})\,I\,t\bigr)$, $N = 1009$: giá trị 1 nghĩa là lock không thêm chi phí nào ngoài phần việc bắt buộc tuần tự. Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6). Điểm có vòng tròn bao quanh: cấu hình sụp đổ (hoặc đã vượt thời hạn ở số vòng lặp đầy đủ) nên được đo với số vòng lặp nhỏ hơn 100 lần; giá trị vẽ đã quy đổi tuyến tính về cùng số vòng lặp với các điểm khác.%
+Thời gian đo chia cho cận dưới lý tưởng $\max\bigl(p\,I\,t,\ (1+\mathrm{OW})\,I\,t\bigr)$, $N = 1009$, mỗi ô một mức \texttt{OUTSIDE\_WORK}. Giá trị 1 nghĩa là lock không thêm chi phí nào ngoài phần việc tuần tự bắt buộc.%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@lock_slowdown_short\endcsname{%
-Thời gian đo chia cho cận dưới lý tưởng $\max\bigl(p\,I\,t,\ (1+\mathrm{OW})\,I\,t\bigr)$, $N = 11$: giá trị 1 nghĩa là lock không thêm chi phí nào ngoài phần việc bắt buộc tuần tự. Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6). Điểm có vòng tròn bao quanh: cấu hình sụp đổ (hoặc đã vượt thời hạn ở số vòng lặp đầy đủ) nên được đo với số vòng lặp nhỏ hơn 100 lần; giá trị vẽ đã quy đổi tuyến tính về cùng số vòng lặp với các điểm khác.%
+Thời gian đo chia cho cận dưới lý tưởng $\max\bigl(p\,I\,t,\ (1+\mathrm{OW})\,I\,t\bigr)$, $N = 11$, mỗi ô một mức \texttt{OUTSIDE\_WORK}. Giá trị 1 nghĩa là lock không thêm chi phí nào ngoài phần việc tuần tự bắt buộc.%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@lock_cs_length\endcsname{%
-Ảnh hưởng của độ dài critical section: thời gian đo chia cho cận dưới lý tưởng theo $N$, \texttt{OUTSIDE\_WORK} = 0, mỗi ô một số thread. Dưới mỗi $N$ là thời gian của một lời gọi \texttt{is\_prime(N)}. Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Điểm có vòng tròn bao quanh: cấu hình sụp đổ (hoặc đã vượt thời hạn ở số vòng lặp đầy đủ) nên được đo với số vòng lặp nhỏ hơn 100 lần; giá trị vẽ đã quy đổi tuyến tính về cùng số vòng lặp với các điểm khác.%
+Thời gian đo chia cho cận dưới lý tưởng theo độ dài critical section, \texttt{OUTSIDE\_WORK} = 0, mỗi ô một số thread. Dưới mỗi $N$ là thời gian của một lời gọi \texttt{is\_prime(N)}.%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@lock_backoff\endcsname{%
-Tác dụng của backoff, $N = 1009$ (critical section khoảng 1,64\,µs): thời gian chạy của từng biến thể có backoff chia cho trung vị của lock gốc không backoff (đường ngang ở 1). Hàng trên: họ TAS; hàng dưới: họ TTAS. Kiểu đường và kiểu tô của điểm cho biết chính sách chờ: ngủ bằng \texttt{sleep\_for} như mẫu của đề (\texttt{\_bo\_sleep}), quay trong user space (\texttt{\_bo\_spin}), quay rồi nhường core (\texttt{\_bo\_yield}). Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6).%
+Thời gian của từng biến thể có backoff chia cho lock gốc không backoff (đường ngang ở 1), $N = 1009$; hàng trên là họ TAS, hàng dưới là họ TTAS. Kiểu đường cho biết chính sách chờ: ngủ bằng \texttt{sleep\_for} (\texttt{\_bo\_sleep}), quay (\texttt{\_bo\_spin}), quay rồi nhường core (\texttt{\_bo\_yield}).%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@lock_backoff_short\endcsname{%
-Tác dụng của backoff, $N = 11$ (critical section khoảng 13,0\,ns): thời gian chạy của từng biến thể có backoff chia cho trung vị của lock gốc không backoff (đường ngang ở 1). Hàng trên: họ TAS; hàng dưới: họ TTAS. Kiểu đường và kiểu tô của điểm cho biết chính sách chờ: ngủ bằng \texttt{sleep\_for} như mẫu của đề (\texttt{\_bo\_sleep}), quay trong user space (\texttt{\_bo\_spin}), quay rồi nhường core (\texttt{\_bo\_yield}). Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6).%
+Thời gian của từng biến thể có backoff chia cho lock gốc không backoff (đường ngang ở 1), $N = 11$; hàng trên là họ TAS, hàng dưới là họ TTAS. Kiểu đường cho biết chính sách chờ: ngủ bằng \texttt{sleep\_for} (\texttt{\_bo\_sleep}), quay (\texttt{\_bo\_spin}), quay rồi nhường core (\texttt{\_bo\_yield}).%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@lock_fairness\endcsname{%
-Độ công bằng, $N = 1009$. Mọi thread lấy lock cùng số lần, nên lock không công bằng lộ ra qua thời gian: có thread chạy xong vòng lặp của mình sớm hơn nhiều so với thread khác. Trục tung là thời gian của thread xong sớm nhất chia cho thời gian của thread xong muộn nhất trong cùng một lần chạy; 1 là hoàn toàn đều. Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6). Cấu hình có trung vị vượt thời hạn không được vẽ. Điểm có vòng tròn bao quanh: cấu hình sụp đổ (hoặc đã vượt thời hạn ở số vòng lặp đầy đủ) nên được đo với số vòng lặp nhỏ hơn 100 lần; giá trị vẽ đã quy đổi tuyến tính về cùng số vòng lặp với các điểm khác.%
+Độ công bằng, $N = 1009$: thời gian của thread xong sớm nhất chia cho thread xong muộn nhất trong cùng một lần chạy (1 là hoàn toàn đều). Cấu hình có trung vị vượt thời hạn không được vẽ.%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@barrier_rate\endcsname{%
-Số barrier episode hoàn thành mỗi giây theo số thread; giữa hai barrier không có việc gì, nên đây là chi phí thuần của việc đồng bộ. Trục tung theo thang logarit. \texttt{sr}: sense-reversing barrier chờ bằng vòng spin; \texttt{sr\_bo\_*}: thêm backoff; \texttt{sr\_block}: chờ chặn. Số episode của mỗi cấu hình được hiệu chỉnh riêng để mọi lần chạy dài cỡ như nhau. Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6).%
+Số barrier episode mỗi giây theo số thread, không có việc giữa hai barrier (trục tung logarit). \texttt{sr} chờ bằng vòng spin, \texttt{sr\_bo\_*} thêm backoff, \texttt{sr\_block} chờ chặn.%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@counter_time\endcsname{%
-Thời gian chạy của các counter theo số thread $p$, mỗi ô một lượng việc giữa hai lần tăng (\texttt{OUTSIDE\_WORK} lời gọi \texttt{is\_prime(101)}). Mỗi thread tăng counter $I$ lần; vì một lần tăng tốn từ vài nanosecond tới hàng trăm microsecond tuỳ cấu hình, $I$ được hiệu chỉnh riêng cho từng cấu hình để mỗi lần chạy dài cỡ như nhau, và hình vẽ thời gian đo nhân với $10^6/I$, tức thời gian chạy nếu mỗi thread tăng $10^6$ lần. \texttt{faa}: fetch-and-add; \texttt{cas}: vòng lặp compare-and-swap; \texttt{lock\_X}: counter bảo vệ bằng lock \texttt{X} của phần 1. Các biến thể có backoff và \texttt{seq\_cst} nằm ở hình riêng. Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6).%
+Thời gian chạy quy về $10^6$ lần tăng mỗi thread, mỗi ô một lượng việc \texttt{OUTSIDE\_WORK} (lời gọi \texttt{is\_prime(101)}) giữa hai lần tăng. Các biến thể có backoff và \texttt{seq\_cst} chỉ có trong bảng thời gian của counter.%
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@counter_variants\endcsname{%
-Biến thể của từng counter so với bản gốc (đường ngang ở 1): thời gian mỗi lần tăng của biến thể chia cho trung vị của bản gốc. Kiểu đường và kiểu tô của điểm cho biết biến thể: backoff ngủ, backoff quay, quay rồi nhường core, hoặc memory order \texttt{seq\_cst} thay cho thứ tự yếu hơn. Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6).%
+Biến thể của từng counter so với bản gốc (đường ngang ở 1): thời gian mỗi lần tăng của biến thể chia cho trung vị của bản gốc. Kiểu đường và kiểu tô của điểm cho biết biến thể: backoff ngủ, backoff quay, quay rồi nhường core, hoặc memory order \texttt{seq\_cst} thay cho thứ tự yếu hơn. %
 }
 \expandafter\gdef\csname PC@LAP1184@figcap@counter_cas_failures\endcsname{%
-Số lần compare-and-swap hỏng trên mỗi lần tăng thành công của các counter dùng CAS: bằng chứng trực tiếp về mức tranh chấp. Trục tung tuyến tính dưới 0,01 và logarit phía trên; 0 nghĩa là không lần thử nào hỏng. Điểm là trung vị của 7 lần lặp, thanh sai số đi từ giá trị nhỏ nhất tới giá trị lớn nhất. Vạch dọc liền: số core của máy (12); vạch chấm: số core vật lý (6).%
+Số lần compare-and-swap hỏng trên mỗi lần tăng thành công của các counter dùng CAS. Trục tung tuyến tính dưới 0,01 và logarit phía trên; 0 nghĩa là không lần thử nào hỏng.%
 }
 \expandafter\gdef\csname PC@LAP1184@val@ncpu\endcsname{%
 12%

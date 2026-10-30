@@ -1,10 +1,23 @@
 % Phụ lục: ghi chú build. Nguồn: results/{apple-m5,LAP1184}/{campaign.log, machine.txt}, Makefile, mk/zz_pack.mk.
 
-Trên \PCname{apple-m5}, đợt đo dài 1 giờ 25 phút 45 giây (12\,152 lần chạy), gồm cả các lần chạy thử hiệu chỉnh. Lệnh đã dùng là
+Trên \PCname{apple-m5}, đợt đo có 12\,152 lần chạy hoàn thành. Thời lượng 1 giờ 25 phút 45 giây gồm cả
+2 phút hiệu chỉnh (643 lần chạy thử, không tính vào số trên). Lệnh đã dùng là
 \texttt{python3 scripts/run\_bench.py --relax-yield --host apple-m5 --wait 30}, tương đương
 \texttt{make bench} cộng lượt tùy chọn \texttt{make bench-relax}. \texttt{make bench-dry} in lưới và thời
 gian ước tính mà không đo.
-% nguồn: campaign.log (START argv=..., END duration=1:25:45)
+% nguồn: campaign.log (START argv=..., END duration=1:25:45); results/apple-m5/campaign_stdout.log ("calibrating 643
+% iteration counts", "calibration done in 2:04")
+
+Hai thí nghiệm phụ trên \PCname{apple-m5} (khoảng trống khi trao lock và đo lại lúc tải thấp) dùng
+\texttt{experiments/handoff\_gap.cpp} và \texttt{experiments/run\_extra.py}. Chương trình
+\texttt{handoff\_gap} chỉ cần các header trong \texttt{include/}, build bằng \texttt{mkdir -p
+build/experiments \&\& c++ -Iinclude -std=c++20 -O2 -pthread experiments/handoff\_gap.cpp -o
+build/experiments/handoff\_gap}. Lượt đo lại dùng \texttt{build/bench\_lock}, nên cần chạy
+\texttt{make} trước. Lệnh \texttt{python3 experiments/run\_extra.py apple-m5} ghi
+\texttt{handoff.csv}, \texttt{lowload.csv} và \texttt{run.log} vào \texttt{results/apple-m5/extra/}.
+Số trong báo cáo tính bằng \texttt{scripts/report\_numbers/extra\_analyze.py}.
+% nguồn: experiments/handoff_gap.cpp (include: bench_common.hpp, lock.h, platform.hpp, workload.hpp;
+% omp.h chỉ khi _OPENMP); experiments/run_extra.py (docstring: Part A, Part B, Output)
 
 Nền tảng gồm macOS 27.0.1, Apple clang 21.0.0, Python 3.14.8 (chạy đo chỉ cần thư viện chuẩn).
 Apple clang không nhận \texttt{-fopenmp} nên không có baseline OpenMP. \texttt{matplotlib} và
@@ -13,10 +26,10 @@ Apple clang không nhận \texttt{-fopenmp} nên không có baseline OpenMP. \te
 
 Trên \PCname{LAP1184}, nhóm chạy toàn bộ quy trình bằng \texttt{make full PYTHON=.venv/bin/python}
 trong Ubuntu 20.04 trên WSL2. Đợt đo (\texttt{run\_bench.py --wait 10}) dài 1 giờ 20 phút 36 giây
-(14\,322 lần chạy). Ubuntu 20.04 cần thêm g++ 11 từ PPA \texttt{ubuntu-toolchain-r/test} (g++ 9 mặc
+(14\,322 lần chạy hoàn thành). Ubuntu 20.04 cần thêm g++ 11 từ PPA \texttt{ubuntu-toolchain-r/test} (g++ 9 mặc
 định không có \texttt{<barrier>}). Nó cũng cần CMake 3.30 từ bản cài sẵn của Kitware (bản 3.16 của Ubuntu dưới mức
 3.20 mà \texttt{CMakeLists.txt} cần), \texttt{python3-venv}, XeLaTeX và \texttt{latexmk}. Python 3.8.10
-đủ cho các script. Có ba ghi chú:
+đủ cho các script.
 \begin{itemize}[nosep]
   \item Git trên Windows mặc định đổi kết thúc dòng thành CRLF khi checkout, và \texttt{sh} trong WSL
     không chạy được \texttt{scripts/machine\_info.sh} khi đó. Runner bắt lỗi và ghi một
@@ -31,4 +44,7 @@ trong Ubuntu 20.04 trên WSL2. Đợt đo (\texttt{run\_bench.py --wait 10}) dà
 \end{itemize}
 % nguồn: results/LAP1184/campaign.log (START argv=--wait 10; END duration=1:20:36, 01:41:24);
 % results/LAP1184/machine.txt (date: 01:44:04); docs/part1.md mục 7.2.
-\TODO{thời gian make bench và ghi chú cài đặt trên máy của từng thành viên còn lại.}
+Trên \PCname{C4M7Y670NT}, đợt đo (\texttt{run\_bench.py --wait 10}) dài 1 giờ 53 phút 10 giây (13\,244 lần
+chạy hoàn thành), với macOS 26.7.1, Apple clang 21.0.0 và Python 3.9.6. Cách cài giống \PCname{apple-m5}.
+% nguồn: results/C4M7Y670NT/campaign.log (START argv=--wait 10; END duration=1:53:10 ok=13244);
+% results/C4M7Y670NT/machine.txt (python: Python 3.9.6).

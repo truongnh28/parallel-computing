@@ -1,11 +1,12 @@
-% Mục 4.2. Nguồn: include/barrier.hpp; lệnh AArch64: c++ -O2 -S (Apple clang 21);
-% số lần bắt mutant: results/apple-m5/mutation.log.
+% Mục 4.2. Nguồn: include/barrier.hpp; lệnh AArch64: c++ -O2 -S (Apple clang 21).
 Barrier cho $n$ thread bảo đảm không thread nào ra khỏi lần gọi \texttt{wait()} thứ $k$ trước khi cả $n$
 thread đã gọi lần thứ $k$. Barrier cũng dùng lại được qua mọi episode. Barrier một cờ ``mở/đóng'' không dùng lại
 được. Đóng cờ sớm thì thread chậm chờ mãi, đóng muộn thì thread nhanh qua luôn episode sau.
 
 Sense-reversing barrier~\cite{hensgen1988barrier} không đặt lại cờ mà đảo nó mỗi episode. Mỗi thread chờ
-cờ bằng \emph{local sense} của mình, nên hai episode kề nhau chờ hai giá trị khác nhau.
+cờ bằng \emph{local sense} của mình, nên hai episode kề nhau chờ hai giá trị khác nhau. Giữa hai episode,
+mọi local sense bằng \texttt{!sense\_}. Cờ không thể đảo lại trước khi thread đang chờ rời đi, vì lần
+đảo sau cần đủ $n$ lần tới, trong đó có lần tới của chính thread này.
 \begin{lstlisting}
 const bool my_sense = local_[tid].sense;
 if (count_.fetch_add(1, acq_rel) == n_ - 1) {      // last arriver
@@ -17,22 +18,28 @@ if (count_.fetch_add(1, acq_rel) == n_ - 1) {      // last arriver
 local_[tid].sense = !my_sense;
 \end{lstlisting}
 Thread tới cuối phải đặt lại bộ đếm trước khi đảo cờ. Nếu đảo trước, thread vừa được thả có thể tới
-episode sau, rồi bị phép đặt lại muộn xoá mất lần tới, và mọi thread chờ mãi. Bài stress thường bắt biến
-thể đảo thứ tự này trong 2 trên 5 lần chạy, còn bài có schedule fuzzing bắt cả 5 lần.
+episode sau, rồi bị phép đặt lại muộn xoá mất lần tới, và mọi thread chờ mãi. Bộ kiểm tra bắt được biến thể đảo thứ
+tự này (Bảng~\ref{tab:corr:mutation}).
 
-\texttt{fetch\_add} cần acq\_rel (\texttt{ldaddal}). Nửa release công bố phép ghi trước barrier, nửa
-acquire cho thread tới cuối thấy phép ghi của mọi thread khác. Với chỉ release (\texttt{ldaddl}), bài
-stress trên \PCname{apple-m5} bắt được thread tới cuối đọc dữ liệu cũ (1 trong 5 lần chạy).
-Phép đặt lại relaxed đủ vì nó đứng trước phép ghi release lên \texttt{sense\_} (\texttt{stlrb}), mà thread
-chờ đọc bằng acquire (\texttt{ldaprb}).
+\texttt{fetch\_add} cần acq\_rel (\texttt{ldaddal}). Nửa release công bố phép ghi trước barrier. Các
+\texttt{fetch\_add} lên \texttt{count\_} nối nhau thành một release sequence, nên nửa acquire của thread
+tới cuối đồng bộ với mọi thread tới trước. Phép ghi release lên \texttt{sense\_} (\texttt{stlrb}) chuyển
+tiếp các phép ghi đó cho mọi thread đang chờ, vì chúng đọc cờ bằng acquire (\texttt{ldaprb}). Với chỉ
+release (\texttt{ldaddl}), bài stress bắt được một thread qua barrier rồi đọc ô cũ của thread khác
+(Bảng~\ref{tab:corr:mutation}). Phép đặt lại relaxed đủ vì nó đứng trước phép ghi release lên
+\texttt{sense\_}.
 
 \texttt{count\_}, \texttt{sense\_} và mỗi local sense nằm trên các cache line riêng, để lần tới không làm
 mất hiệu lực line đang được chờ. Local sense nằm trong barrier, đánh chỉ số bằng \texttt{tid}, vì một biến
 \texttt{thread\_local} sẽ bị hai barrier dùng xen kẽ làm hỏng.
 
 Các cách chờ gồm quay (\PCname{sr}), ba chính sách backoff như lock, và chờ chặn (\PCname{sr_block}) bằng
-\texttt{std::atomic::wait} và \texttt{notify\_all}. Các barrier thư viện gồm \texttt{std::barrier},
+\texttt{std::atomic::wait} và \texttt{notify\_all}. \PCname{sr_block} giữ nguyên giao thức và memory order
+ở trên. \texttt{wait(old)} kiểm lại giá trị một cách atomic trước khi ngủ, nên không mất lần đánh thức nào.
+Theo mã nguồn libc++ và libstdc++, \texttt{wait} quay một lúc rồi mới chặn thật, nên \PCname{sr_block}
+thực chất là quay ngắn rồi ngủ.
+% nguồn: include/barrier.hpp, chú thích của SenseBarrierBlocking ("the standard libraries poll for a short time").
+Các barrier thư viện gồm \texttt{std::barrier},
 barrier dựng từ mutex và condition variable (\PCname{condvar}), \texttt{pthread\_barrier\_t} (Linux) và
-\texttt{omp barrier}. Các giới hạn là số thread cố định, barrier tập trung tốn $O(n)$ trên đường tới hạn, và biến
-thể quay cần mỗi thread một core.
-% nguồn: mutation.log, flip_before_reset: plain 2/5, fuzzing 5/5; fetch_add_release_only: plain 1/5.
+\texttt{omp barrier}. Các giới hạn là số thread cố định và barrier tập trung tốn $O(n)$ trên đường tới hạn. Biến thể quay
+vẫn đúng khi số thread vượt số core, nhưng mỗi episode khi đó có thể tốn cả một lượt lập lịch.

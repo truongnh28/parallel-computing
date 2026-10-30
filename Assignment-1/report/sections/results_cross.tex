@@ -1,76 +1,235 @@
-% RQ6. Nguồn: report/figures/{apple-m5,LAP1184}/tables.tex (bảng locktime, barrier, countertime,
-% casfail, sleeplatency), results/LAP1184/machine.txt. Tỉ số tính tay từ các ô của bảng, ghi trong
-% comment "% nguồn:" ngay sau câu dùng nó.
+% RQ6. Nguồn: report/figures/{apple-m5,C4M7Y670NT,LAP1184}/tables.tex (bảng locktime, locktime-ow3,
+% barrier, countertime, casfail, sleeplatency, lockunit), results/<máy>/{lock,counter}.csv và machine.txt.
+% Tỉ số tính tay từ các ô của bảng hoặc bằng các script scripts/report_numbers/rcross_*.py (mcs, chk,
+% cnt, cnt2, mf, m3, cy3); ghi trong comment "% nguồn:" ngay sau câu dùng nó.
 \subsubsection{RQ6: Kết luận trên máy khác}
 
-\begin{rqanswer}\textbf{Trả lời RQ6.} Một phần. Trên \PCname{LAP1184} (x86-64, Linux trong máy ảo WSL2),
-thứ hạng chính vẫn giữ. TTAS nhanh hơn TAS, MCS sụp khi mọi luồng phần cứng đều bận, fetch-and-add
-nhanh hơn vòng CAS, và backoff bằng ngủ tuần tự hoá các thread. Ba khác biệt lớn đến từ nền tảng.
-\texttt{seq\_cst} không còn tốn thêm gì. Barrier spin sụp ngay ở 12 thread, bằng số luồng phần cứng,
-chứ không chỉ khi vượt. \texttt{sleep\_for} ngắn nhất kéo dài khoảng 60~\textmu s, nên mọi biến thể ngủ
-chậm hơn nhiều so với \PCname{apple-m5}.\end{rqanswer}
+\begin{rqanswer}\textbf{Trả lời RQ6.} Một phần. Thứ hạng chính giữ trên cả ba máy. TTAS nhanh hơn TAS,
+fetch-and-add nhanh hơn vòng CAS từ 4 thread, \PCname{sr_bo_yield} tốt nhất khi quá tải, và backoff bằng
+ngủ tuần tự hoá các thread. Giữa hai máy Apple, điểm gãy dời theo số P-core và điểm sụp dời theo số core.
+Trên \PCname{LAP1184} (x86-64, Linux trong máy ảo WSL2), \texttt{seq\_cst} không còn tốn thêm gì, barrier
+spin chậm 17 lần ngay ở 12 thread (bằng số luồng phần cứng), \texttt{sleep\_for} với yêu cầu 100~ns ngủ trung
+vị khoảng 62~\textmu s, và MCS quá tải cho hai cực thời gian.\end{rqanswer}
 
-Hai máy khác nhau ở nhiều điểm cùng lúc: kiến trúc (AArch64 và x86-64), memory model (yếu và TSO),
-compiler (Apple clang 21 và g++ 11.5) và hệ điều hành (macOS và Linux). Ngoài ra, \PCname{LAP1184} chạy
-trong máy ảo. Vì vậy mỗi khác biệt dưới đây chỉ được gán cho một nguyên nhân khi có bằng chứng riêng cho nguyên
-nhân đó.
+\PCname{C4M7Y670NT} là Apple M3 Pro với 6 P-core và 6 E-core, không SMT. Hai máy Apple cùng chạy macOS
+(27.0.1 trên \PCname{apple-m5}, 26.7.1 trên \PCname{C4M7Y670NT}) và Apple clang 21, nhưng khác thế hệ chip
+(M5, M3 Pro), cách chia cache L2 (16~MiB cho 4 P-core so với 16~MiB cho 6 P-core) và tải nền. Khác biệt
+cấu trúc lớn nhất là số P-core và số core, nên hai máy này cho phép so tác động của hai con số đó.
+\PCname{LAP1184} khác \PCname{apple-m5} ở kiến trúc, memory model, compiler, hệ điều hành, và chạy trong máy ảo (mục Các yếu tố
+đe dọa độ tin cậy). Cơ chế nào chưa có phép đo riêng được ghi là giả thuyết. Hình phần lock
+(Hình~\ref{fig:cross:lock}) chia thời gian cho cận dưới của chính máy đó, nên khử được khác biệt tốc độ
+core. Hình barrier và counter (Hình~\ref{fig:cross:barrier} và~\ref{fig:cross:counter}) vẽ số đo thô, nên
+chỉ so được hình dạng đường cong. Ô \PCname{apple-m5} đã được phân tích ở RQ2 tới RQ5. Trên ô
+\PCname{LAP1184}, vạch chấm ở 6 là số core máy ảo báo (6 core vật lý, mỗi core 2 luồng), còn vạch liền ở
+12 là số luồng phần cứng. CPU thật là i5-1335U với 2 P-core có Hyper-Threading và 8 E-core, tức 10 core
+và 12 luồng.
+% nguồn: results/C4M7Y670NT/machine.txt (6 x Performance + 6 x Efficiency, smt: no, macOS 26.7.1,
+% Apple clang 21.0.0, l2_cache 16 MiB per 6 P cores); results/apple-m5/machine.txt (macOS 27.0.1, Apple clang
+% 21.0.0, l2_cache 16 MiB per 4 P cores); tải nền xem comment load1 ở đoạn "Ở số thread bằng số core";
+% results/LAP1184/machine.txt (physical_cores: 6, threads_per_core: 2, cpu_model i5-1335U); cấu hình
+% 2P+8E là thông số của Intel cho i5-1335U, máy ảo không thấy được.
 
-Hình so sánh chia thời gian cho cận dưới của chính máy đó, nên khử được khác biệt tốc độ core.
-Trên các hình này, vạch chấm của \PCname{LAP1184} nằm ở 6, là số core vật lý mà máy ảo báo. CPU thật là
-i5-1335U với 2 P-core có Hyper-Threading và 8 E-core, tức 10 core và 12 luồng.
-% nguồn: results/LAP1184/machine.txt (physical_cores: 6, threads_per_core: 2, cpu_model i5-1335U);
-% cấu hình 2P+8E là thông số của Intel cho i5-1335U, máy ảo không thấy được.
+\emph{Bằng chứng.} Lock (Hình~\ref{fig:cross:lock}; Bảng~\ref{tab:C4M7Y670NT:locktime}
+và~\ref{tab:LAP1184:locktime}). Trên \PCname{C4M7Y670NT}, TAS chậm 1,15 lần cận dưới ở 6 thread và 1,53
+ở 8 thread, MCS 1,23 rồi 2,58. Trên \PCname{apple-m5} chỗ gãy này nằm ở 4 lên 6 thread. MCS chậm 4,99 lần
+ở 12 thread (bằng số core) và 2\,070--5\,920 lần khi vượt. Hai mutex thư viện chậm 3,9--4,2 lần cận
+dưới ở 12 thread nhưng chỉ 2,4--3,0 lần từ 16 thread. Trên \PCname{LAP1184}, tới 12 thread TAS, TTAS, \PCname{pthread_spinlock} và
+\PCname{omp_lock} chạy trong 1,36 lần cận dưới, không gãy ở 6 hay 10, và ở 24 thread ở mức 1,7--2,2. MCS
+chậm 1,57--1,67 lần ở 6--8 thread, 1,85 lần ở 10 thread và 3,13 lần ở 12 thread. TAS chậm hơn
+TTAS 1,14 và 1,30 lần ở 20 và 24 thread (\PCname{apple-m5} 1,40 và \PCname{C4M7Y670NT} 1,32 ở 20 thread).
+Mutex thư viện chậm 2,0 lần cận dưới ngay ở 2 thread rồi tăng chậm tới khoảng 3. Các điểm khoanh tròn
+khi quá tải được bàn ở mục Độ vững.
+% nguồn: C4M7Y670NT locktime N=1009 OW=0: tas 1,08/0,937=1,15, 1,91/1,25=1,53; mcs 1,15/0,937=1,23,
+% 3,22/1,25=2,58, 9,34/1,87=4,99, 5170/2,50=2068, 22200/3,75=5920; tas/ttas 8,39/6,34=1,32 (20t);
+% std_mutex 7,76/1,87=4,15 (12t), 6,33/2,50=2,53, 8,39/3,12=2,69, 9,45/3,75=2,52 (16..24t); pthread_mutex
+% 7,31/1,87=3,91 (12t), 7,42/2,50=2,97, 7,59/3,12=2,43, 10,4/3,75=2,77 (16..24t).
+% LAP1184 locktime: 12t tas 2,40/1,76=1,36, ttas 2,21/1,76=1,26, pthread_spinlock 2,26/1,76=1,28, omp_lock
+% 2,24/1,76=1,27 (2..10t của bốn lock này đều <= 1,28); mcs 1,38/0,881=1,57 (6t), 1,97/1,18=1,67 (8t);
+% 24t: tas 7,89/3,53=2,24, ttas 6,06/3,53=1,72, pthread_spinlock 6,89/3,53=1,95, omp_lock 6,33/3,53=1,79; tas/ttas 5,34/4,67=1,14, 7,89/6,06=1,30;
+% apple-m5 12,2/8,70=1,40; std_mutex 0,575/0,294=1,96 (2t), 8,99/2,94=3,06 (20t); mcs 2,72/1,47=1,85
+% (10t), 5,51/1,76=3,13 (12t).
 
-\emph{Giả thuyết 1: với TSO, \PCname{cas_seqcst} bằng \PCname{cas}.} Đúng. Trên x86-64, mọi phép
-đọc-sửa-ghi atomic là lệnh có tiền tố \texttt{lock}. Lệnh này đã là một rào chắn đầy đủ, nên
-\texttt{seq\_cst} không đổi lệnh máy. Từ 1 tới 24 thread, thời gian của \PCname{cas_seqcst} bằng 0,75 tới 1,14 lần
-\PCname{cas}, không lệch về phía nào (Bảng~\ref{tab:LAP1184:countertime}). \PCname{faa_seqcst} bằng 0,90
-tới 1,13 lần \PCname{faa}. Trên \PCname{apple-m5}, \PCname{cas_seqcst} chậm 1,3 tới 2,6 lần \PCname{cas} từ
-4 thread. Điều này xác nhận giải thích ở RQ5. Chi phí thêm của \texttt{seq\_cst} trên \PCname{apple-m5}
-đến từ memory model yếu, không phải từ thuật toán.
-% nguồn: LAP1184 countertime OW=0, cas_seqcst/cas 1..24 thread: nhỏ nhất 0,184/0,244=0,75 (4t),
-% lớn nhất 0,511/0,448=1,14 (6t) và 1,03/0,903=1,14 (10t); faa_seqcst/faa: nhỏ nhất 0,331/0,367=0,90
-% (12t), lớn nhất 0,219/0,193=1,13 (8t). apple-m5 countertime, cas_seqcst/cas 4..20 thread: nhỏ nhất
-% 1,06/0,823=1,29 (12t), lớn nhất 2,91/1,12=2,60 (20t).
+Barrier (Hình~\ref{fig:cross:barrier}; Bảng~\ref{tab:C4M7Y670NT:barrier} và~\ref{tab:LAP1184:barrier}).
+Trên \PCname{C4M7Y670NT}, mỗi thread thêm vào làm một episode của \PCname{sr} dài thêm 36--39~ns tới 6
+thread, rồi 139~ns từ 6 lên 8 thread. \PCname{sr_block} và \PCname{std_barrier} tụt 6,6 và 5,9 lần ở cùng
+chỗ, còn trên \PCname{apple-m5} chỗ tụt nằm ở 4 lên 6. Từ 10 lên 12 thread, bằng số core, hai barrier này
+tụt thêm 9,9 và 6,3 lần. \PCname{sr} vẫn đạt 1,35 triệu episode mỗi giây ở 12 thread và chỉ sụp khi vượt số core (184 ở 16 thread). \PCname{condvar} đạt 556 và 200 nghìn episode mỗi
+giây ở 2 và 4 thread, so với 565 và 193 nghìn trên \PCname{apple-m5}. Trên \PCname{LAP1184}, \PCname{sr} ở
+1 thread chỉ đạt 128 triệu (\PCname{apple-m5} 589 triệu), nên mọi đường cong nằm thấp hơn. Từ 4 tới 10
+thread, \PCname{sr} dài thêm 77--101~ns mỗi thread, không gãy ở 6 hay 10. Ở 12 thread nó chậm 17 lần so
+với 10 thread. Từ 16 thread, \PCname{sr} và \PCname{sr_bo_spin} chỉ còn 45--49 episode mỗi giây.
+\PCname{omp_barrier} chậm hơn \PCname{sr} từ 1 tới 10 thread (9,92 so với 128 triệu ở 1 thread, 1,19 so
+với 1,35 triệu ở 10 thread). Nó vượt \PCname{sr} ở 12 thread (1,03 triệu), rồi sụp còn 4,25 nghìn ở 16
+thread, ngang các barrier chờ chặn (4,30--4,67 nghìn). Bốn barrier chờ chặn rơi xuống 18--26 nghìn ngay
+ở 3 thread. Ở 2 thread, \PCname{sr_block} và \PCname{std_barrier} vẫn đạt 1,60 và 1,16 triệu, còn
+\PCname{condvar} và \PCname{pthread_barrier} chỉ đạt 47 và 81 nghìn. \PCname{sr_bo_spin} chậm hơn
+\PCname{sr} 5,5 và 28 lần ở 4 và 6 thread (\PCname{apple-m5} 3,9 và 6,6). Ở 2 thread, \PCname{sr_bo_sleep}
+chậm hơn \PCname{sr} 611 lần (\PCname{apple-m5} 26). Khi quá tải, \PCname{sr_bo_yield} nhanh nhất trên cả
+ba máy.
+% nguồn: C4M7Y670NT barrier sr: 66 ns (2t), 137 (4t), 215 (6t), 493 (8t): (137-66)/2=36, (215-137)/2=39,
+% (493-215)/2=139; sr_block 4,13M/622k=6,6, std_barrier 2,60M/442k=5,9; sr 12t 1,35M, 16t 184; condvar
+% 556k/200k, apple-m5 565k/193k; sr_bo_yield 16/20/24t 60,5k/43,3k/31,9k (lớn nhất cột). LAP1184 barrier
+% sr: 193/347/549/741 ns (4/6/8/10t): 77, 101, 96 ns mỗi thread; 1,35M/78,2k=17,3; sr, sr_bo_spin 16..24t
+% 45,0-48,5; chờ chặn 3t 18,2k-25,9k; sr/sr_bo_spin 5,18M/936k=5,5, 2,88M/102k=28; apple-m5
+% 5,00M/1,27M=3,9, 2,36M/358k=6,6; sr/sr_bo_sleep 2t 18,1M/29,6k=611, apple-m5 10,6M/401k=26;
+% sr_bo_yield LAP1184 16/20/24t 8,34k/6,80k/6,87k. C4M7Y670NT 10->12t: sr_block 551k/55,6k=9,9, std_barrier
+% 323k/50,9k=6,3. LAP1184 omp_barrier 1t 9,92M (sr 128M), 10t 1,19M (sr 1,35M), 12t 1,03M, 16t 4,25k; chờ chặn
+% 16t 4,30k-4,67k; 2t: sr_block 1,60M, std_barrier 1,16M, condvar 47,4k, pthread_barrier 80,6k.
 
-\emph{Giả thuyết 2: với SMT, chi phí gãy ở số core vật lý, còn barrier spin chỉ sụp khi vượt số luồng
-phần cứng.} Sai ở cả hai ý. Thời gian một episode của \PCname{sr} tăng đều khoảng 77 tới 101~ns cho mỗi
-thread thêm vào từ 4 tới 10 thread, không gãy ở 6 (Bảng~\ref{tab:LAP1184:barrier}). Ở 12 thread, đúng
-bằng số luồng phần cứng, tốc độ giảm 17 lần so với 10 thread. Ở 16 thread nó chỉ còn 48 episode mỗi
-giây. \PCname{sr_bo_spin} cũng giảm 1,8 lần từ 10 lên 12 thread rồi sụp ở 16. Trên \PCname{apple-m5},
-\PCname{sr} chỉ sụp khi vượt số core. Giải thích hợp lý nhất là máy ảo. 12 CPU ảo là 12 thread của
-Windows. Khi cả 12 đều quay, mọi hoạt động của Windows hay của chính máy ảo đều phải lấy core của một
-CPU ảo. Barrier spin khi đó chờ một thread không chạy, giống như khi quá tải. Nhóm không kiểm được giải
-thích này, vì load average trong máy ảo không thấy tải của Windows. \PCname{omp_barrier} vẫn đạt 1,03
-triệu episode mỗi giây ở 12 thread, vì libgomp chỉ quay một thời gian rồi ngủ bằng futex.
-% nguồn: LAP1184 barrier sr: 1/5,18M=193 ns (4t), 1/2,88M=347 ns (6t), 1/1,82M=549 ns (8t),
-% 1/1,35M=741 ns (10t); (347-193)/2=77, (549-347)/2=101, (741-549)/2=96; 1,35M/78,2k=17,3;
-% sr_bo_spin 31,8k/17,2k=1,85; omp_barrier 12t 1,03 M. apple-m5 barrier sr: 10t 508 k, 12t 246.
+Counter (Hình~\ref{fig:cross:counter}; Bảng~\ref{tab:C4M7Y670NT:countertime}
+và~\ref{tab:LAP1184:countertime}). Trên \PCname{C4M7Y670NT}, một lần tăng của \PCname{faa} tốn 5,8--8,1~ns
+ở 4--6 thread và 21--38~ns từ 8 thread. \PCname{cas} nhanh hơn \PCname{faa} ở 2 thread (0,76 lần,
+\PCname{apple-m5} 0,72), rồi chậm hơn 3,6--11 lần từ 4 thread (43--90~ns ở 4--6 thread). Counter dùng
+mutex nhanh hơn \PCname{faa} từ 8 thread (\PCname{lock_std_mutex} 17,8 so với 27,0~ns), nhưng ở 3--4 thread
+ba lock thư viện chậm hơn \PCname{faa} 6,6 tới 25 lần. Trên \PCname{LAP1184}, \PCname{cas} chậm hơn
+\PCname{faa} ngay từ 2 thread (1,49 lần) và 2,9 tới 4,3 lần từ 4 thread, dù số lần hỏng ở 8 thread gần bằng
+\PCname{apple-m5} (1,62 và 1,59). Counter dùng mutex chậm hơn \PCname{faa} 2,3 tới 4,0 lần từ 3 thread.
+\PCname{lock_mcs} tăng từ 159 lên 918~ns mỗi lần tăng khi đi từ 8 lên 10 thread, ở cả bảy lần chạy. Từ 12
+thread, \PCname{lock_omp_lock} chậm hơn \PCname{lock_tas} 1,2--1,4 lần, nên trên Hình~\ref{fig:cross:counter}
+nó chỉ nhanh hơn \PCname{lock_mcs}.
+% nguồn: C4M7Y670NT counter OW=0 ns/op (scripts/report_numbers/rcross_m3.py): faa 4t 5,8, 6t 8,1, 8..24t 21,6-38,2; cas 4t 42,9, 6t
+% 89,8; cas/faa (bảng) 2t 0,00530/0,00696=0,76, 4..24t 3,56-11,1; std_mutex 8t 17,8, faa 27,0;
+% mutex/faa 3..4t: pthread 38,2/5,8=6,6 .. os_unfair 113,9/4,5=25. LAP1184 countertime: cas/faa
+% 0,0397/0,0266=1,49 (2t); ns/op 4..24t 74,7/26,0=2,87 (6t) .. 124,1/28,9=4,29 (20t); casfail 8t 1,62,
+% apple-m5 1,59; mutex/faa 3..24t 2,34-3,96; lock_mcs 8t 159,1, 10t 917,8 (7 lần: 700-1\,111 ns)
+% (rcross_cnt2.py). lock_omp_lock/lock_tas (bảng countertime LAP1184): 2,75/1,98=1,39 (12t), 6,47/5,37=1,20,
+% 9,29/7,61=1,22, 11,7/9,72=1,20 (16..24t); 10t 2,21/2,25=0,98.
 
-\emph{Giả thuyết 3: độ trễ của \texttt{pause} và thời gian ngủ thật trên Linux đổi chi phí của các biến
-thể backoff.} Đúng, và hiệu ứng lớn hơn dự kiến. \texttt{sleep\_for} với yêu cầu từ 1~ns tới 1~\textmu s
-ngủ thật trung vị 61 tới 63~\textmu s, gấp 23 lần \PCname{apple-m5} (2,67~\textmu s). Con số khoảng
-50~\textmu s cộng thêm khớp với timer slack mặc định của Linux, nhưng nhóm không đo trực tiếp.
-\texttt{pause} tốn trung vị 51~ns, gấp 4 lần \texttt{isb} trên \PCname{apple-m5}. Hệ quả rõ nhất ở
-barrier. Ở 2 thread, \PCname{sr_bo_sleep} chậm hơn \PCname{sr} 611 lần, so với 26 lần trên
-\PCname{apple-m5}. Với lock, backoff bằng ngủ vẫn là cách nhanh nhất cho TAS ở nhiều thread
-(\PCname{tas_bo_sleep} chạy 1,21 lần cận dưới ở 24 thread, \PCname{tas} 2,24 lần). Nhưng lợi ích nhỏ hơn
-so với trên \PCname{apple-m5}. Ở 20 thread, \PCname{tas_bo_sleep} tốn 0,65 lần thời gian của \PCname{tas},
-so với 0,31 lần trên \PCname{apple-m5}. Lý do là bản thân TAS trên x86 ít chậm hơn (1,82 lần cận dưới, so với 3,48).
-% nguồn: LAP1184 sleeplatency: sleep_for 1..1000 ns trung vị 61\,200..62\,800 ns; 61\,700/2\,670=23 (100 ns);
-% pause trung vị 50,7 ns; apple-m5 isb 12,1 ns -> 4,2. barrier 2t: 18,1M/29,6k=611; apple-m5
-% 10,6M/401k=26. locktime N=1009 OW=0: 4,26/3,53=1,21, 7,89/3,53=2,24 (24t); 3,48/5,34=0,65,
-% 5,34/2,94=1,82 (20t); apple-m5 3,78/12,2=0,31, 12,2/3,51=3,48 (20t).
+\emph{Vì sao: hai máy Apple.} Các điểm gãy dời theo đúng số P-core và số core. Chỗ gãy của spinlock, của
+độ dốc barrier spin và của các barrier quay-rồi-ngủ nằm ngay sau số P-core. Điều này phù hợp với giải thích
+ở RQ2 và RQ4. Thread vượt số P-core chạy trên E-core chậm hơn, và cache line phải đi giữa hai cụm core.
+\PCname{faa} trên \PCname{C4M7Y670NT} phù hợp với phần sau. Trong cụm 6 P-core dùng chung L2 nó rất rẻ, và
+tốn gấp 2,7 tới 4,7 lần khi có thread ở cụm E-core. Ở 4--6 thread, \PCname{cas} tốn gấp 7,4--11 lần
+\PCname{faa}, lớn hơn khoảng 3 lần mức mô hình $1+f$ của RQ5 (2,4 và 3,8). Mô hình đó không áp được cho
+máy này. Khoảng chênh lớn phù hợp với giả thuyết của RQ5 rằng \texttt{ldadd} được thực hiện ở cache dùng
+chung, còn CAS phải kéo line về L1. Vì \PCname{faa} rẻ như vậy trong cụm P-core, counter dùng mutex chỉ thắng nó từ 8 thread, khi line phải đi giữa hai cụm. MCS và barrier spin sụp khi vượt số
+core, vì thread chờ phải đợi một lượt lập lịch (RQ2, RQ4). Các chi phí do hệ điều hành quyết định thì bằng
+nhau. \texttt{sleep\_for} với yêu cầu 100~ns ngủ trung vị 2,67~\textmu s trên cả hai máy, và
+\PCname{condvar} gần như trùng.
+% nguồn: faa C4M7Y670NT 8t 27,0/8,1=3,3; 10t 38,2/8,1=4,7; 12t 21,6/8,1=2,7; cas/faa 4t 42,9/5,8=7,4, 6t
+% 89,8/8,1=11,1 (rcross_m3.py); 1+f từ bảng casfail C4M7Y670NT: 4t 1+1,42=2,42, 6t 1+2,82=3,82; 7,4/2,42=3,1,
+% 11,1/3,82=2,9. sleeplatency sleep_for 100 ns trung vị 2\,670 ns trên cả hai máy.
 
-\emph{Các khác biệt khác.} MCS sụp ở cả hai máy khi số thread bằng số luồng phần cứng, nhưng ở mức khác
-nhau. Trên \PCname{LAP1184}, MCS ở 12 thread chạy 3,1 lần cận dưới, so với 1,9 lần ở 10 thread. Khi quá
-tải, thời gian của nó không ổn định: 9,66~s ở 16 thread, 2\,120~s ở 20 thread và 10,5~s ở 24 thread
-(Bảng~\ref{tab:LAP1184:locktime}). Fetch-and-add nhanh hơn vòng CAS 2,9 tới 4,3 lần từ 4 thread, nhiều
-hơn mức 2,1 tới 2,7 lần trên \PCname{apple-m5}. Tuy vậy, số lần CAS hỏng trên mỗi lần tăng ở 8 thread gần
-như bằng nhau (1,62 và 1,59). Các baseline chỉ có trên Linux xếp như dự kiến. \PCname{pthread_spinlock}
-chạy gần bằng \PCname{ttas} (0,97 tới 1,14 lần). \texttt{std::mutex} của glibc chậm hơn TTAS 1,8 tới 2,6 lần
-từ 2 thread, nhưng không sụp khi quá tải.
-% nguồn: LAP1184 locktime: mcs 5,51/1,76=3,13 (12t), 2,72/1,47=1,85 (10t); countertime cas/faa 4..24
-% thread: nhỏ nhất 0,448/0,156=2,87 (6t), lớn nhất 2,48/0,578=4,29 (20t); casfail cas 8t 1,62,
-% apple-m5 1,59. locktime pthread_spinlock/ttas: 0,652/0,670=0,97 (4t) .. 6,89/6,06=1,14 (24t);
-% std_mutex/ttas 2..24 thread: nhỏ nhất 0,575/0,325=1,77 (2t), lớn nhất 3,40/1,30=2,62 (8t).
+Trên \PCname{C4M7Y670NT}, độ chậm của hai mutex thư viện giảm khi vượt số core. Cùng lúc, độ công bằng của
+\PCname{std_mutex} giảm từ 0,93 ở 12 thread xuống 0,68--0,76 từ 16 thread. Điều này phù hợp với việc người
+vừa nhả lock lấy lại nó trước khi thread được đánh thức có core, nên ít lần trao lock phải qua kernel hơn.
+Trên \PCname{apple-m5}, độ chậm của mutex vẫn ở 3,6--4,0 lần khi vượt số core, nên nhóm chưa giải thích
+được khác biệt giữa hai máy. Bước tụt thứ hai của \PCname{sr_block} và \PCname{std_barrier} ở 12 thread
+phù hợp với cơ chế của RQ4. Nhóm cho rằng khi mọi core đều bận, thread chờ dễ mất core, nên nhiều episode
+dài quá 4~\textmu s hơn, và thread chờ ngủ rồi phải được đánh thức qua kernel. Nhóm chưa đo tần suất các
+lần ngủ này.
+% nguồn: thr_min/thr_max trung vị, lock N=1009 OW=0 (results/C4M7Y670NT/lock.csv): std_mutex 12t 0,93,
+% 16/20/24t 0,76/0,73/0,68. apple-m5 locktime: std_mutex/cận dưới 10..20t 3,81/3,71/3,77/3,93, pthread_mutex
+% 3,61/3,66/3,95/3,96.
+
+Ở số thread bằng số core, \PCname{sr} trên \PCname{apple-m5} chậm 2,7 lần (8 lên 10 thread), còn trên
+\PCname{C4M7Y670NT} chỉ 1,17 lần (10 lên 12 thread). Điều này phù hợp với tải nền cao hơn của
+\PCname{apple-m5} trong đợt đo (trung vị load average 1 phút trong phần barrier là 26 so với 18). Với MCS, phép đo lại khi tải
+thấp cho điểm gãy tại số core nhỏ hơn (RQ2). Từ 12 thread, \PCname{cas} và \PCname{cas_seqcst} trên
+\PCname{C4M7Y670NT} cùng chia hai cực (khoảng 137--157 và 206--279~ns mỗi lần tăng). Tỉ số trung vị của
+chúng (0,69 tới 1,68) chỉ phản ánh trung vị rơi vào cực nào. Chi phí \texttt{seq\_cst} của CAS ở RQ5 vì
+vậy chỉ được \PCname{apple-m5} ủng hộ. Thời gian tăng bất thường của counter dùng mutex ở 3--4 thread
+trên \PCname{C4M7Y670NT} (và ở 3 thread trên \PCname{apple-m5}, RQ5) nhóm chưa giải thích được. Các ô
+này phân tán mạnh (\PCname{lock_std_mutex} ở 4 thread, 38--108~ns).
+% nguồn: sr C4M7Y670NT 1,58M/1,35M=1,17; apple-m5 1,36M/508k=2,68. load1 trung vị trong
+% results/{apple-m5,C4M7Y670NT}/barrier.csv: 26,5 và 18,3 (lock.csv: 25,4 và 18,2). C4M7Y670NT counter
+% OW=0, ns/op từng lần chạy (results/C4M7Y670NT/counter.csv), 12..24t: cực nhanh 137,4-156,7, cực chậm
+% 206,8-279,1; ở 10t cas trải liên tục 111-165. Trung vị, nhỏ nhất, lớn nhất: cas 12t 149/140/237, 16t
+% 222/141/237, 20t 148/144/234; cas_seqcst 12t 230/137/248, 16t 153/152/279, 20t 248/150/279;
+% cas_seqcst/cas (bảng) 10..24t 1,49 1,55 0,69 1,68 1,67. std_mutex 4t 37,6-107,9 ns
+% (scripts/report_numbers/rcross_m3.py).
+
+\emph{Vì sao: \PCname{LAP1184}.} Thứ nhất, critical section dài hơn. Một lời gọi \texttt{is\_prime(1009)}
+tốn 1\,640~ns, gấp 3,2 lần \PCname{apple-m5}. Khoảng trống mỗi lần trao lock của TAS ở 20 thread được ước lượng
+bằng thời gian mỗi lần lấy lock trừ thời gian một vòng lặp của 1 thread. Nó gần bằng nhau trên hai máy (1,34
+và 1,27~\textmu s). Chia cho critical section dài hơn, nó cho độ chậm nhỏ hơn. Với mutex, khoảng trống là
+3,4--3,5~\textmu s, gấp 2,2--2,3 lần \PCname{apple-m5}. Điều này phù hợp với việc đánh thức qua futex
+(lời gọi hệ thống của Linux để thread ngủ và được đánh thức trên một biến) trong máy ảo đắt hơn. Đường
+spinlock không gãy ở một số thread cố định. Nhóm cho rằng Windows đặt 12 CPU ảo lên P-core và E-core mà
+Linux không biết, nên chênh lệch tốc độ core trải đều trên mọi số thread.
+% nguồn: lockunit t N=1009 OW=0: 1\,640 / 511 ns; t1 = 0,147/89\,797 = 1,637 µs, 0,175/343\,663 = 0,509 µs;
+% TAS 20t: 5,34/(20·89\,797) - 1,637 = 1,34; 12,2/(20·343\,663) - 0,509 = 1,27; std_mutex 20t:
+% 8,99/(20·89\,797) - 1,637 = 3,37, 24t: 11,1/(24·89\,797) - 1,637 = 3,51; apple-m5 13,8/(20·343\,663) - 0,509 = 1,50;
+% 3,37/1,50 = 2,25, 3,51/1,50 = 2,34.
+
+Thứ hai, x86-64 và TSO. Mọi phép đọc-sửa-ghi atomic là lệnh có tiền tố \texttt{lock}, vốn đã là một rào
+chắn đầy đủ, nên \texttt{seq\_cst} không đổi lệnh máy. \PCname{cas_seqcst} bằng 0,75 tới 1,14 lần
+\PCname{cas} và \PCname{faa_seqcst} bằng 0,90 tới 1,13 lần \PCname{faa}. \texttt{lock xadd} và
+\texttt{lock cmpxchg} đều kéo line về L1 của core gọi, nên không có hiệu ứng \texttt{ldadd} ở xa. Đây là
+giả thuyết, phù hợp với việc \PCname{cas} không thắng \PCname{faa} ở 2 thread. Lệnh \texttt{pause} tốn
+trung vị 51~ns, gấp 4 lần \texttt{isb}. Mỗi lần CAS hỏng chờ một lệnh như vậy, lâu hơn một lần
+\PCname{faa} (24--32~ns từ 8 thread). Điều này phù hợp với tỉ số \PCname{cas}/\PCname{faa} lớn hơn khi số lần hỏng như nhau. \PCname{sr_bo_spin}
+chờ theo đơn vị \texttt{pause}, nên cùng số lần chờ kéo dài gấp 4 lần, phù hợp với việc nó tụt sớm hơn.
+Nhóm cho rằng \texttt{pause} cũng làm thưa vòng \texttt{exchange} của TAS, nên khoảng cách TAS--TTAS nhỏ
+hơn trên hai máy Apple.
+% nguồn: LAP1184 countertime OW=0 1..24t, cas_seqcst/cas: 0,184/0,244=0,75 (4t) .. 0,511/0,448=1,14 (6t);
+% faa_seqcst/faa: 0,331/0,367=0,90 (12t) .. 0,219/0,193=1,13 (8t). sleeplatency: pause 50,7 ns, isb
+% 12,1 ns; faa ns/op 8..24t 24,1-31,5.
+
+Thứ ba, \texttt{sleep\_for} trong máy ảo. Với yêu cầu 100~ns, \texttt{sleep\_for} ngủ trung vị
+61,7~\textmu s, gấp 23 lần hai máy Apple (2,67~\textmu s). Với mọi yêu cầu từ 1~ns tới 1~\textmu s, trung
+vị đều nằm trong 61--63~\textmu s. Nhóm cho rằng phần lớn khoảng này là timer slack mặc định 50~\textmu s
+của Linux (khoảng trễ kernel được phép thêm khi đánh thức để gộp các lần hẹn giờ) cộng độ trễ bộ hẹn giờ
+của máy ảo. Một lần ngủ dài bằng khoảng 37 critical section, so với khoảng 5 trên \PCname{apple-m5}. Vì vậy
+\PCname{sr_bo_sleep} chậm 611 lần \PCname{sr}. Khi có việc ngoài critical section ($\mathrm{OW} = 3$),
+\PCname{tas_bo_sleep} chậm hơn TAS 1,5--2,0 lần ở 3--16 thread. Trên \PCname{apple-m5}, nó chậm hơn TAS ở
+3--6 thread (1,33 lần ở 6 thread) và nhanh hơn từ 8 thread (0,69 lần ở 20 thread). Độ công bằng của
+\PCname{tas_bo_sleep} (0,06 ở 24 thread) cho thấy các thread chạy lần lượt.
+% nguồn: LAP1184 sleeplatency: sleep_for 100 ns trung vị 61\,700 ns (nhỏ nhất 60\,100 ns); 1..1000 ns trung vị
+% 61\,200..62\,800 ns; 61\,700/2\,670=23; 61\,200/1\,640=37; 2\,670/511=5,2. LAP1184 locktime-ow3:
+% tas_bo_sleep/tas 3..16t 1,54-2,04, 24t 3,44/3,10=1,11. apple-m5 locktime-ow3 (bảng tab:apple-m5:locktime-ow3):
+% tas_bo_sleep/tas 3t 0,220/0,196=1,12, 4t 0,299/0,226=1,32, 6t 0,683/0,515=1,33, 8t 1,10/1,20=0,92,
+% 20t 4,27/6,20=0,69. Độ công bằng thr_min/thr_max tas_bo_sleep N=1009 OW=0: 0,10 (10t), 0,06 (24t)
+% (scripts/report_numbers/rcross_chk.py).
+
+Thứ tư, đánh thức qua futex. Barrier chờ chặn tốn 39--74~\textmu s mỗi episode ở 3--4 thread, gấp 11--16
+lần \PCname{condvar} trên \PCname{apple-m5} (3,5--5,2~\textmu s). Nhóm cho rằng \texttt{atomic::wait} của
+libstdc++ chỉ quay rất ngắn trước khi gọi futex, nên \PCname{sr_block} và \PCname{std_barrier} ngủ ngay từ
+3 thread. Ở 2 thread, thread tới sau thường tới khi thread kia còn quay, nên hai barrier này chưa phải ngủ.
+Từ 3 thread, thread tới đầu phải chờ hai thread khác, lâu hơn khoảng quay đó. Đây là giả thuyết. Với
+counter dùng mutex, nhóm cho rằng glibc gọi \texttt{futex\_wake}, một syscall, ở mỗi lần nhả lock khi đã
+có thread chờ, nên chuỗi lần tăng liên tiếp của người giữ lock (giả thuyết ở RQ5) không còn rẻ.
+\PCname{lock_omp_lock} gần \PCname{lock_tas} tới 10 thread, phù hợp với việc libgomp quay trên lock một thời
+gian trước khi ngủ bằng futex (theo tài liệu \texttt{GOMP\_SPINCOUNT}). Nhóm cho rằng từ 12 thread, lượt
+quay thường hết trước khi lock rảnh, nên thread ngủ và phải được đánh thức qua futex. Nhóm chưa kiểm cơ chế
+này.
+% nguồn: chờ chặn 3..4t: 1/25,9k=39 µs .. 1/13,6k=74 µs; so với condvar apple-m5 3t 1/286k=3,50 µs, 4t
+% 1/193k=5,18 µs: 3t 38,6/3,50=11 .. 54,9/3,50=16, 4t 63,7/5,18=12 .. 73,5/5,18=14 (bảng barrier hai máy).
+
+Thứ năm, mọi CPU ảo cùng bận. \PCname{C4M7Y670NT} cũng có 12 luồng phần cứng nhưng \PCname{sr} không chậm
+rõ ở 12 thread, nên điểm gãy ở 12 thread là đặc thù của \PCname{LAP1184}. \PCname{omp_barrier} cũng quay ở
+12 thread mà vẫn đạt khoảng 1~\textmu s mỗi episode, nên riêng việc 12 thread cùng quay không làm barrier
+chậm. Nhóm cho rằng điểm khác là ai nhường CPU. Khi một thread của \PCname{sr} mất CPU, vì một tiến trình
+khác trong máy ảo hay vì Windows lấy CPU ảo, 11 thread còn lại vẫn quay và giữ CPU, nên cả barrier chờ tới
+khi thread đó chạy lại. libgomp quay một thời gian rồi ngủ bằng futex (theo tài liệu
+\texttt{GOMP\_SPINCOUNT}), nên trả CPU lại. \PCname{sr_bo_yield} cũng nhường CPU và đạt 111 nghìn episode
+mỗi giây ở 12 thread, hơn \PCname{sr} (78,2 nghìn). Pause-loop exiting, tức cơ chế cho hypervisor lấy lại
+CPU ảo đang quay lâu bằng lệnh \texttt{pause}, là một giải thích khác (mục Các yếu tố đe dọa độ tin cậy).
+Ở 1 thread, \PCname{omp_barrier} chỉ đạt 9,92 triệu episode mỗi giây, nên mỗi episode của libgomp có chi
+phí cố định lớn hơn \PCname{sr}. Vì vậy nó chậm hơn \PCname{sr} khi mọi thread có CPU, và khoảng cách thu
+hẹp khi số thread tăng. Từ 16 thread, nó ngang các barrier chờ chặn. Điều này phù hợp với việc khi đó
+thread của nó hết lượt quay và ngủ bằng futex ở hầu hết episode. MCS chậm 3,13 lần cận dưới ở 12 thread
+(1,85 lần ở 10 thread), phù hợp với cùng cơ chế. Thread kế tiếp trong hàng đợi mất CPU thì cả hàng đợi chờ
+(RQ2). Ở counter, \PCname{lock_mcs} gãy từ 10 thread. Vì sao điểm này nằm ở 10 chứ không ở 12 thì nhóm
+chưa kiểm được.
+% nguồn: LAP1184 barrier 12t: omp_barrier 1,03M (0,97 µs), sr 78,2k, sr_bo_yield 111k; omp_barrier 1t 9,92M,
+% 16t 4,25k; chờ chặn 16t 4,30k-4,67k; C4M7Y670NT sr 10t 1,58M, 12t 1,35M. LAP1184 locktime mcs 2,72/1,47=1,85
+% (10t), 5,51/1,76=3,13 (12t).
+
+\emph{Độ vững.} Khi quá tải, MCS cho hai cực thời gian. Trên hai máy Apple, gần như mọi lần chạy quá tải
+đều chậm (41 trên 42 lần). Trên \PCname{LAP1184}, trong 21 lần chạy ở 16, 20 và 24 thread, mỗi lần chỉ có
+khoảng 1,5~ms công việc. Có 14 lần xong trong 2,7--7,1~ms và 7 lần mất 1,06--4,92~s, trong đó cả hàng đợi
+dừng cùng nhau. Trung vị rơi vào cực nhanh ở 16 và 24 thread, cực chậm ở 20 thread, rồi được nhân lên
+1\,600--2\,400 lần khi quy đổi. Vì vậy điểm thấp ở 24 thread trên Hình~\ref{fig:cross:lock} không có nghĩa
+MCS hồi phục (mục Các yếu tố đe dọa độ tin cậy). Ở counter, trung vị của \PCname{lock_mcs} ở 20 thread trên
+\PCname{C4M7Y670NT} rơi vào một lần chạy mà cả hàng đợi dừng, nên gai ở đó không đo chi phí counter. Số
+vòng lặp của các ô \PCname{lock_mcs} quá tải nêu ở mục Các yếu tố đe dọa độ tin cậy. Các khác biệt khác
+giữa các máy, như barrier chờ chặn và sleep backoff, lớn hơn nhiều lần khoảng dao động giữa các lần lặp.
+% nguồn: results/LAP1184/lock.csv mcs N=1009 OW=0, 16/20/24t: iters 56/45/37; 16·56·1,637 µs = 1,47 ms;
+% nhanh 5/3/6 trên 7, 0,0027-0,0071 s; chậm 1,061-4,922 s, thr_min/thr_max gần nhau (20t: 4,819/4,921 s);
+% 89\,797/56 = 1\,604, 89\,797/37 = 2\,427. apple-m5 mcs 12..20t: 21/21 chậm, 2,33-15,82 s; C4M7Y670NT
+% mcs 16..24t: 20/21 chậm, 1,277-10,54 s, một lần 0,0065 s (24t) (scripts/report_numbers/rcross_mcs.py).
+% Counter lock_mcs OW=0 (results/<máy>/counter.csv, cột iters): LAP1184 10/12/16t 100, 20t 10 và 200, 24t 200;
+% C4M7Y670NT 16t 100, 20t 10 và 200, 24t 10 và 200. Dòng ok=0 (vượt thời hạn) của lock_mcs: LAP1184 6 lần
+% (16, 20, 24t), C4M7Y670NT 4 lần (20, 24t). C4M7Y670NT 20t, 200 vòng: 0,00071 / 0,0035 / 0,349 / 7,82 s và
+% một lần vượt thời hạn; trung vị 0,349 s ứng với 1\,750 s trong bảng countertime.

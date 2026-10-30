@@ -1,52 +1,61 @@
-% Kết luận. Mọi con số dưới đây đã xuất hiện ở mục Kiểm tra tính đúng đắn hoặc mục Kết quả và phân tích.
+% Kết luận. Mọi con số dưới đây đã xuất hiện ở mục Kiểm tra tính đúng đắn, mục Kết quả và phân tích hoặc
+% mục Các yếu tố đe dọa độ tin cậy, trừ các tỉ số khuyến nghị tính từ bảng phụ lục (comment cuối đoạn khuyến nghị).
 
 Nhóm cài đặt ba spinlock, một sense-reversing barrier và ba họ concurrent counter, kiểm tra chúng bằng
-stress test, ThreadSanitizer và mutation testing, rồi đo chúng trên \PCname{apple-m5} và
-\PCname{LAP1184}. Câu trả lời cho RQ1 tới RQ5 dựa trên \PCname{apple-m5}. RQ6 so hai máy.
+stress test, ThreadSanitizer và mutation testing, rồi đo chúng trên ba máy. RQ2 tới RQ5 dựa trên
+\PCname{apple-m5}. RQ1 và RQ6 có số liệu của cả ba máy.
 
-RQ1. Mọi cài đặt qua mọi bài kiểm tra, và bộ kiểm tra bắt được cả 14 biến thể cố ý làm hỏng. Không kỹ
-thuật nào tự nó đủ. Lỗi thuật toán lộ ra dưới stress test, còn lỗi memory order như nhả lock bằng store
-\texttt{relaxed} chỉ ThreadSanitizer bắt được.
+RQ1. Không bài kiểm tra nào tìm thấy lỗi trên ba máy, và bộ kiểm tra bắt được cả 14 biến thể cố ý làm
+hỏng. Lỗi thuật toán lộ ra dưới stress test, còn lỗi memory order chủ yếu do ThreadSanitizer bắt.
 
-RQ2. Tới 4 thread, cả ba spinlock bám cận dưới lý tưởng trong khoảng 1,24 lần. Ở 20 thread, TTAS chậm
-2,48 lần cận dưới và TAS 3,48 lần, đúng thứ tự mà lưu lượng coherence dự đoán. MCS sụp ngay khi số thread
-bằng số core, vì nó trao lock theo thứ tự cố định. Mỗi lần thread kế tiếp không có core là một lượt lập
-lịch bị mất. Lock thư viện không sụp vì thread chờ ngủ trong kernel.
+RQ2. TTAS mở rộng tốt nhất trong ba spinlock tự viết (2,48 lần cận dưới ở 20 thread), còn lock thư viện
+không sụp vì thread chờ ngủ trong kernel. MCS gãy mạnh tại số core và sụp khi vượt số core, vì nó trao
+lock cho đúng một thread kế tiếp, kể cả khi thread đó không có core.
 
-RQ3. Backoff giúp TAS nhiều nhất. Ở 20 thread, TAS với sleep backoff chỉ tốn 0,31 lần thời gian của TAS.
-Nhưng nó đạt điều đó bằng cách cho các thread chạy lần lượt, nên độ công bằng đúng bằng $1/p$. Lock nhanh
-nhất là lock kém công bằng nhất. MCS công bằng tuyệt đối chừng nào mỗi thread còn có core.
+RQ3. Backoff giúp TAS nhiều nhất (ở 20 thread, TAS với sleep backoff chỉ tốn 0,31 lần thời gian của
+TAS), nhưng TTAS với sleep backoff chậm hơn TTAS 6,1--6,8 lần ở 16 và 20 thread với
+$\mathrm{OW} = 3$. Lợi ích của backoff
+đến từ việc giữ lock ở một chủ, nên lock nhanh nhất là lock kém công bằng nhất.
 
-RQ4. Chi phí một episode của barrier tăng khoảng 53~ns cho mỗi thread trong cụm P-core, dốc hơn khi
-thread tràn sang E-core, và tăng khoảng 2\,000 lần khi số thread vượt số core. Spin thuần là lựa chọn tốt
-khi mỗi thread có core riêng. Khi vượt số core, chờ bằng \texttt{sched\_yield} nhanh nhất.
+RQ4. Với barrier spin, một episode tốn thêm khoảng 53~ns cho mỗi thread trong cụm P-core, và số episode
+mỗi giây giảm khoảng 2\,000 lần khi số thread vượt số core. Khi đó, chờ bằng \texttt{sched\_yield}
+nhanh nhất.
 
-RQ5. Không counter nào mở rộng. Từ 4 thread, fetch-and-add nhanh hơn vòng CAS 2,1 tới 2,7 lần. Lý do là
-số lần CAS hỏng trên mỗi lần tăng tăng từ 0,09 ở 2 thread lên 1,59 ở 8 thread. Backoff đưa số lần hỏng về gần 0
-nhưng tuần tự hoá các thread. Mutex thư viện thắng fetch-and-add khi không có việc giữa hai lần tăng,
-vì người giữ lock tăng nhiều lần liên tiếp trên cache line nằm sẵn trong cache của mình.
+RQ5. Từ 4 thread, fetch-and-add nhanh hơn vòng CAS 2,0 tới 2,7 lần, vì số lần CAS hỏng trên mỗi lần
+tăng tăng từ 0,09 ở 2 thread lên 1,59 ở 8 thread. Khi không có việc giữa hai lần tăng, CAS có backoff
+nhanh hơn fetch-and-add từ 2 thread vì backoff dồn các lần tăng về từng thread, còn \PCname{lock_std_mutex} và
+\PCname{lock_pthread_mutex} ngang fetch-and-add ở 4 thread và nhanh hơn từ đó trở lên.
 
-RQ6. Một phần. Trên \PCname{LAP1184} (x86-64, Linux trong máy ảo WSL2), mọi cài đặt cũng qua mọi bài
-kiểm tra. Các thứ hạng chính vẫn giữ: TTAS nhanh hơn TAS, MCS sụp khi mọi luồng phần cứng đều bận,
-fetch-and-add nhanh hơn vòng CAS. Ba khác biệt đến từ nền tảng. Với TSO, \texttt{seq\_cst} không tốn
-thêm gì (0,75 tới 1,14 lần \PCname{cas}), và stress test không bao giờ bắt được lỗi memory order. Barrier
-spin sụp ngay ở 12 thread, bằng số luồng phần cứng, có lẽ vì Windows phải lấy core của các CPU ảo.
-\texttt{sleep\_for} ngắn nhất kéo dài khoảng 61~\textmu s, gấp 23 lần trên \PCname{apple-m5}, nên các
-biến thể ngủ chậm hơn nhiều.
+RQ6. Một phần, vì thứ hạng chính giữ trên cả ba máy nhưng giữa hai máy Apple, điểm gãy dời theo số
+P-core và điểm sụp của MCS dời theo số core. Trên \PCname{LAP1184}, \texttt{seq\_cst} không tốn thêm
+gì, barrier spin chậm 17 lần ngay ở 12 thread, và \texttt{sleep\_for} với yêu cầu 100~ns ngủ trung vị
+khoảng 62~\textmu s.
 
-Bảy dự đoán viết trước khi đo bị số liệu bác bỏ toàn phần hoặc một phần. MCS không phải spinlock nhanh
-nhất khi số thread chưa vượt số core (D2.1). Lock chỉ bão hoà tại $p = 1 + \mathrm{OW}$ khi
-$1 + \mathrm{OW} \le 4$ (D2.3). Sleep backoff vẫn giúp TAS ở nhiều thread dù có việc ngoài
-critical section (D3.2). Chi phí barrier không tăng theo một độ dốc duy nhất (D4.1).
-Mutex thư viện và vòng CAS ở 2 thread nhanh hơn fetch-and-add (D5.1). \texttt{seq\_cst} làm CAS chậm
-khoảng 2 lần (D5.4). Khi vượt số core, MCS mất cả tính công bằng (D3.3). Điểm chung của các dự đoán sai
-là chúng chỉ tính lưu lượng coherence mà bỏ qua scheduler của hệ điều hành và việc máy có hai loại core.
+Điểm gãy và điểm sụp của MCS do scheduler, không do lưu lượng cache coherence. Trong một phép đo riêng
+ở tải thấp, chỉ 0,25\,\% lần trao lock của MCS ở 10 thread chờ quá 100~\textmu s, nhưng chúng chiếm
+47\,\% thời gian chạy. Điểm gãy tại số P-core phù hợp với giả thuyết hai loại core. Nó dời từ 4 lên 6
+thread trên máy có 6 P-core, nhưng chưa có phép đo riêng cho cơ chế này. Nhóm cho rằng mutex thư viện
+thắng fetch-and-add vì người giữ lock tăng nhiều lần liên tiếp trên cache line của mình, nhưng chưa đo
+độ dài các chuỗi này. Trên \PCname{apple-m5}, \texttt{seq\_cst} làm CAS chậm khoảng 2 lần. Nhóm cho
+rằng lệnh \texttt{casal} ngăn các lần lặp chồng lên nhau, nhưng \PCname{C4M7Y670NT} không cho thấy chi
+phí này nhất quán.
 
-Khi số thread có thể vượt số core, nhóm khuyến nghị dùng lock thư viện
-hoặc TTAS có backoff, và chỉ dùng MCS khi mỗi thread chắc chắn có core riêng. Dùng barrier spin khi số
-thread không vượt số core, và barrier có \texttt{sched\_yield} khi có thể vượt. Dùng fetch-and-add cho
-counter, và chia counter theo thread khi nó nằm trên đường nóng.
+Khi số thread có thể vượt số core, nhóm khuyến nghị dùng lock thư viện. Trên macOS,
+\PCname{os_unfair_lock} nhanh nhất trong các lock thư viện, chậm 1,6--1,7 lần cận dưới khi không có
+việc ngoài critical section. TAS với sleep hoặc yield backoff còn nhanh hơn ở chế độ đó, nhưng độ công
+bằng chỉ còn $1/p$, vì một thread giữ lock tới hết vòng lặp của nó. Tránh TTAS với sleep backoff khi có
+việc ngoài critical section. Khi tranh chấp cao, chỉ dùng MCS khi số thread không vượt số P-core. Trên máy chạy trực tiếp,
+dùng barrier spin khi số thread không vượt số core, và barrier có \texttt{sched\_yield} khi vượt. Trong
+máy ảo, kể cả khi số thread bằng số CPU ảo, dùng barrier quay rồi nhường CPU (\PCname{sr_bo_yield})
+hoặc \PCname{omp_barrier}. Các barrier chờ chặn chậm hơn \PCname{sr} hơn 10 lần ở đó. Dùng
+fetch-and-add cho counter khi có việc giữa hai lần tăng. CAS có backoff chỉ nhanh hơn khi không có việc
+đó, và khi đó các thread tăng không đều.
+% nguồn: results/LAP1184 bảng barrier, 12 thread: sr 78,2 k, sr_bo_yield 111 k, omp_barrier 1,03 M episode/s,
+% sr_block 5,45 k, std_barrier 5,32 k, condvar 5,73 k, pthread_barrier 5,47 k (sr/chặn 13,6..14,7);
+% apple-m5 bảng countertime OW=1 p=20: faa 1,04, cas_spin 1,07, cas_sleep 1,12 s; OW=8 p=20: faa 2,03,
+% faa_seqcst 1,94, cas_yield 2,66 s; rlock_analyze.py độ chậm N=1009 OW=0 p=20: tas_bo_sleep 1,08,
+% tas_bo_yield 1,13, os_unfair_lock 1,66; fairness p=20 0,05.
 
-Việc chưa làm gồm phiên bản phân tán bằng MPI-3 RMA
-(phần 4 của đề), số đo trên các máy còn lại của nhóm, và một máy x86 chạy Linux trực tiếp để tách ảnh
-hưởng của máy ảo.
+Việc chưa làm gồm phiên bản phân tán bằng MPI-3 RMA (phần 4 của đề), counter chia theo thread (mỗi
+thread một counter riêng, cộng lại khi đọc), và một máy x86 chạy Linux trực tiếp để tách ảnh hưởng của
+máy ảo.

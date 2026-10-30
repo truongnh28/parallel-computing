@@ -40,7 +40,7 @@
 
 % Các máy đã đo: tên thư mục trong results/, cách nhau bằng dấu phẩy, KHÔNG có dấu cách.
 % Thêm một máy = thêm tên của nó vào dòng này (và một dòng \PCsetowner bên dưới).
-\providecommand{\Hosts}{apple-m5,LAP1184}
+\providecommand{\Hosts}{apple-m5,C4M7Y670NT,LAP1184}
 % Thư mục chứa hình và bảng do scripts/plot.py sinh ra.
 \providecommand{\FigRoot}{figures}
 % =================================================================================================
@@ -179,8 +179,8 @@
   \fi}
 \newcommand{\PCfigure}[2]{%
   \IfFileExists{\FigRoot/#1/#2.pdf}{%
-    \begin{figure}[H]\centering
-      \includegraphics[width=0.76\linewidth]{\FigRoot/#1/#2.pdf}
+    \begin{figure}[tbp]\centering
+      \includegraphics[width=0.8\linewidth]{\FigRoot/#1/#2.pdf}
       \caption{\ifcsname PC@#1@figcap@#2\endcsname\csname PC@#1@figcap@#2\endcsname
                \else Hình \PCname{#2} của \PCname{#1}.\fi}\label{fig:#1:#2}
     \end{figure}}{%
@@ -193,7 +193,7 @@
 \newcommand{\ForEachHost}[1]{\def\PC@each{\forcsvlist{#1}}\expandafter\PC@each\expandafter{\Hosts}}
 % Thành viên chạy đo trên từng máy (hiện trong bảng cấu hình máy).
 % Máy do người viết báo cáo đo; hình của máy này nằm xen trong lời phân tích ở mục 6,
-% hình của các máy khác được thêm tự động ở cuối mỗi mục con.
+% máy khác chỉ xuất hiện trong hình so sánh và bảng ở mục So sánh giữa các máy.
 \newcommand{\PrimaryHost}{apple-m5}
 \newcommand{\PC@ifother}[2]{\ifstrequal{#2}{apple-m5}{}{#1{#2}}}
 \newcommand{\ForEachOtherHost}[1]{\def\PC@eachother{\forcsvlist{\PC@ifother{#1}}}\expandafter\PC@eachother\expandafter{\Hosts}}
@@ -203,6 +203,7 @@
 
 % TODO(report): mỗi máy một dòng, ghi tên thành viên đã chạy đo trên máy đó.
 \PCsetowner{apple-m5}{\textit{[điền]}}
+\PCsetowner{C4M7Y670NT}{\textit{[điền]}}
 \PCsetowner{LAP1184}{\textit{[điền]}}
 
 \ForEachHost{\PCload}
@@ -287,29 +288,29 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 \newpage
 
 % ====================================================================================================
-\section{Member list \& Workload}
-% TODO(report): nhóm tự điền họ tên, MSHV, phần việc, tỉ lệ đóng góp (theo bảng của template).
-% Mọi thành viên phải đọc toàn bộ báo cáo và trả lời được câu hỏi về bất kỳ phần nào.
-\begin{center}
-\begin{tabular}{|c|c|c|l|c|}
-\hline
-\textbf{No.} & \textbf{Fullname} & \textbf{Student ID} & \textbf{Problems} & \textbf{Percentage of work}\\
-\hline
-\multirow{3}{*}{1} & \multirow{3}{*}{\ldots} & \multirow{3}{*}{\ldots} & - \ldots & \multirow{3}{*}{\ldots\%}\\
- & & & & \\
- & & & & \\
-\hline
-\multirow{3}{*}{2} & \multirow{3}{*}{\ldots} & \multirow{3}{*}{\ldots} & - \ldots & \multirow{3}{*}{\ldots\%}\\
- & & & & \\
- & & & & \\
-\hline
-\multirow{3}{*}{3} & \multirow{3}{*}{\ldots} & \multirow{3}{*}{\ldots} & - \ldots & \multirow{3}{*}{\ldots\%}\\
- & & & & \\
- & & & & \\
-\hline
-\end{tabular}
-\end{center}
-\TODO{nhóm điền bảng phân công: họ tên, MSHV, phần việc (cài đặt, kiểm tra, đo trên máy nào, phân tích, viết báo cáo) và tỉ lệ đóng góp.}
+% \section{Member list \& Workload}
+% % TODO(report): nhóm tự điền họ tên, MSHV, phần việc, tỉ lệ đóng góp (theo bảng của template).
+% % Mọi thành viên phải đọc toàn bộ báo cáo và trả lời được câu hỏi về bất kỳ phần nào.
+% \begin{center}
+% \begin{tabular}{|c|c|c|l|c|}
+% \hline
+% \textbf{No.} & \textbf{Fullname} & \textbf{Student ID} & \textbf{Problems} & \textbf{Percentage of work}\\
+% \hline
+% \multirow{3}{*}{1} & \multirow{3}{*}{\ldots} & \multirow{3}{*}{\ldots} & - \ldots & \multirow{3}{*}{\ldots\%}\\
+%  & & & & \\
+%  & & & & \\
+% \hline
+% \multirow{3}{*}{2} & \multirow{3}{*}{\ldots} & \multirow{3}{*}{\ldots} & - \ldots & \multirow{3}{*}{\ldots\%}\\
+%  & & & & \\
+%  & & & & \\
+% \hline
+% \multirow{3}{*}{3} & \multirow{3}{*}{\ldots} & \multirow{3}{*}{\ldots} & - \ldots & \multirow{3}{*}{\ldots\%}\\
+%  & & & & \\
+%  & & & & \\
+% \hline
+% \end{tabular}
+% \end{center}
+% \TODO{nhóm điền bảng phân công: họ tên, MSHV, phần việc (cài đặt, kiểm tra, đo trên máy nào, phân tích, viết báo cáo) và tỉ lệ đóng góp.}
 
 % ====================================================================================================
 \section{Giới thiệu và câu hỏi nghiên cứu}
@@ -321,7 +322,6 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 %    nào mở rộng tốt nhất ở mức tranh chấp cao; TAS sụp ở đâu; MCS có lợi từ lúc nào; backoff giúp
 %    TAS hay TTAS nhiều hơn; lock tự viết đứng đâu so với lock thư viện; chi phí một barrier
 %    episode tăng thế nào theo số thread; CAS chậm hơn fetch-and-add vì đâu.
-%  - DỰ ĐOÁN viết TRƯỚC khi đo (dựa trên phân tích lưu lượng cache coherence), để mục 6 so lại.
 %  - Phạm vi: phần 4 của đề (bản phân tán bằng MPI-3 RMA, không bắt buộc) không được thực hiện.
 %  - Bố cục báo cáo.
 \input{sections/intro}
@@ -338,7 +338,7 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 \PCtable{cross}{machines}
 
 % ====================================================================================================
-\section{Cài đặt}
+\section{Cài đặt}\label{sec:impl}
 % TODO(report): với MỖI thuật toán: (1) đặc tả (bất biến, điều kiện trước/sau); (2) memory order
 % của từng thao tác atomic và lý do, đặc biệt mọi chỗ dùng relaxed; (3) bố trí bộ nhớ (biến nào
 % nằm riêng một cache line, vì sao); (4) giới hạn đã biết. Chỉ trích đoạn mã then chốt bằng
@@ -422,7 +422,6 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 %  - Thời hạn của một lần chạy và cách ghi nhận lần chạy vượt thời hạn (không bỏ, không coi là 0).
 %  - Mô hình so sánh của phần lock: cận dưới max(p I t, (1 + OW) I t), t suy ra từ lần chạy 1 thread.
 \input{sections/method}
-\ForEachHost{\CampaignTables}
 
 % ====================================================================================================
 \section{Kết quả và phân tích}
@@ -431,8 +430,7 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 %   (2) Giải thích bằng cơ chế: lưu lượng coherence, tranh chấp, công bằng, scheduler, P/E-core;
 %   (3) Bằng chứng cho giải thích: số đo phụ nào ủng hộ (số lần CAS hỏng, độ công bằng, thí
 %       nghiệm đối chứng chỉ đổi một yếu tố).
-% So với dự đoán ở mục 1; chỗ dự đoán sai là chỗ đáng viết nhất. Nói rõ kết luận nào được số
-% liệu hỗ trợ và kết luận nào chỉ là suy đoán. Mọi con số trích trong lời văn phải lấy từ bảng do
+% Nói rõ kết luận nào được số liệu hỗ trợ và kết luận nào chỉ là giả thuyết. Mọi con số trích trong lời văn phải lấy từ bảng do
 % plot.py sinh ra, không tự tính tay.
 
 \subsection{Mutex lock}
@@ -446,7 +444,6 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 %  - Công bằng: lock "nhanh nhất" có công bằng không.
 %  - Chi phí khi không tranh chấp (1 thread).
 \input{sections/results_lock}
-\ForEachOtherHost{\LockFigures}
 \subsection{Barrier}
 % TODO(report):
 %  - Chi phí một episode tăng thế nào theo số thread (so với phân tích: một lần ghi phải lan tới
@@ -455,7 +452,6 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 %  - Chờ chặn hoà vốn ở đâu; so với barrier thư viện.
 %  - Backoff ở barrier có ý nghĩa gì khác so với ở lock.
 \input{sections/results_barrier}
-\ForEachOtherHost{\BarrierFigures}
 \subsection{Concurrent counter}
 % TODO(report):
 %  - Thứ tự nhanh chậm giữa fetch-and-add, CAS và counter dùng lock, ở tranh chấp cao và thấp.
@@ -463,7 +459,6 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 %  - Backoff giúp hay hại; seq_cst có khác bản mặc định không (và vì sao, theo lệnh máy).
 %  - Counter dùng lock: liên hệ với kết quả của phần lock ở critical section rất ngắn.
 \input{sections/results_counter}
-\ForEachOtherHost{\CounterFigures}
 \subsection{So sánh giữa các máy}
 \PCfigureopt{cross}{lock}
 \PCfigureopt{cross}{barrier}
@@ -488,7 +483,7 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 % ====================================================================================================
 \section{Kết luận}
 % TODO(report): trả lời từng câu hỏi nghiên cứu của mục 1 bằng một hai câu có số; điều học được
-% trái với dự đoán; khuyến nghị dùng lock, barrier, counter nào trong hoàn cảnh nào; việc chưa làm.
+% khuyến nghị dùng lock, barrier, counter nào trong hoàn cảnh nào; việc chưa làm.
 \input{sections/conclusion}
 % ====================================================================================================
 % TODO(report): thay \nocite{*} bằng các \cite đặt đúng chỗ trong bài (thuật toán và ý tưởng lấy
@@ -521,6 +516,19 @@ make full            # cả quy trình: check, bench, figures, report, zip
 % TODO(report): thời gian chạy thật của `make bench` trên từng máy (campaign.log); ghi chú riêng
 % cho từng nền tảng nếu có (ví dụ cách cài matplotlib, compiler đã dùng).
 \input{sections/build_notes}
+\input{sections/impl_names}
+\section{Kết quả kiểm tra, đợt đo và hình bổ sung}
+\input{sections/corr_summary}
+\CampaignTables{apple-m5}
+\PCtable{apple-m5}{locksingle}
+\PCtable{apple-m5}{sleeplatency}
+\PCfigure{apple-m5}{lock_cs_length}
+\clearpage
+\section{Bảng số liệu của hai máy còn lại}
+Các bảng dưới đây cùng dạng với bảng của \PCname{apple-m5} trong mục Phương pháp đo và mục Kết quả và
+phân tích; mục So sánh giữa các máy trích số từ chúng.
+\newcommand{\OtherHostTables}[1]{\PCtable{#1}{campaign}\PCtable{#1}{lockunit}\PCtable{#1}{locktime}\PCtable{#1}{barrier}\PCtable{#1}{countertime}}
+\ForEachOtherHost{\OtherHostTables}
 \section{Cấu trúc mã nguồn}
 % TODO(report): kiểm lại bảng này với nội dung thật của file zip trước khi nộp.
 \begin{table}[H]\centering\small

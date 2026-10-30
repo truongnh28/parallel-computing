@@ -1,28 +1,41 @@
-% Mục 4.2: Kiểm tra mutex lock. Nguồn: tests/test_locks.cpp, results/{apple-m5,LAP1184}/test.log, tsan.log.
+\label{sec:corr:lock}
+% Mục 4.2: Kiểm tra mutex lock. Nguồn: tests/test_locks.cpp, results/{apple-m5,C4M7Y670NT,LAP1184}/test.log, tsan.log.
 
 Trong critical section, bài kiểm tra tăng một biến đếm không atomic (đọc, cộng một, ghi) và đếm số
-thread đang ở bên trong. Vi phạm hiện ra trực tiếp, hoặc qua một lần cập nhật bị mất. Nhóm chạy phép kiểm với số vòng cố định (1, 2 và 10
-thread) và trong 300~ms với 4, 10 và 20 thread. Lượt 20 thread thử lock khi quá tải. Watchdog kết thúc
-một bài kiểm tra con sau 20~s và báo deadlock.
+thread đang ở bên trong. Vi phạm hiện ra trực tiếp, hoặc qua một lần cập nhật bị mất. Lượt đầu chạy
+số vòng cố định: 1 thread lấy lock 200\,000 lần, 2 thread mỗi thread 100\,000 lần, và số luồng phần cứng
+mỗi thread 20\,000 lần. Lượt sau chạy trong 300~ms với 4 thread, số luồng phần cứng và gấp đôi số đó
+(\PCname{apple-m5}: 4, 10, 20; hai máy còn lại: 4, 12, 24). Lượt gấp đôi thử lock khi quá tải. Watchdog
+kết thúc một bài kiểm tra con sau 20~s và báo deadlock.
+% nguồn: tests/test_locks.cpp:220-232 (thread_counts {1, 2, hw}, iter_counts {200000, 100000, 20000},
+% timed_threads {4, hw, 2hw}, ms = 300, watchdog 20 s).
 
-Từ số lần lấy lock của từng thread, bài kiểm tra in tỉ số max/min (1,00 là chia đều). Khi mỗi thread
-có một core, \PCname{mcs} chia gần như đều (1,00 ở 4 thread, 1,01 ở 10 thread), đúng tính chất FIFO
-của hàng đợi MCS~\cite{mellorcrummey1991mcs}. Ở 20 thread, MCS chỉ lấy lock 15\,221 lần trong 300~ms
-(so với 2\,705\,564 lần ở 4 thread), với tỉ số 311,40. Nguyên nhân là lock được trao cho một thread
-không có core.
+Từ số lần lấy lock của từng thread, bài kiểm tra in tỉ số số lần lấy lock lớn nhất / nhỏ nhất (1,00 là
+chia đều). Khi mỗi thread có một core, \PCname{mcs} chia gần như đều (1,00 ở 4 thread, 1,01 ở 10 thread),
+đúng tính chất FIFO của hàng đợi MCS~\cite{mellorcrummey1991mcs}. Ở 20 thread, MCS chỉ lấy lock 15\,221
+lần trong 300~ms (so với 2\,705\,564 lần ở 4 thread), với tỉ số 311,40. Số đo này phù hợp với việc lock
+được trao cho một thread đang không có core (cơ chế bàn ở RQ2).
 % nguồn: results/apple-m5/test.log, dòng mcs (một lần chạy 300 ms mỗi ô)
 
-Trên \PCname{apple-m5}, cả 12 lock đạt mọi bài kiểm tra con, kể cả khi quá tải. Dưới TSan cả 12 lock
-đạt và không có cảnh báo.
+Trên \PCname{C4M7Y670NT} (12 core), MCS vẫn chia đều ở 12 thread (tỉ số 1,00, 1\,274\,328 lần lấy lock),
+nhưng ở 24 thread chỉ lấy lock 10\,657 lần, với tỉ số 222,25. Trên cả hai máy Apple, MCS chỉ sụp khi số
+thread vượt số core.
+% nguồn: results/C4M7Y670NT/test.log, dòng mcs (4t 4\,354\,714 acq 1,00; 12t 1\,274\,328 acq 1,00;
+% 24t 10\,657 acq 222,25).
 
-Trên \PCname{LAP1184}, cả 13 lock đạt. MCS lặp lại hình mẫu trên. Tỉ số là 1,00 ở 4 thread, nhưng chỉ
-có 10\,186 lần lấy lock ở 12 thread và 1\,628 lần ở 24 thread (so với 3\,275\,092 ở 4 thread). Ở 12
-thread, nhiều khả năng một CPU ảo đã bị Windows lấy core trong lúc giữ lượt của hàng đợi.
+Trên \PCname{LAP1184}, MCS sụp sớm hơn. Tỉ số là 1,00 ở 4 thread, nhưng MCS đã sụp ở 12 thread, bằng số
+CPU ảo, với 10\,186 lần lấy lock (so với 3\,275\,092 ở 4 thread). Ở 24 thread chỉ còn 1\,628 lần. Ở
+12 thread, nhóm cho rằng một CPU ảo đã bị Windows lấy core trong lúc giữ lượt của hàng đợi.
+% nguồn: results/LAP1184/test.log, dòng mcs.
 
-Dưới TSan, 12 lock đạt không có cảnh báo, kể cả \PCname{pthread_spinlock} chỉ có trên Linux. Khi không
-bị bỏ qua, TSan báo một data race trên biến đếm mà \PCname{omp_lock} bảo vệ. Đây là cảnh báo giả.
-\texttt{omp\_set\_lock} và \texttt{omp\_unset\_lock} nằm trong libgomp, thư viện không được instrument.
-Vì vậy TSan không thấy thứ tự mà lock tạo ra. Cùng lock đó đạt stress test ở bản thường. Bản TSan bỏ
-qua \PCname{omp_lock} và in ra việc bỏ qua.
-% nguồn: results/LAP1184/test.log, dòng mcs; tsan.log (dòng SKIP omp_lock); lần chạy TSan đầu tiên
-% trước khi sửa: SUMMARY: ThreadSanitizer: data race tests/test_locks.cpp:105 in critical_section.
+Ở bản TSan trên \PCname{LAP1184}, các lượt 100~ms với 24 thread không lấy được lock lần nào (\PCname{mcs}
+và \PCname{ttas_bo_spin} ở 12 thread cũng 0). Vì vậy trên máy này TSan chỉ thực sự kiểm các lượt số vòng
+cố định và các lượt 4--12 thread.
+% nguồn: results/LAP1184/tsan.log, cột 24t = 0 acq ở cả 12 lock; mcs, ttas_bo_spin 12t = 0 acq.
+
+Bản TSan trên \PCname{LAP1184} bỏ qua \PCname{omp_lock} và in ra việc bỏ qua. Khi không bỏ qua, TSan
+báo một data race trên biến đếm mà \PCname{omp_lock} bảo vệ. Nhóm cho rằng đây là cảnh báo giả, vì
+\texttt{omp\_set\_lock} và \texttt{omp\_unset\_lock} nằm trong libgomp, thư viện không được
+instrument. Vì vậy TSan không thấy thứ tự mà lock tạo ra. Cùng lock đó đạt stress test ở bản thường.
+% nguồn: results/LAP1184/tsan.log (dòng SKIP omp_lock); lần chạy TSan không bỏ qua (không lưu trong
+% results/): SUMMARY: ThreadSanitizer: data race tests/test_locks.cpp:105 in critical_section.
