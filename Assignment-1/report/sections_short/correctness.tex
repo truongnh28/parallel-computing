@@ -1,0 +1,111 @@
+% Mục 4 (bản rút gọn). Rút từ sections/corr_*.tex. Nguồn: tests/*.cpp, mk/part{1,2,3}.mk,
+% results/{apple-m5,C4M7Y670NT,LAP1184}/{test,tsan,mutation}.log.
+\subsection{Bài kiểm tra}
+Nhóm kiểm tính an toàn (không có hai thread cùng ở trong critical section, không thread nào ra khỏi
+barrier sớm, không giá trị counter nào bị trả về hai lần) và tính sống còn (chương trình không treo).
+Công bằng chỉ được đo. Cùng một bài kiểm tra dạng template chạy cho mọi cài đặt, kể cả cài đặt của thư
+viện. Nhóm dùng bốn kỹ thuật:
+\begin{itemize}[nosep]
+  \item stress test với ít thread (1--4), với số luồng phần cứng và với gấp đôi số đó; ở mức gấp đôi,
+    thread bị tước core giữa giao thức;
+  \item watchdog, thread giám sát báo \texttt{FAIL} khi bài kiểm tra ngừng tiến triển;
+  \item ThreadSanitizer (TSan), công cụ của compiler báo hai truy cập xung đột, ít nhất một không atomic,
+    mà không có quan hệ happens-before;
+  \item mutation testing, chạy bộ kiểm tra trên các biến thể cố ý làm hỏng.
+\end{itemize}
+
+Với lock, critical section tăng một biến đếm không atomic và đếm số thread đang ở bên trong, nên vi phạm
+hiện ra trực tiếp hoặc qua một lần cập nhật bị mất. Lượt đầu chạy số vòng cố định, lượt sau chạy trong
+300~ms. Watchdog báo deadlock sau 20~s. Với barrier, ở episode $e$ mỗi thread ghi $e$ vào ô của mình, gọi
+\texttt{wait}, rồi đọc mọi ô. Một ô nhỏ hơn $e$ nghĩa là thread này qua sớm. Phép kiểm handoff dùng xen
+kẽ hai barrier với các ô là biến thường, nên dưới TSan nó kiểm thêm memory order. Bản schedule fuzzing
+chèn một độ trễ ngẫu nhiên vào mỗi điểm giữa hai bước của giao thức.
+% nguồn: tests/test_locks.cpp:220-232 (ms = 300, watchdog 20 s); tests/test_barrier.cpp.
+
+Với counter, nhóm lưu mọi giá trị trả về và kiểm năm điều: giá trị cuối bằng $M$ (\emph{final}), không
+giá trị nào bị trả về hai lần (\emph{dup}) hay bị thiếu (\emph{miss}), dãy giá trị của mỗi thread tăng
+ngặt (\emph{order}), và thứ tự thời gian thực (\emph{real-time}). Phép kiểm sau cùng kẹp mỗi lời gọi giữa
+hai lần \texttt{fetch\_add} \texttt{seq\_cst} lên một đồng hồ logic dùng chung. Nếu A trả về trước khi B
+bắt đầu thì A phải nhận giá trị nhỏ hơn. Các phép kiểm này kiểm
+linearizability~\cite{herlihy1990linearizability} trên các lịch chạy đã xảy ra. Ở \texttt{-O2},
+compiler gộp một vòng tăng không atomic thành một lần đọc và một lần ghi. Trong một thí nghiệm phụ, bài
+kiểm tra chỉ so giá trị cuối không phát hiện lỗi của một counter không đồng bộ ở 198/200 lần chạy với 2
+thread. Vì vậy bài kiểm tra của nhóm cho địa chỉ counter đi qua \texttt{pc::opaque()} ở mỗi vòng.
+% nguồn: tests/test_counter.cpp:278-295, 340-411; docs/part3.md mục 5.3 (2 thread có start gate sai 2/200).
+
+Trên cả ba máy, mọi cài đặt đạt mọi bài kiểm tra, và TSan không báo data race nào trên mã đúng. Bản TSan
+chạy với kích thước nhỏ hơn 10--20 lần. Ở bản thường, MCS ở gấp đôi số luồng phần cứng chỉ lấy lock
+15\,221 lần trong 300~ms trên \PCname{apple-m5}, so với 2\,705\,564 lần ở 4 thread, phù hợp với việc lock
+được trao cho một thread đang không có core (RQ2). \PCname{lock_mcs} hết ngân sách thời gian và chỉ được
+kiểm qua khoảng 2 triệu lần tăng trên mỗi máy (1\,765\,312 lần trên \PCname{apple-m5}). TSan không kiểm
+được \PCname{omp_lock} và \PCname{omp_barrier}, vì libgomp không được instrument, nên nhóm bỏ qua chúng ở
+bản TSan. Vì cùng lý do với libc++ của macOS, bản TSan trên hai máy Apple bỏ phép kiểm handoff của
+\PCname{std_barrier}.
+% nguồn: results/apple-m5/test.log (dòng mcs; lock_mcs "time budget reached"); C4M7Y670NT 2\,049\,423,
+% LAP1184 2\,063\,205 lần tăng; tsan.log (SKIP omp_lock, omp_barrier skipped, note std_barrier).
+
+\subsection{Mutation testing}\label{sec:corr:mutation}
+\begin{rqanswer}\textbf{Trả lời RQ1.} Không bài kiểm tra nào tìm thấy lỗi trên ba máy, và bộ kiểm tra bắt
+cả 14 biến thể hỏng. Tính đúng dựa trên lập luận ở mục Cài đặt. Kiểm thử củng cố lập luận đó. Trên
+\PCname{apple-m5}, \PCname{C4M7Y670NT} và \PCname{LAP1184}, mọi cài đặt đạt mọi bài kiểm tra (12 lock,
+7 barrier và 19 counter trên hai máy Apple, 13, 9 và 20 trên \PCname{LAP1184}), và TSan không báo data
+race nào. Hai lỗi memory order khó bắt nhất. Stress test không bắt \texttt{TAS\_RELEASE\_RELAXED} lần nào
+(0/3 trên cả ba máy). Bản thường bắt \texttt{fetch\_add\_release\_only} 1/5 lần trên \PCname{apple-m5},
+4/5 trên \PCname{C4M7Y670NT} và 0/5 trên \PCname{LAP1184}. TSan bắt cả hai lỗi trên mọi máy.\end{rqanswer}
+% nguồn: results/{apple-m5,C4M7Y670NT,LAP1184}/mutation.log.
+
+\begin{table}[tbp]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+% nguồn: results/apple-m5/mutation.log
+\begin{tabularx}{\linewidth}{@{}>{\ttfamily}l>{\raggedright\arraybackslash}Xlll@{}}
+\toprule
+\normalfont\textbf{Biến thể} & \textbf{Lỗi cài vào} & \textbf{Stress (+ fuzzing)} & \textbf{TSan} & \textbf{Bị bắt bởi} \\
+\midrule
+TAS\_CHECK\_THEN\_SET & \texttt{load} rồi \texttt{store} thay \texttt{exchange} & 3/3 vi phạm loại trừ & race & cả hai \\
+TAS\_RELEASE\_RELAXED & nhả lock bằng \texttt{store} relaxed & 0/3 & race & chỉ TSan \\
+MCS\_NO\_WAIT\_SUCCESSOR & nhả lock không chờ thread kế tiếp & 3/3 treo & không & stress \\
+MCS\_ALWAYS\_CLEAR\_TAIL & luôn đặt \texttt{tail} về null & 3/3 treo & race & cả hai \\
+\midrule
+single\_flag & một cờ, không đảo chiều & 5/5 (5/5) sai episode & không & stress \\
+flip\_before\_reset & đảo \texttt{sense} trước khi đặt lại bộ đếm & 2/5 (5/5) treo & không & stress \\
+nonatomic\_count & \texttt{load}+\texttt{store} thay \texttt{fetch\_add} & 5/5 (5/5) treo & không & stress \\
+fetch\_add\_release\_only & \texttt{fetch\_add} release thay acq\_rel & 1/5 (0/5) sai episode & race & chủ yếu TSan \\
+thread\_local\_sense & local sense chung cho mọi barrier & 5/5 (5/5) sai giá trị handoff & race & cả hai \\
+\midrule
+plain\_long & \texttt{long} thường & 3/3 final, dup, miss, order & race & cả hai \\
+load\_store & \texttt{load} rồi \texttt{store} atomic & 3/3 final, dup, miss, order & không & kiểm giá trị \\
+cas\_no\_retry & CAS một lần, không thử lại & 3/3 final, dup, miss & không & kiểm giá trị \\
+lock\_read\_outside & đọc giá trị trước \texttt{acquire()} & 3/3 final, dup, miss, order & race & cả hai \\
+block\_reserve & giữ trước 8 giá trị mỗi thread & 3/3 chỉ real-time & không & kiểm giá trị \\
+\bottomrule
+\end{tabularx}
+\caption{Mutation testing trên \PCname{apple-m5}: lock (trên), barrier (giữa), counter (dưới). Cột stress
+cho số lần chạy bắt được trên số lần chạy (trong ngoặc: bản schedule fuzzing) cùng dấu hiệu hoặc phép kiểm
+báo lỗi; cột TSan cho biết TSan có báo data race không.}
+\label{tab:corr:mutation}
+\end{table}
+
+\emph{Bằng chứng.} Bảng~\ref{tab:corr:mutation} tóm tắt kết quả trên \PCname{apple-m5}. Trên hai máy còn
+lại, mọi biến thể đều bị bắt, chỉ khác ở số lần stress test bắt được. Riêng trên \PCname{LAP1184}, TSan
+không báo \texttt{thread\_local\_sense}, nên biến thể đó chỉ bị phép kiểm giá trị bắt, và bản thường bắt
+\texttt{flip\_before\_reset} 5/5 lần.
+% nguồn: results/C4M7Y670NT/mutation.log, results/LAP1184/mutation.log.
+
+\emph{Vì sao.} Hai biến thể chỉ TSan bắt ổn định đều là lỗi memory order. \texttt{TAS\_RELEASE\_RELAXED}
+đổi lệnh nhả lock \texttt{stlrb} thành \texttt{strb}, và store relaxed không tạo cạnh happens-before giữa
+hai chủ lock liên tiếp. \texttt{fetch\_add\_release\_only} đổi \texttt{ldaddal} thành \texttt{ldaddl}, nên
+thread tới cuối có thể đọc ô của thread khác trước khi \texttt{fetch\_add} của nó có hiệu lực. Trên
+x86-64, store relaxed và release đều là \texttt{mov}, và mọi \texttt{fetch\_add} đều là \texttt{lock
+xadd}, nên trên \PCname{LAP1184} hai biến thể này chạy đúng lệnh máy của bản đúng. Ngược lại, TSan im
+lặng với bảy biến thể chỉ dùng atomic hoặc gây treo, và stress test hoặc phép kiểm giá trị bắt mọi lỗi
+thuật toán. Fuzzing làm \texttt{flip\_before\_reset} treo sau 3--7 episode, trong khi bản thường cần
+39\,896 và 289\,052 episode ở hai lần bắt được trên \PCname{apple-m5}.
+% nguồn: results/apple-m5/mutation_logs/barrier_mut2.run{2,5}.log, barrier_mut2_fuzz.run{1..5}.log.
+
+\emph{Độ vững.} Stress test và fuzzing chỉ xét các lịch chạy đã xảy ra, nên chỉ ra được là có lỗi, không
+chứng minh được là không có lỗi. TSan chỉ tìm data race, chỉ thấy các đường đi đã chạy và chỉ thấy mã được
+instrument. Bộ kiểm tra không kiểm tiến triển (lock-free, wait-free) ngoài trường hợp treo, và các biến
+thể hỏng do chính nhóm chọn. Mỗi máy chạy bộ kiểm tra một lượt, nên tỉ lệ bắt lỗi (ví dụ 2/5 hay 1/5)
+chỉ cho bậc độ lớn. Trên \PCname{LAP1184}, ở lượt TSan 24 thread không lock nào lấy được lock lần nào,
+và ở lượt 12 thread \PCname{mcs} và \PCname{ttas_bo_spin} cũng không. TSan vì vậy chỉ thực sự kiểm lượt
+4 thread với mọi lock, và lượt 12 thread với các lock còn lại.
+% nguồn: results/LAP1184/tsan.log, cột 24t = 0 acq ở cả 12 lock; cột 12t: mcs 0 acq, ttas_bo_spin 0 acq.

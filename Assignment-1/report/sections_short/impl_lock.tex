@@ -1,0 +1,42 @@
+% Mục 3.1 (bản rút gọn). Rút từ sections/impl_lock.tex. Nguồn: include/lock.h, backoff.hpp, platform.hpp;
+% lệnh AArch64: c++ -O2 -S (Apple clang 21).
+Mọi lock trong \texttt{include/lock.h} có đúng \texttt{acquire()} và \texttt{release()} không tham số như
+khung của đề. Lấy lock dùng acquire, nhả lock dùng release. Cặp này làm mọi phép ghi trong critical
+section trước nhìn thấy được ở chủ lock sau. Trạng thái lock được khai báo \texttt{alignas(kCacheLine)},
+nên mỗi lock chiếm riêng một cache line và không có false sharing, tức hai biến độc lập nằm chung một
+line và làm mất hiệu lực line của nhau.
+
+TAS lặp \texttt{exchange(true, acquire)} (lệnh \texttt{swpab}) tới khi đọc được \texttt{false}, và nhả
+lock bằng \texttt{store(false, release)} (\texttt{stlrb}). TTAS chờ bằng \texttt{load(relaxed)}
+(\texttt{ldrb}) rồi mới \texttt{exchange}. Phép đọc chỉ là gợi ý, \texttt{exchange} thắng mới là phép
+acquire. Mọi vòng spin gọi \texttt{cpu\_relax()} giữa hai lần thử, tức là \texttt{pause} trên x86 và
+\texttt{isb} trên AArch64. Lệnh \texttt{isb} được chọn thay cho lệnh \texttt{yield} của AArch64, vì trên
+Apple \texttt{yield} gần như không làm gì (0,3~ns so với 12,1~ns của \texttt{isb}).
+% nguồn: results/apple-m5/sleep_latency.csv: yield_insn trung vị 0,300 ns; isb trung vị 12,1 ns.
+
+MCS~\cite{mellorcrummey1991mcs} giữ con trỏ \texttt{tail\_} tới cuối hàng đợi (\texttt{nullptr} là
+rảnh). Để lấy lock, thread khởi tạo nút của mình bằng hai phép ghi relaxed, đổi \texttt{tail\_} sang nút
+đó bằng \texttt{exchange} acq\_rel, rồi nếu hàng đợi khác rỗng thì nối nút vào \texttt{next} của nút
+trước (release) và chờ cờ \texttt{locked} của chính nút mình (acquire). Để nhả lock, chủ lock đọc
+\texttt{next}. Nếu chưa có thread kế tiếp, nó CAS \texttt{tail\_} về rỗng, còn nếu có thì đặt
+\texttt{locked} của thread đó về \texttt{false} (release). Mỗi lần chuyển giao chỉ ghi một line của một
+thread, theo thứ tự FIFO. Hai phép ghi relaxed an toàn vì nút chỉ trở nên với tới được qua hai phép
+release theo sau. Nếu CAS
+\texttt{tail\_} thất bại, một thread đã đổi \texttt{tail\_} nhưng chưa nối vào \texttt{next}, nên chủ
+lock phải chờ nó. Một thread chỉ vào critical section khi nó thấy \texttt{tail\_} rỗng hoặc khi thread
+trước nó đặt \texttt{locked} của nó về \texttt{false}, nên tại mỗi lúc chỉ có một chủ lock. Hàng đợi
+theo thứ tự FIFO, nên không thread nào bị đói. Nút là biến \texttt{thread\_local} vì giao diện không có
+tham số, nên một thread không giữ được hai lock MCS cùng lúc. Lock được giao cho đúng một thread, nên nếu
+thread đó bị preempt (bị scheduler tước core để chạy thread khác) thì mọi thread phía sau phải chờ
+scheduler.
+
+\PCname{lock_tas_bo<B>} và \PCname{lock_ttas_bo<B>} gọi chính sách \texttt{B} sau mỗi lần thử thất bại.
+TTAS chỉ lùi lại khi thua \texttt{exchange} (BackoffLock~\cite{herlihy2020art}). \PCname{sleep} theo
+mẫu của đề, gọi \texttt{sleep\_for} với \texttt{delay} nhân đôi từ 100~ns tới \texttt{MAX\_DELAY}
+$= 100\,000$~ns. \PCname{spin} quay ngẫu nhiên, với cửa sổ nhân đôi từ 4 tới 1024 lần \texttt{cpu\_relax}.
+\PCname{yield} quay 64 lần rồi gọi \texttt{std::this\_thread::yield}, tức \texttt{sched\_yield}, để
+nhường core cho thread khác. \texttt{sleep\_for} là system call. Trên
+\PCname{apple-m5}, yêu cầu 100~ns ngủ trung vị 2\,670~ns. Lock thư viện (\texttt{std::mutex},
+\texttt{pthread\_mutex\_t}, \texttt{os\_unfair\_lock}, \texttt{pthread\_spinlock\_t},
+\texttt{omp\_lock\_t}) được bọc inline sau cùng giao diện.
+% nguồn: results/apple-m5/sleep_latency.csv, sleep_for 100 ns: trung vị 2670 ns.

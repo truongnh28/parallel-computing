@@ -43,6 +43,10 @@
 \providecommand{\Hosts}{apple-m5,C4M7Y670NT,LAP1184}
 % Thư mục chứa hình và bảng do scripts/plot.py sinh ra.
 \providecommand{\FigRoot}{figures}
+% Bản rút gọn: report_short.tex định nghĩa \PCshortbuild rồi nạp file này. Khi đó trang bìa, preamble
+% và mục lục dùng chung, thân bài lấy từ sections_short/main.tex, và không có phụ lục.
+\newif\ifPCshort
+\ifdefined\PCshortbuild\PCshorttrue\fi
 % =================================================================================================
 
 \usepackage{a4wide}
@@ -62,6 +66,7 @@
 \addto\captionsvietnamese{\renewcommand*\contentsname{Contents}\renewcommand*\refname{References}}
 
 \usepackage{graphicx}
+\usepackage{adjustbox}  % bảng sinh bởi plot.py: \adjustbox{max width=\linewidth}, chỉ co bảng quá rộng
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{tabularx}
@@ -177,10 +182,11 @@
     \PCmissing{Bảng \PCname{#2} của \PCname{#1} chưa có. Chạy \texttt{make bench} trên máy đó,
       chép \texttt{results/\detokenize{#1}/} về, rồi chạy \texttt{make figures}.}%
   \fi}
+\ifPCshort\newcommand{\PCfigwidth}{0.7\linewidth}\else\newcommand{\PCfigwidth}{0.8\linewidth}\fi
 \newcommand{\PCfigure}[2]{%
   \IfFileExists{\FigRoot/#1/#2.pdf}{%
     \begin{figure}[tbp]\centering
-      \includegraphics[width=0.8\linewidth]{\FigRoot/#1/#2.pdf}
+      \includegraphics[width=\PCfigwidth]{\FigRoot/#1/#2.pdf}
       \caption{\ifcsname PC@#1@figcap@#2\endcsname\csname PC@#1@figcap@#2\endcsname
                \else Hình \PCname{#2} của \PCname{#1}.\fi}\label{fig:#1:#2}
     \end{figure}}{%
@@ -191,20 +197,12 @@
 \newcommand{\PCtableopt}[2]{\ifcsname PC@#1@tab@#2\endcsname\PCtable{#1}{#2}\fi}
 \newcommand{\PCappendixtables}[1]{\ifcsname PC@#1@tab@appendix\endcsname\csname PC@#1@tab@appendix\endcsname\fi}
 \newcommand{\ForEachHost}[1]{\def\PC@each{\forcsvlist{#1}}\expandafter\PC@each\expandafter{\Hosts}}
-% Thành viên chạy đo trên từng máy (hiện trong bảng cấu hình máy).
 % Máy do người viết báo cáo đo; hình của máy này nằm xen trong lời phân tích ở mục 6,
 % máy khác chỉ xuất hiện trong hình so sánh và bảng ở mục So sánh giữa các máy.
 \newcommand{\PrimaryHost}{apple-m5}
 \newcommand{\PC@ifother}[2]{\ifstrequal{#2}{apple-m5}{}{#1{#2}}}
 \newcommand{\ForEachOtherHost}[1]{\def\PC@eachother{\forcsvlist{\PC@ifother{#1}}}\expandafter\PC@eachother\expandafter{\Hosts}}
-\newcommand{\PCsetowner}[2]{\expandafter\gdef\csname PC@owner@#1\endcsname{#2}}
-\newcommand{\PCowner}[1]{\ifcsname PC@owner@#1\endcsname\csname PC@owner@#1\endcsname\else\textit{(điền tên)}\fi}
 \makeatother
-
-% TODO(report): mỗi máy một dòng, ghi tên thành viên đã chạy đo trên máy đó.
-\PCsetowner{apple-m5}{\textit{[điền]}}
-\PCsetowner{C4M7Y670NT}{\textit{[điền]}}
-\PCsetowner{LAP1184}{\textit{[điền]}}
 
 \ForEachHost{\PCload}
 \PCload{cross}
@@ -232,6 +230,9 @@
   \PCfigure{#1}{counter_cas_failures}
 }
 \newcommand{\CampaignTables}[1]{\PCtable{#1}{campaign}\PCtable{#1}{lockunit}}
+% Câu trỏ tới hình hay bảng chỉ có ở phụ lục (plot.py bọc chúng trong chú thích): bản rút gọn bỏ đi.
+\ifPCshort\DeclareRobustCommand{\PCfullonly}[1]{}\else\DeclareRobustCommand{\PCfullonly}[1]{#1}\fi
+\newcommand{\PCshortbody}{\input{sections_short/main}\end{document}}
 
 \begin{document}
 
@@ -286,6 +287,7 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 
 \tableofcontents
 \newpage
+\ifPCshort\expandafter\PCshortbody\fi
 
 % ====================================================================================================
 % \section{Member list \& Workload}
@@ -422,6 +424,7 @@ FACULTY OF COMPUTER SCIENCE AND ENGINEERING
 %  - Thời hạn của một lần chạy và cách ghi nhận lần chạy vượt thời hạn (không bỏ, không coi là 0).
 %  - Mô hình so sánh của phần lock: cận dưới max(p I t, (1 + OW) I t), t suy ra từ lần chạy 1 thread.
 \input{sections/method}
+\PCtableopt{cross}{endtoend}
 
 % ====================================================================================================
 \section{Kết quả và phân tích}
@@ -520,14 +523,23 @@ make full            # cả quy trình: check, bench, figures, report, zip
 \section{Kết quả kiểm tra, đợt đo và hình bổ sung}
 \input{sections/corr_summary}
 \CampaignTables{apple-m5}
+% Bảng của các mức OUTSIDE_WORK không có trong thân bài, cùng số CAS hỏng (plot.py sinh từng bảng một).
+\newcommand{\PCowtables}[1]{%
+  \PCtableopt{#1}{locktime-ow1}\PCtableopt{#1}{locktime-ow3}\PCtableopt{#1}{locktime-ow7}\PCtableopt{#1}{locktime-ow15}%
+  \PCtableopt{#1}{countertime-ow1}\PCtableopt{#1}{countertime-ow8}\PCtableopt{#1}{casfail}}
+\PCowtables{apple-m5}
 \PCtable{apple-m5}{locksingle}
 \PCtable{apple-m5}{sleeplatency}
+\PCtableopt{apple-m5}{reduced}
 \PCfigure{apple-m5}{lock_cs_length}
+\PCfigureopt{cross}{lock_all}
+\PCfigureopt{cross}{barrier_all}
+\PCfigureopt{cross}{counter_all}
 \clearpage
 \section{Bảng số liệu của hai máy còn lại}
 Các bảng dưới đây cùng dạng với bảng của \PCname{apple-m5} trong mục Phương pháp đo và mục Kết quả và
 phân tích; mục So sánh giữa các máy trích số từ chúng.
-\newcommand{\OtherHostTables}[1]{\PCtable{#1}{campaign}\PCtable{#1}{lockunit}\PCtable{#1}{locktime}\PCtable{#1}{barrier}\PCtable{#1}{countertime}}
+\newcommand{\OtherHostTables}[1]{\PCtable{#1}{campaign}\PCtable{#1}{lockunit}\PCtable{#1}{locktime}\PCtableopt{#1}{locktime-ow1}\PCtableopt{#1}{locktime-ow3}\PCtableopt{#1}{locktime-ow7}\PCtableopt{#1}{locktime-ow15}\PCtable{#1}{barrier}\PCtable{#1}{countertime}\PCtableopt{#1}{countertime-ow1}\PCtableopt{#1}{countertime-ow8}\PCtableopt{#1}{casfail}\PCtableopt{#1}{reduced}}
 \ForEachOtherHost{\OtherHostTables}
 \section{Cấu trúc mã nguồn}
 % TODO(report): kiểm lại bảng này với nội dung thật của file zip trước khi nộp.

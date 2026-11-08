@@ -5,7 +5,7 @@ C++20 assignments for the Parallel Computing course (master's programme, Ho Chi 
 | Folder | Topic |
 |---|---|
 | [`Assignment-1/`](Assignment-1/) | Mutex locks (TAS, TTAS, MCS), a sense-reversing barrier and concurrent counters, with correctness tests and a performance study. Statement: [`Assignment1_18092026.pdf`](Assignment-1/Assignment1_18092026.pdf) |
-| [`Assignment-2/`](Assignment-2/) | Statement only, not started: [`Assignment2_v1_23102026.pdf`](Assignment-2/Assignment2_v1_23102026.pdf) |
+| [`Assignment-2/`](Assignment-2/) | Not started. Statement: [`Assignment2_v1_23102026.pdf`](Assignment-2/Assignment2_v1_23102026.pdf); A* discussion slides: [`pc8_astar-algorithm-pc-discussion.pdf`](Assignment-2/pc8_astar-algorithm-pc-discussion.pdf); sample notebook (A* on the OpenStreetMap road network of Ho Chi Minh City): [`osm-astar.ipynb`](Assignment-2/osm-astar.ipynb) |
 | [`cmake/`](cmake/) | Build rules shared by every assignment (`PcAssignment.cmake`) |
 | [`CMakeLists.txt`](CMakeLists.txt) | One CMake project that contains every assignment folder |
 

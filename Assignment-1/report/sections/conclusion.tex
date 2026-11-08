@@ -7,6 +7,7 @@ stress test, ThreadSanitizer và mutation testing, rồi đo chúng trên ba má
 
 RQ1. Không bài kiểm tra nào tìm thấy lỗi trên ba máy, và bộ kiểm tra bắt được cả 14 biến thể cố ý làm
 hỏng. Lỗi thuật toán lộ ra dưới stress test, còn lỗi memory order chủ yếu do ThreadSanitizer bắt.
+Tính đúng của các cài đặt dựa trên kết quả này cùng lập luận memory order ở mục Cài đặt.
 
 RQ2. TTAS mở rộng tốt nhất trong ba spinlock tự viết (2,48 lần cận dưới ở 20 thread), còn lock thư viện
 không sụp vì thread chờ ngủ trong kernel. MCS gãy mạnh tại số core và sụp khi vượt số core, vì nó trao
@@ -23,7 +24,8 @@ nhanh nhất.
 
 RQ5. Từ 4 thread, fetch-and-add nhanh hơn vòng CAS 2,0 tới 2,7 lần, vì số lần CAS hỏng trên mỗi lần
 tăng tăng từ 0,09 ở 2 thread lên 1,59 ở 8 thread. Khi không có việc giữa hai lần tăng, CAS có backoff
-nhanh hơn fetch-and-add từ 2 thread vì backoff dồn các lần tăng về từng thread, còn \PCname{lock_std_mutex} và
+nhanh hơn fetch-and-add từ 2 thread. Với sleep backoff, các thread tăng lần lượt (độ công bằng xấp xỉ
+$1/p$); với spin và yield backoff, chỉ một phần các lần tăng dồn về một thread. Còn \PCname{lock_std_mutex} và
 \PCname{lock_pthread_mutex} ngang fetch-and-add ở 4 thread và nhanh hơn từ đó trở lên.
 
 RQ6. Một phần, vì thứ hạng chính giữ trên cả ba máy nhưng giữa hai máy Apple, điểm gãy dời theo số
@@ -31,8 +33,8 @@ P-core và điểm sụp của MCS dời theo số core. Trên \PCname{LAP1184},
 gì, barrier spin chậm 17 lần ngay ở 12 thread, và \texttt{sleep\_for} với yêu cầu 100~ns ngủ trung vị
 khoảng 62~\textmu s.
 
-Điểm gãy và điểm sụp của MCS do scheduler, không do lưu lượng cache coherence. Trong một phép đo riêng
-ở tải thấp, chỉ 0,25\,\% lần trao lock của MCS ở 10 thread chờ quá 100~\textmu s, nhưng chúng chiếm
+Phép đo khoảng trống trao lock cho thấy điểm gãy và điểm sụp của MCS đến từ các lần trao lock phải chờ
+scheduler, không từ lưu lượng cache coherence. Trong phép đo này, chạy riêng ở tải thấp, chỉ 0,25\,\% lần trao lock của MCS ở 10 thread chờ quá 100~\textmu s, nhưng chúng chiếm
 47\,\% thời gian chạy. Điểm gãy tại số P-core phù hợp với giả thuyết hai loại core. Nó dời từ 4 lên 6
 thread trên máy có 6 P-core, nhưng chưa có phép đo riêng cho cơ chế này. Nhóm cho rằng mutex thư viện
 thắng fetch-and-add vì người giữ lock tăng nhiều lần liên tiếp trên cache line của mình, nhưng chưa đo
@@ -57,5 +59,5 @@ fetch-and-add cho counter khi có việc giữa hai lần tăng. CAS có backoff
 % tas_bo_yield 1,13, os_unfair_lock 1,66; fairness p=20 0,05.
 
 Việc chưa làm gồm phiên bản phân tán bằng MPI-3 RMA (phần 4 của đề), counter chia theo thread (mỗi
-thread một counter riêng, cộng lại khi đọc), và một máy x86 chạy Linux trực tiếp để tách ảnh hưởng của
-máy ảo.
+thread một counter riêng, cộng lại khi đọc), một workload có ghi dữ liệu dùng chung trong critical
+section, và một máy x86 chạy Linux trực tiếp để tách ảnh hưởng của máy ảo.

@@ -1,0 +1,63 @@
+% Mục 1 (bản rút gọn). Rút từ sections/intro.tex.
+Nhóm cài đặt bằng C++ mutex lock (TAS, TTAS, MCS), sense-reversing barrier và concurrent counter
+(lock, CAS, fetch-and-add). Nhóm kiểm tra tính đúng đắn của các cài đặt và đo khả năng mở rộng trên máy
+shared-memory, so với cấu trúc của thư viện. Phần 4 của đề (MPI-3 RMA~\cite{mpi41}) không bắt buộc và nhóm không làm.
+
+\begin{itemize}[nosep]
+  \item \emph{Cache line.} Đơn vị (128 byte trên hai máy Apple, 64 byte trên \PCname{LAP1184})
+    mà phần cứng giữ nhất quán giữa các core. Nhiều core cùng đọc được, nhưng ghi thì một core phải giữ
+    line độc quyền và làm mất hiệu lực bản sao ở core khác.
+  \item \emph{Vòng lặp đo.} Mỗi vòng, thread lấy lock, gọi \texttt{is\_prime(N)} trong critical
+    section, nhả lock, rồi gọi \texttt{is\_prime(N)} thêm OW lần ở ngoài (OW viết tắt
+    \texttt{OUTSIDE\_WORK}; $\mathrm{OW} = 0$ là tranh chấp tối đa). $p$ là số thread.
+  \item \emph{TAS, TTAS, MCS.} TAS lặp \texttt{exchange} lên cờ lock. TTAS đọc cờ tới khi rảnh rồi mới
+    \texttt{exchange}~\cite{anderson1990spinlock}. MCS xếp hàng, mỗi thread chờ trên cờ
+    riêng~\cite{mellorcrummey1991mcs}.
+  \item \emph{Episode.} Một lần cả $p$ thread cùng vượt barrier~\cite{hensgen1988barrier}.
+  \item \emph{FAA, CAS.} Fetch-and-add cộng và trả giá trị cũ trong một bước. Compare-and-swap chỉ ghi
+    nếu giá trị chưa đổi, nếu không thì thất bại và phải thử lại.
+\end{itemize}
+
+Mục Kết quả giải thích số đo chủ yếu bằng số lần một cache line đi giữa các core trên đường tới
+hạn~\cite{herlihy2020art}, cùng với scheduler và hai loại core của máy. P-core là core hiệu năng cao.
+E-core là core tiết kiệm điện, chậm hơn, và hai loại nằm ở hai cụm có cache L2 riêng. Các hình đánh dấu
+số P-core và số core của máy (trên \PCname{apple-m5} là \PCval{apple-m5}{pcores} và
+\PCval{apple-m5}{ncpu}).
+
+\begin{description}[leftmargin=0pt, itemsep=0.2em, font=\normalfont]
+  \item[RQ1 (đúng đắn).] Các cài đặt có đúng không, và bộ kiểm tra có đủ nhạy để bắt lỗi cài đặt?
+  \item[RQ2 (lock: mở rộng).] TAS, TTAS, MCS mở rộng thế nào theo số thread, \texttt{OUTSIDE\_WORK} và
+    $N$, so với lock thư viện?
+  \item[RQ3 (lock: backoff và công bằng).] Backoff giúp hay hại, và ở chế độ nào? Lock nhanh nhất có
+    công bằng không?
+  \item[RQ4 (barrier).] Chi phí một episode tăng thế nào theo số thread, theo cách chờ, so với barrier
+    thư viện?
+  \item[RQ5 (counter).] Thứ tự hiệu năng giữa FAA, CAS (có/không backoff) và counter dùng lock, và vì
+    sao?
+  \item[RQ6 (giữa các máy).] Các kết luận trên có giữ nguyên trên máy khác không?
+\end{description}
+
+\begin{table}[H]\centering\footnotesize
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}p{4.4cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+RQ & Thí nghiệm & Hình, bảng \\
+\midrule
+RQ1 & stress, TSan, mutation & Bảng~\ref{tab:corr:mutation} \\
+RQ2 & lock $\times$ thread $\times$ OW $\times$ $N$, khoảng trống trao lock &
+  Hình~\ref{fig:apple-m5:lock_slowdown}; Bảng~\ref{tab:handoff} \\
+RQ3 & sáu biến thể backoff & Hình~\ref{fig:apple-m5:lock_backoff},
+  \ref{fig:apple-m5:lock_fairness} \\
+RQ4 & episode/giây, bảy barrier & Hình~\ref{fig:apple-m5:barrier_rate} \\
+RQ5 & thời gian, số CAS hỏng & Hình~\ref{fig:apple-m5:counter_time},
+  \ref{fig:apple-m5:counter_cas_failures} \\
+RQ6 & cùng quy trình trên \PCname{C4M7Y670NT} và \PCname{LAP1184} & Hình~\ref{fig:cross:lock},
+  \ref{fig:cross:barrier}, \ref{fig:cross:counter}; Bảng~\ref{tab:cross:machines} \\
+\bottomrule
+\end{tabularx}
+\caption{Câu hỏi nghiên cứu, thí nghiệm và hình, bảng trả lời.}\label{tab:intro:rqmap}
+\end{table}
+
+Mục Nền tảng thí nghiệm mô tả máy đo, và mục Cài đặt trình bày thuật toán. Mục Kiểm tra tính đúng đắn
+trả lời RQ1. Mục Phương pháp đo mô tả cách đo, và mục Kết quả và phân tích trả lời RQ2--RQ6. Báo cáo kết
+thúc bằng mục Các yếu tố đe dọa độ tin cậy, mục Kết luận và phụ lục chứa bảng số liệu của mọi cấu hình
+trên ba máy.

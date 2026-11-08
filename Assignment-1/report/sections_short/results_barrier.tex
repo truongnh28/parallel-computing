@@ -1,0 +1,54 @@
+% Mục 6.2 (bản rút gọn). Rút từ sections/results_barrier.tex; nguồn từng số ghi ở đó
+% (results/apple-m5/barrier.csv, ns mỗi episode = 1e9 / trung vị ops_per_s; scripts/report_numbers/rbc_analyze.py).
+\subsubsection{RQ4: Chi phí một barrier episode}
+
+\begin{rqanswer}\textbf{Trả lời RQ4.} Với chờ spin, một episode tốn thêm khoảng 53~ns cho mỗi thread
+trong cụm 4 P-core. Độ dốc tăng mạnh khi vượt 4 thread (số P-core), gần gấp 6 theo trung vị. Với \PCname{sr}, số episode
+mỗi giây giảm khoảng 2\,000 lần khi số thread vượt số core. Khi mỗi thread có core riêng, spin thuần
+nhanh nhất hoặc ngang \PCname{sr_bo_yield} (200 so với 195~ns ở 4 thread). Khi vượt số core,
+\PCname{sr_bo_yield} nhanh nhất. Số liệu của \PCname{apple-m5}. RQ6 kiểm lại trên hai máy còn
+lại.\end{rqanswer}
+% nguồn: barrier.csv, ns/episode p=4: sr 200,1, sr_bo_yield 195,2. sr: tốc độ p=10 / p=12 = 2\,067.
+
+\PCfigure{apple-m5}{barrier_rate}
+
+\emph{Bằng chứng.} Nhóm đo số episode mỗi giây khi giữa hai barrier không có việc gì
+(Hình~\ref{fig:apple-m5:barrier_rate}). Từ 1 lên 2 thread, một episode của \PCname{sr} tăng từ 1,7~ns
+lên 94,5~ns. Từ 2 tới 4 thread, mỗi thread thêm vào tốn khoảng 53~ns, từ 4 tới 10 thread khoảng 295~ns.
+Từ 10 lên 12 thread, \PCname{sr} chậm đi khoảng 2\,070 lần, và mỗi thread vượt số core thêm khoảng 2~ms
+vào một episode. Tới 4 thread, \PCname{sr}, \PCname{sr_block} và \PCname{sr_bo_yield} gần nhau,
+\PCname{std_barrier} chậm hơn \PCname{sr} 1,6 lần, còn \PCname{sr_bo_spin}, \PCname{condvar} và
+\PCname{sr_bo_sleep} chậm hơn 3,9--31 lần. Khi vượt số core, thứ tự đảo lại. Năm barrier không quay
+thuần nhanh hơn \PCname{sr} khoảng 170--680 lần, và \PCname{sr_bo_yield} nhanh nhất.
+% nguồn: barrier.csv, ns/episode sr p=1 1,70, p=2 94,5; p=4 200,1; p=10 1\,969; p=4 std_barrier 320,8 (1,60),
+% sr_bo_spin 786,5 (3,93), sr_bo_sleep 6\,112 (30,5); p=12..20: 168..677 lần.
+
+\emph{Vì sao.} Từ 2 thread, bộ đếm và cờ phải đi giữa các core ở mỗi episode. Phần tuyến tính đến từ
+$p$ phép \texttt{fetch\_add} lần lượt trên cache line của bộ đếm và $p-1$ lần đọc lại cờ sau khi cờ đảo.
+Chỗ gãy sau 4 thread trùng với số P-core, và kết quả lock cũng gãy ở cùng chỗ ngay cả ở ô đối chứng
+(RQ2). Vì vậy nhóm cho rằng nó đến từ máy chứ không từ thuật toán barrier. Khi vượt số core, thread đã tới
+barrier quay và giữ core tới hết lượt lập lịch, nên thread chưa tới phải chờ lượt sau mới được chạy, giống
+MCS ở RQ2.
+
+\PCname{sr_block} chờ bằng \texttt{std::atomic::wait}. Trong libc++ của Apple clang 21, lời gọi này đọc
+tới khi đã chờ 4~$\mu$s rồi mới ngủ trong kernel. Tới 4 thread, episode ngắn hơn 4~$\mu$s nhiều, nên
+\PCname{sr_block} gần bằng \PCname{sr}. Từ 6 thread nó chậm hẳn (16,1~$\mu$s ở 10 thread). Nhóm cho rằng
+ngày càng nhiều episode có thread chờ quá 4~$\mu$s, ngủ, rồi phải được đánh thức qua kernel.
+\PCname{sr_bo_yield} đọc cờ 64 lần rồi mới gọi \texttt{sched\_yield}. Khi vượt số core, thread chờ nhường
+core, có thể cho thread chưa tới barrier, nên episode xong mà không phải chờ hết lượt lập lịch và không
+phải trả một lần đánh thức qua kernel. Ở 12 thread, một episode của nó tốn 11,6~$\mu$s, so với 13,7~$\mu$s
+của \PCname{std_barrier} và 18,8~$\mu$s của \PCname{sr_block}. \PCname{condvar} không có pha quay, nên
+ngay ở 2 thread mỗi episode đã tốn 1,77~$\mu$s, và tới 4 thread mỗi thread thêm vào tốn khoảng
+1,7~$\mu$s, cùng bậc với chi phí đánh thức 1,5~$\mu$s ước lượng ở RQ2.
+% nguồn: header libc++ (atomic_sync.h); barrier.csv, ns/episode sr_block p=10 16\,064; p=12 sr_bo_yield 11555,
+% std_barrier 13657, sr_block 18755; condvar p=2/4 1\,771/5\,175.
+
+Backoff làm barrier chậm đi khi mỗi thread có core riêng (\PCname{sr_bo_spin} chậm hơn \PCname{sr}
+2,3 tới 9,5 lần), vì thread chờ chỉ đọc cờ và backoff không có tranh chấp nào để giảm. Cửa sổ quay nhân
+đôi sau mỗi lần đọc thấy cờ chưa đảo, nên thread chờ càng lâu thì càng nhận ra cờ đảo muộn.
+% nguồn: barrier.csv, ns/episode sr_bo_spin/sr: p=2 2,30; p=8 9,54.
+
+\emph{Độ vững.} Giữa 7 lần lặp, một episode của \PCname{sr} ở 4 thread dao động 163--340~ns. Tính riêng
+cho từng lượt lặp, độ dốc từ 4 tới 10 thread vẫn lớn hơn độ dốc từ 2 tới 4 thread ở cả 7 lượt, nhưng gấp
+1,2 tới 10,7 lần. Vì vậy hướng tăng của độ dốc là chắc chắn, còn hệ số gần 6 thì không.
+% nguồn: barrier.csv sr p=4, 7 lần: 163,0..339,5 ns/episode; độ dốc theo lượt -> tỉ số 1,22..10,7.

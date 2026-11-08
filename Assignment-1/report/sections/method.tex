@@ -14,8 +14,19 @@ episode.
 
 Đồng hồ là \texttt{std::chrono::steady\_clock}. Vùng đo bắt đầu khi mọi thread đã được tạo và cổng
 xuất phát chung mở ra, và kết thúc khi lần \texttt{join} cuối trả về. Đề yêu cầu thời gian của cả
-chương trình. Báo cáo khác đề ở điểm này. Việc tạo thread nằm ngoài vùng đo, vì nó không thuộc chi phí
-đồng bộ mà các cài đặt cần so. Đồng hồ trên hai máy Apple có độ phân giải 41,7~ns (bộ đếm 24~MHz,
+chương trình. Báo cáo dùng vùng đo làm số đo chính, vì việc khởi động tiến trình và tạo thread không
+thuộc chi phí đồng bộ mà các cài đặt cần so. Runner cũng ghi thời gian cả chương trình, từ lúc khởi chạy
+tới lúc tiến trình kết thúc, và Bảng~\ref{tab:cross:endtoend} so hai thời gian này. Khi số thread nhỏ
+hơn số luồng phần cứng, thời gian cả chương trình dài hơn vùng đo trung vị 3--4~ms trên hai máy Apple và
+8--10~ms trên \PCname{LAP1184}. Từ số luồng phần cứng trở lên, phần chênh là 16--42~ms. Với lock, thứ tự
+giữa hai lock cùng cấu hình đổi ở khoảng 2\,\% số cặp, và chỉ giữa các cặp chênh nhau không quá 5\,\%.
+Với counter trên \PCname{LAP1184}, thứ tự đổi ở 6\,\% số cặp, và có cặp chênh nhau tới 36\,\%.
+% nguồn: report/figures/cross/tables.tex bảng endtoend (scripts/plot.py end_to_end, cột wall_s của
+% results/<máy>/*.csv do scripts/run_bench.py ghi): chênh p < ncpu 3,4..4,2 ms (Apple), 8,5..9,8 ms (LAP1184);
+% p >= ncpu 16..24 (Apple), 40..42 (LAP1184); cặp đổi lock 103/5495, 105/6237, 155/7374, chênh lớn nhất
+% 3,4 / 3,3 / 5,0 %; counter LAP1184 345/5858 = 5,9 %, chênh lớn nhất 36 % (lock_pthread_mutex, lock_ttas,
+% 24 thread, OW = 8).
+Đồng hồ trên hai máy Apple có độ phân giải 41,7~ns (bộ đếm 24~MHz,
 Bảng~\ref{tab:apple-m5:sleeplatency}, phụ lục).
 Trên \PCname{LAP1184}, một lần đọc đồng hồ tốn trung vị 20~ns, và CPU báo TSC ổn định, không đổi theo
 tần số. Cả hai mức này rất nhỏ so với một lần chạy, có độ dài trung vị 0,15--0,29~s tuỳ phần đo.
@@ -89,7 +100,10 @@ lần có cùng số vòng với các lần tính trung vị. Trên \PCname{C4M7
 counter), 3 lần trong đó cùng số vòng. Trên \PCname{LAP1184} có 12 lần (6 ở lock, 6 ở counter), 1 lần
 cùng số vòng. Mọi lần vượt thời hạn ở lock là MCS ở $N=11$, vốn đã chạy với số vòng giảm sẵn, nên các
 cấu hình này được giảm thêm 100 lần. Vì vậy vài ô MCS quá tải chỉ còn 4--6 giá trị (2 ô trên
-\PCname{apple-m5}, 3 trên \PCname{C4M7Y670NT}, 7 trên \PCname{LAP1184}).
+\PCname{apple-m5}, 3 trên \PCname{C4M7Y670NT}, 7 trên \PCname{LAP1184}). Bảng~\ref{tab:apple-m5:reduced}
+(phụ lục) cho số đo thô của mọi cấu hình đo với số vòng lặp giảm trên \PCname{apple-m5}: số vòng mỗi
+thread, số lần chạy hợp lệ, số lần vượt thời hạn và thời gian trước khi quy đổi. Phụ lục có bảng cùng dạng
+cho hai máy còn lại.
 % nguồn: lock.csv, counter.csv (dòng extra=timeout) của ba máy; so số vòng của lần vượt thời hạn với số vòng
 % chiếm đa số của các lần ok: apple-m5 cùng số vòng ở counter lock_mcs p=20 OW=0; C4M7Y670NT counter
 % lock_mcs p=20 OW=0, p=24 OW=0, p=24 OW=1; LAP1184 counter lock_mcs p=16 OW=1.
@@ -115,8 +129,9 @@ cho phần việc của riêng nó. $t$ là trung vị lần chạy 1
 thread của lock nhanh nhất ở cùng $N$ và OW, chia cho $I(1+\mathrm{OW})$. Báo cáo dùng hai đại lượng
 dẫn xuất:
 \begin{itemize}[nosep]
-  \item \emph{Độ chậm} là thời gian đo chia cho $T_{\min}$. Độ chậm 1 nghĩa là lock không thêm chi
-    phí nào.
+  \item \emph{Độ chậm} là thời gian đo chia cho $T_{\min}$. Độ chậm 1 nghĩa là không có chi phí nào
+    ngoài phần việc. Phần vượt 1 gồm chi phí của lock và cả các chi phí không do lock, nêu ở mục Các
+    yếu tố đe dọa độ tin cậy.
   \item \emph{Độ công bằng} là thời gian của thread xong sớm nhất chia cho thời gian của thread xong
     muộn nhất trong một lần chạy. Mỗi thread tự đo vòng lặp của mình. Mọi thread làm cùng số vòng,
     nên 1 là hoàn toàn đều. Lock và counter đều ghi đại lượng này.
@@ -124,7 +139,9 @@ dẫn xuất:
 Bảng~\ref{tab:apple-m5:campaign} (phụ lục) tóm tắt đợt đo. Bảng~\ref{tab:apple-m5:lockunit} cho $t$.
 % nguồn: scripts/plot.py unit_time, bound; bench/bench_lock.cpp và bench_counter.cpp (thr_min_s, thr_max_s)
 
-Mỗi điểm trên hình là trung vị của 7 lần lặp, và thanh sai số đi từ min tới max. Vạch dọc liền đánh
+Mỗi điểm trên hình là trung vị của 7 lần lặp, và thanh sai số đi từ min tới max. Nếu 7 lần lặp độc
+lập và cùng phân bố, khoảng từ min tới max chứa trung vị của phân bố với xác suất $1 - 2 \cdot 2^{-7}
+\approx 98{,}4\,\%$. Ở các ô chỉ còn 4--6 lần lặp, xác suất này là 87,5--96,9\,\%. Vạch dọc liền đánh
 dấu số core, hoặc số luồng phần cứng khi máy có SMT, còn vạch dọc chấm đánh dấu số P-core, hoặc số core
 do máy ảo báo. Vòng tròn lớn quanh một điểm cho biết cấu hình đó được đo với số vòng giảm 100 lần hoặc
 hơn rồi quy đổi tuyến tính. Tam giác rỗng đánh dấu trung vị là một lần vượt thời hạn, và khi đó thời gian thật

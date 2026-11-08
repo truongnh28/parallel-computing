@@ -52,9 +52,11 @@ riêng ảnh hưởng của tải. Vùng vượt số core chưa được đo l�
 % nguồn: scripts/report_numbers/extra_analyze.py (results/apple-m5/extra/lowload.csv, 175 lần chạy, load1
 % 2,77..6,71, trung vị 2,89); ns/CS low/main ngoài mcs p=10: 0,83 (tas 10t) .. 1,05 (std_mutex 4t);
 % mcs p=10: 3\,545 / 6\,635 ns = 0,53; t(N=1009) = 6\,635/13,0 = 510 ns -> 3\,545/510 = 6,9.
-Nhóm không đọc nhiệt độ hay tần số CPU. Thời gian 1 thread không trôi quá 3,4\,\% qua 7 lượt lặp. Với 7
-lần lặp, nhóm không tính khoảng tin cậy. Trung vị không thể hiện phân bố hai đỉnh, và chỉ thanh min--max
-cho thấy phần này.
+Nhóm không đọc nhiệt độ hay tần số CPU. Thời gian 1 thread không trôi quá 3,4\,\% qua 7 lượt lặp.
+Xác suất 98,4\,\% tính cho thanh min--max ở mục Phương pháp đo giả định các lần lặp độc lập và cùng
+phân bố, trong khi tải nền thay đổi trong đợt đo, nên thanh này chỉ là khoảng min--max của các lần lặp,
+không phải khoảng tin cậy. Trung vị không thể hiện phân bố hai đỉnh, và chỉ thanh min--max cho thấy phần
+này.
 % nguồn: scripts/report_numbers/corr_stats2.py (lock.csv, threads=1, n=1009, giây/(iters*(1+OW)));
 % scripts/report_numbers/corr_stats.py (tỉ số theo lượt 0,977..1,034)
 Trên \PCname{LAP1184}, load average (5,90--19,6) chỉ đếm tiến trình trong máy ảo. Tải của Windows, việc

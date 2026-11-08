@@ -1,0 +1,70 @@
+% Mục 5 (bản rút gọn). Rút từ sections/method.tex; nguồn từng số ghi ở đó. Nguồn chính: scripts/run_bench.py,
+% include/bench_common.hpp, scripts/plot.py, results/<máy>/{calibration.json, campaign.log, *.csv}.
+Chương trình đo lock chạy vòng lặp của đề, mỗi thread $I$ vòng. Chương trình đo counter thay critical
+section bằng một lần tăng counter, với OW lời gọi \texttt{is\_prime(101)} giữa hai lần tăng. Chương trình
+đo barrier gọi barrier $I$ lần liên tiếp, không có việc ở giữa, nên mỗi lần chạy có đúng $I$ episode.
+
+Đồng hồ là \texttt{std::chrono::steady\_clock}. Vùng đo bắt đầu khi mọi thread đã được tạo và cổng
+xuất phát chung mở ra, và kết thúc khi lần \texttt{join} cuối trả về. Đề yêu cầu thời gian của cả
+chương trình. Báo cáo dùng vùng đo làm số đo chính, vì việc khởi động tiến trình và tạo thread không
+thuộc chi phí đồng bộ mà các cài đặt cần so. Runner cũng ghi thời gian cả chương trình, và
+Bảng~\ref{tab:cross:endtoend} so hai thời gian này. Khi số thread nhỏ hơn số luồng phần cứng, thời gian
+cả chương trình dài hơn vùng đo trung vị 3--4~ms trên hai máy Apple và 8--10~ms trên \PCname{LAP1184}.
+Từ số luồng phần cứng trở lên, phần chênh là 16--42~ms. Với lock, thứ tự giữa hai lock cùng cấu hình đổi
+ở khoảng 2\,\% số cặp, và chỉ giữa các cặp chênh nhau không quá 5\,\%. Với counter trên
+\PCname{LAP1184}, thứ tự đổi ở 6\,\% số cặp, và có cặp chênh nhau tới 36\,\%. Độ phân giải đồng hồ
+rất nhỏ so với một lần chạy, có độ dài trung vị 0,15--0,29~s. Trên hai máy Apple đồng hồ đếm ở 24~MHz,
+tức 41,7~ns một nhịp (trung vị đo được 41,0~ns). Trên \PCname{LAP1184} mỗi lần đọc đồng hồ tốn 20~ns.
+% nguồn: report/figures/cross/tables.tex bảng endtoend (cột wall_s của results/<máy>/*.csv); sleep_latency.csv
+% dòng clock; scripts/report_numbers/corr_stats.py.
+
+Mỗi lần chạy in một dòng CSV gồm tham số, thời gian, load average 1 phút và kết quả của một phép kiểm.
+Phép kiểm buộc mọi phần việc phải thật sự chạy: \texttt{is\_prime} không inline, \texttt{N} đi qua
+\texttt{pc::opaque()} ở mỗi lời gọi, và tổng kết quả của mỗi thread phải bằng số lời gọi. Trên
+\PCname{apple-m5} ở $N=1009$, thời gian một lời gọi $t$ nằm trong 504--527~ns ở mọi OW từ 0 tới 15 (trên
+\PCname{LAP1184} là 1\,600--1\,640~ns), nên phần việc không bị xoá. Trên
+cả ba máy, mọi lần chạy hoàn thành đều qua phép kiểm kết quả.
+
+Phần lock quét 12 lock qua ba lượt. Một lượt dùng $N=1009$ với OW bằng 0, 1, 3, 7, 15. Hai lượt còn lại
+dùng $N=11$ và $N=10\,007$ với OW bằng 0 và 3. Ba giá trị cho critical section khoảng 5~ns, 0,5~\textmu s
+và 5~\textmu s. Barrier quét 7 cài đặt. Counter quét 19 cài đặt với OW bằng 0, 1, 8. Số thread trên
+\PCname{apple-m5} là 1, 2, 3, 4, 6, 8, 10, 12, 16, 20, trong đó 4 là số P-core, 10 là mọi core và 12--20
+là quá tải. Hai máy còn lại thêm 24 thread.
+
+Với lock, số vòng mỗi thread là $I = W_N/\max(p,\,1+\mathrm{OW})$, với $W_N$ hiệu chỉnh một lần cho mỗi
+$N$ để một lần chạy của \PCname{ttas} với OW $=0$ dài khoảng 0,19~s. Với barrier và counter, mỗi cấu hình
+có $I$ riêng suy từ một lần chạy thử, nhắm 0,25~s và 0,15~s. $I$ cố định cho cả đợt đo, và hình quy thời
+gian về cùng số vòng lặp. Thời hạn mỗi lần chạy là 30~s cho lock và 10~s cho barrier và counter. Riêng
+\PCname{sr} và \PCname{sr_bo_spin} khi vượt số core được 30~s, vì một episode có thể tốn cả một lượt lập
+lịch. Lock MCS quá tải được đo với số vòng nhỏ hơn 100 lần ngay từ đầu. Lần vượt thời hạn được ghi lại, cấu hình đó
+được đo tiếp với số vòng nhỏ hơn 100 lần (không dưới 10), và trung vị chỉ dùng các lần chạy có cùng số
+vòng. Mọi lần vượt thời hạn trên ba máy là MCS hoặc \PCname{lock_mcs} quá tải, và không cấu hình nào có
+trung vị là một lần vượt thời hạn. Vài ô chỉ còn 4--6 giá trị: \PCname{lock_mcs} quá tải của counter
+trên cả ba máy, và MCS quá tải với $N = 11$ trên \PCname{LAP1184}.
+
+Mỗi cấu hình chạy 7 lần. Báo cáo dùng trung vị, không dùng trung bình, vì phân bố lệch phải. Trên
+\PCname{apple-m5}, ở 33\,\% cấu hình lock lần chậm nhất dài hơn 1,5 lần trung vị, với barrier là 49\,\%.
+Trên hai máy còn lại, tỉ lệ này ở lock là 3\,\% và 7\,\%. Lượt lặp là vòng ngoài.
+Trong mỗi lượt, mọi cấu hình chạy theo thứ tự xáo trộn với seed cố định, nên tải nền trôi chậm không
+thiên vị cài đặt nào. Mỗi thời điểm chỉ có một tiến trình đo.
+
+Phần lock được so với cận dưới lý tưởng
+\[ T_{\min} = \max(p,\ 1+\mathrm{OW})\cdot I\cdot t. \]
+Hai vế trong $\max$ là hai cận dưới riêng. Các critical section loại trừ nhau, nên tổng thời gian của
+chúng, $p\,I\,t$, là một cận dưới. Mỗi thread phải tự gọi \texttt{is\_prime} $(1+\mathrm{OW})\,I$ lần,
+nên $(1+\mathrm{OW})\,I\,t$ là cận dưới thứ hai. Từ $p = 1+\mathrm{OW}$ vế đầu lớn hơn, và thời gian
+đo chỉ chạm cận khi lock bận liên tục. $t$ là trung vị lần chạy 1 thread của lock nhanh nhất ở cùng $N$
+và OW, chia cho $I(1+\mathrm{OW})$.
+\begin{itemize}[nosep]
+  \item \emph{Độ chậm} là thời gian đo chia cho $T_{\min}$. Độ chậm 1 nghĩa là không có chi phí nào
+    ngoài phần việc. Phần vượt 1 gồm chi phí của lock và cả các chi phí không do lock, nêu ở mục Các
+    yếu tố đe dọa độ tin cậy.
+  \item \emph{Độ công bằng} là thời gian của thread xong sớm nhất chia cho thời gian của thread xong
+    muộn nhất trong một lần chạy. Mọi thread làm cùng số vòng, nên 1 là hoàn toàn đều.
+\end{itemize}
+
+Mỗi điểm trên hình là trung vị của 7 lần lặp, và thanh sai số đi từ min tới max. Nếu 7 lần lặp độc
+lập và cùng phân bố, khoảng từ min tới max chứa trung vị của phân bố với xác suất $1 - 2 \cdot 2^{-7}
+\approx 98{,}4\,\%$. Ở các ô chỉ còn 4--6 lần lặp, xác suất này là 87,5--96,9\,\%. Vạch dọc liền đánh dấu số core, hoặc số luồng phần cứng khi máy
+có SMT, còn vạch dọc chấm đánh dấu số P-core, hoặc số core do máy ảo báo. Vòng tròn lớn quanh một điểm
+cho biết cấu hình đó được đo với số vòng giảm 100 lần hoặc hơn rồi quy đổi tuyến tính.

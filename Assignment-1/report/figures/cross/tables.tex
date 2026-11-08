@@ -26,19 +26,51 @@ OpenMP & không (không có baseline OpenMP) & không (không có baseline OpenM
 Lệnh chờ trong vòng spin & \texttt{isb} & \texttt{isb} & \texttt{pause} \\
 Ghim thread vào core & không có (macOS trên Apple Silicon không có API ghim thread) & không có (macOS trên Apple Silicon không có API ghim thread) & có (\texttt{sched\_setaffinity}) nhưng các benchmark không dùng \\
 Nguồn điện lúc đo & cắm sạc & cắm sạc & cắm sạc (ghi sau đợt đo) \\
-Thành viên chạy đo & \PCowner{apple-m5} & \PCowner{C4M7Y670NT} & \PCowner{LAP1184} \\
+\bottomrule
+\end{tabular}
+\endgroup%
+}
+\expandafter\gdef\csname PC@cross@tabcap@endtoend\endcsname{%
+Thời gian cả chương trình, do runner đo từ lúc khởi chạy tới lúc tiến trình kết thúc, so với vùng đo. Chênh là trung vị hiệu hai thời gian qua mọi lần chạy hợp lệ; cặp đổi thứ tự là các cặp cài đặt cùng cấu hình đổi thứ tự nhanh chậm, xét các cấu hình không giảm số vòng và có trung vị từ 0,050~s.%
+}
+\expandafter\gdef\csname PC@cross@tab@endtoend\endcsname{%
+\begingroup\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+Máy & Phần & \multicolumn{2}{c}{Chênh trung vị (ms)} & Cặp đổi thứ tự & Chênh lớn nhất \\
+\cmidrule(lr){3-4}
+ & & $p <$ số luồng & $p \ge$ số luồng & & của cặp đổi \\
+\midrule
+\texttt{apple-m5} & Lock & 3,4 & 16 & 103/5\,495 & 3,4\,\% \\
+\texttt{apple-m5} & Barrier & 3,8 & 17 & 4/210 & 2,8\,\% \\
+\texttt{apple-m5} & Counter & 3,4 & 17 & 62/4\,866 & 9,9\,\% \\
+\texttt{C4M7Y670NT} & Lock & 4,2 & 24 & 105/6\,237 & 3,3\,\% \\
+\texttt{C4M7Y670NT} & Barrier & 4,2 & 24 & 1/231 & 8,6\,\% \\
+\texttt{C4M7Y670NT} & Counter & 4,2 & 24 & 91/5\,363 & 15\,\% \\
+\texttt{LAP1184} & Lock & 8,5 & 40 & 155/7\,374 & 5,0\,\% \\
+\texttt{LAP1184} & Barrier & 8,7 & 40 & 12/330 & 10,0\,\% \\
+\texttt{LAP1184} & Counter & 9,8 & 42 & 345/5\,858 & 36\,\% \\
 \bottomrule
 \end{tabular}
 \endgroup%
 }
 \expandafter\gdef\csname PC@cross@figcap@lock\endcsname{%
-So sánh các máy, phần lock: thời gian đo chia cho cận dưới lý tưởng của chính máy đó, \texttt{OUTSIDE\_WORK} = 0, cùng thang đo. Chia cho cận dưới khử khác biệt về tốc độ core.%
+So sánh các máy, phần lock: thời gian đo chia cho cận dưới lý tưởng của chính máy đó, \texttt{OUTSIDE\_WORK} = 0, cùng thang đo. Chia cho cận dưới khử khác biệt về tốc độ core. \PCfullonly{Hình~\ref{fig:cross:lock_all} (phụ lục) vẽ mọi lock.}%
+}
+\expandafter\gdef\csname PC@cross@figcap@lock_all\endcsname{%
+So sánh các máy, phần lock: thời gian đo chia cho cận dưới lý tưởng của chính máy đó, \texttt{OUTSIDE\_WORK} = 0, cùng thang đo. Chia cho cận dưới khử khác biệt về tốc độ core. Mọi lock không có backoff.%
 }
 \expandafter\gdef\csname PC@cross@figcap@barrier\endcsname{%
-So sánh các máy, phần barrier: số episode mỗi giây theo số thread, cùng thang đo.%
+So sánh các máy, phần barrier: số episode mỗi giây theo số thread, cùng thang đo. \PCfullonly{Hình~\ref{fig:cross:barrier_all} (phụ lục) vẽ mọi barrier.}%
+}
+\expandafter\gdef\csname PC@cross@figcap@barrier_all\endcsname{%
+So sánh các máy, phần barrier: số episode mỗi giây theo số thread, cùng thang đo. Mọi barrier.%
 }
 \expandafter\gdef\csname PC@cross@figcap@counter\endcsname{%
-So sánh các máy, phần counter ở mức tranh chấp cao nhất (\texttt{OUTSIDE\_WORK} nhỏ nhất của từng máy): thời gian chạy quy về $10^6$ lần tăng mỗi thread, cùng thang đo.%
+So sánh các máy, phần counter ở mức tranh chấp cao nhất (\texttt{OUTSIDE\_WORK} nhỏ nhất của từng máy): thời gian chạy quy về $10^6$ lần tăng mỗi thread, cùng thang đo. \PCfullonly{Hình~\ref{fig:cross:counter_all} (phụ lục) vẽ mọi counter.}%
+}
+\expandafter\gdef\csname PC@cross@figcap@counter_all\endcsname{%
+So sánh các máy, phần counter ở mức tranh chấp cao nhất (\texttt{OUTSIDE\_WORK} nhỏ nhất của từng máy): thời gian chạy quy về $10^6$ lần tăng mỗi thread, cùng thang đo. Mọi counter không có biến thể backoff hay \texttt{seq\_cst}.%
 }
 \expandafter\gdef\csname PC@cross@val@hosts\endcsname{%
 apple-m5,C4M7Y670NT,LAP1184%

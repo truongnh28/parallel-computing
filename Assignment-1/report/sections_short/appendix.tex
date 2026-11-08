@@ -1,0 +1,27 @@
+% Phụ lục (bản rút gọn): bảng số liệu sinh bởi scripts/plot.py (figures/<máy>/tables.tex) từ results/<máy>/*.csv.
+% Chỉ nạp bảng, không sửa tay. Thứ tự mỗi máy: hiệu chỉnh, lock (OW = 0, 1, 3, 7, 15), barrier,
+% counter (OW = 0, 1, 8), số CAS hỏng, số thô của các ô đo rút gọn.
+\section{Bảng số liệu}
+Các bảng dưới đây là trung vị của các lần lặp cho mọi cấu hình đã đo trên ba máy. Số liệu thô (CSV của
+từng lần chạy), script vẽ hình và mã nguồn nằm trong gói nộp.
+
+\newcommand{\PCrawtables}[1]{%
+  \subsection{Máy \PCname{#1}}
+  \PCtable{#1}{lockunit}
+  \PCtable{#1}{locktime}
+  \PCtableopt{#1}{locktime-ow1}
+  \PCtableopt{#1}{locktime-ow3}
+  \PCtableopt{#1}{locktime-ow7}
+  \PCtableopt{#1}{locktime-ow15}
+  \PCtable{#1}{barrier}
+  \PCtable{#1}{countertime}
+  \PCtableopt{#1}{countertime-ow1}
+  \PCtableopt{#1}{countertime-ow8}
+  \PCtableopt{#1}{casfail}
+  \PCtableopt{#1}{reduced}
+}
+\PCrawtables{apple-m5}
+\PCtable{apple-m5}{locksingle}
+\PCtable{apple-m5}{sleeplatency}
+\PCrawtables{C4M7Y670NT}
+\PCrawtables{LAP1184}

@@ -1,0 +1,29 @@
+% Mục 3.2 (bản rút gọn). Rút từ sections/impl_barrier.tex. Nguồn: include/barrier.hpp.
+Barrier cho $n$ thread bảo đảm không thread nào ra khỏi lần gọi \texttt{wait()} thứ $k$ trước khi cả $n$
+thread đã gọi lần thứ $k$, và dùng lại được qua mọi episode. Barrier một cờ ``mở/đóng'' không dùng lại
+được. Sense-reversing barrier~\cite{hensgen1988barrier} không đặt lại cờ mà đảo nó mỗi episode. Mỗi
+thread chờ cờ bằng \emph{local sense} của mình, nên hai episode kề nhau chờ hai giá trị khác nhau. Mỗi
+thread tới barrier tăng bộ đếm \texttt{count\_} bằng \texttt{fetch\_add}. Thread tới cuối đặt lại bộ đếm
+về 0 rồi ghi local sense của nó vào cờ chung \texttt{sense\_}. Các thread khác chờ tới khi cờ bằng local
+sense của mình. Sau đó mỗi thread đảo local sense của mình cho episode sau.
+Thread tới cuối phải đặt lại bộ đếm trước khi đảo cờ. Nếu đảo trước, thread vừa được thả có thể tới
+episode sau, rồi bị phép đặt lại muộn xoá mất lần tới, và mọi thread chờ mãi.
+
+\texttt{fetch\_add} cần acq\_rel (\texttt{ldaddal}). Lý do nằm ở hai khái niệm của mô hình bộ nhớ C++.
+Một phép ghi release và một phép đọc acquire đọc được giá trị của nó tạo quan hệ \emph{happens-before}:
+mọi thứ một thread ghi trước phép ghi release, thread kia nhìn thấy sau phép đọc acquire. Một phép ghi
+release còn mở đầu một \emph{release sequence}, là dãy gồm nó và mọi phép đọc-sửa-ghi atomic đứng sau
+nó trên cùng biến. Phép đọc acquire đọc được bất kỳ phần tử nào của dãy đều đồng bộ với phép ghi đầu
+dãy. \texttt{fetch\_add} là phép đọc-sửa-ghi, nên các \texttt{fetch\_add} lên \texttt{count\_} nối nhau
+thành một dãy như vậy. Vì thế \texttt{fetch\_add} của thread tới cuối đồng bộ với \texttt{fetch\_add}
+của mọi thread tới trước, và thread tới cuối thấy mọi phép ghi của chúng trước barrier. Phép ghi release
+lên \texttt{sense\_} rồi phép đọc acquire của thread chờ chuyển tiếp các phép ghi đó cho mọi thread đang
+chờ.
+
+\texttt{count\_}, \texttt{sense\_} và mỗi local sense nằm trên các cache line riêng. Local sense nằm trong barrier, đánh chỉ số bằng \texttt{tid}, vì một biến \texttt{thread\_local}
+sẽ bị hai barrier dùng xen kẽ làm hỏng.
+
+Các cách chờ gồm quay (\PCname{sr}), ba chính sách backoff như lock, và chờ chặn (\PCname{sr_block}) bằng
+\texttt{std::atomic::wait} và \texttt{notify\_all}. Theo mã nguồn libc++ và libstdc++, \texttt{wait}
+quay một lúc rồi mới chặn thật. Các barrier thư viện gồm \texttt{std::barrier}, barrier dựng từ mutex và
+condition variable (\PCname{condvar}), \texttt{pthread\_barrier\_t} (Linux) và \texttt{omp barrier}.

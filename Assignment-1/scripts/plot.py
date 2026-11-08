@@ -220,7 +220,8 @@ def load_csv(path):
                            ops=float(r["ops"]), rate=float(r["ops_per_s"]), ok=int(r["ok"]),
                            load1=float(r["load1"]), extra=parse_extra(r.get("extra")),
                            extra_raw=r.get("extra") or "", rep=int(r.get("rep") or 0),
-                           timestamp=r.get("timestamp") or "", ncpu=int(r["ncpu"]),
+                           timestamp=r.get("timestamp") or "", wall=float(r.get("wall_s") or 0),
+                           ncpu=int(r["ncpu"]),
                            arch=r["arch"], os=r["os"], compiler=r["compiler"], host=r["host"])
             except (KeyError, ValueError, TypeError):
                 continue                                     # truncated or foreign line
@@ -242,6 +243,7 @@ class Stat:
         # repetition of the same experiment any more (self.reduced marks such a configuration).
         self.x = collections.defaultdict(list)
         self.sec, self.rate, self.cens, self.ops, self.reduced, self.mixed = [], [], [], 0.0, False, False
+        self.wall = []                                       # whole-process time seen by run_bench.py (wall_s)
         if self.ok_rows:
             counts = collections.Counter(r["iters"] for r in self.ok_rows)
             self.iters = counts.most_common(1)[0][0]
@@ -252,6 +254,8 @@ class Stat:
                 if r["iters"] != self.iters:
                     continue
                 self.sec.append(r["seconds"])
+                if r["wall"] > 0:
+                    self.wall.append(r["wall"])
                 self.rate.append(r["rate"])
                 self.ops = r["ops"]
                 e = r["extra"]
@@ -1182,17 +1186,24 @@ def fig_counter_cas(host, sty, out, cap):
 
 
 # ---- figures: cross-machine -----------------------------------------------------------------------------------------
+# The cross-machine figures in the body draw these implementations (when a machine has them); the
+# <part>_all.pdf variant in the appendix draws every implementation.
+CROSS_MAIN = {"lock": ("tas", "ttas", "mcs", "std_mutex", "omp_lock"),
+              "barrier": ("sr", "sr_bo_yield", "sr_block", "std_barrier", "omp_barrier"),
+              "counter": ("faa", "cas", "lock_tas", "lock_mcs", "lock_std_mutex", "lock_omp_lock")}
+
+
 def fig_cross(hosts, sty, out, cap):
     synthetic = any(h.synthetic for h in hosts)
 
-    def frame(part, draw_host, ylabel, name):
+    def frame(part, draw_host, ylabel, name, keep=None):
         hs = [h for h in hosts if h.stats[part]]
         if len(hs) < 2:
             return None
         fig, axs, _ = panels(len(hs), ncols=min(3, len(hs)), height=3.1)
         used, fl = [], Flags()
         for ax, h in zip(axs, hs):
-            for impl in draw_host(ax, h, fl):
+            for impl in draw_host(ax, h, fl, keep):
                 if impl not in used:
                     used.append(impl)
             log_y(ax)
@@ -1220,10 +1231,10 @@ def fig_cross(hosts, sty, out, cap):
     common = set.intersection(*sets) if sets else set()
     common_ow = min(common) if common else None
 
-    def lock_host(ax, h, fl):
+    def lock_host(ax, h, fl, keep):
         st, n = h.stats["lock"], main_n(h.stats["lock"])
         t = unit_time_any(st, n, common_ow)
-        impls = sty.order("lock", sty.plain("lock", h.impls("lock")))
+        impls = [i for i in sty.order("lock", sty.plain("lock", h.impls("lock"))) if not keep or i in keep]
         threads = sorted({s.threads for s in st.values() if s.n == n and s.ow == common_ow})
         for impl in impls:
             pts = []
@@ -1238,14 +1249,16 @@ def fig_cross(hosts, sty, out, cap):
         return impls
 
     if common_ow is not None:
-        fl = frame("lock", lock_host, "Thời gian đo / cận dưới lý tưởng", "lock")
-        if fl:
-            cap["lock"] = (pre + r"So sánh các máy, phần lock: thời gian đo chia cho cận dưới lý tưởng của chính máy đó, "
-                           r"\texttt{OUTSIDE\_WORK} = %d, cùng thang đo. Chia cho cận dưới khử khác biệt về tốc độ core." % common_ow)
+        text = (pre + r"So sánh các máy, phần lock: thời gian đo chia cho cận dưới lý tưởng của chính máy đó, "
+                r"\texttt{OUTSIDE\_WORK} = %d, cùng thang đo. Chia cho cận dưới khử khác biệt về tốc độ core." % common_ow)
+        if frame("lock", lock_host, "Thời gian đo / cận dưới lý tưởng", "lock", CROSS_MAIN["lock"]):
+            cap["lock"] = text + r" \PCfullonly{Hình~\ref{fig:cross:lock_all} (phụ lục) vẽ mọi lock.}"
+        if frame("lock", lock_host, "Thời gian đo / cận dưới lý tưởng", "lock_all"):
+            cap["lock_all"] = text + r" Mọi lock không có backoff."
 
-    def barrier_host(ax, h, fl):
+    def barrier_host(ax, h, fl, keep):
         st = h.stats["barrier"]
-        impls = sty.order("barrier", h.impls("barrier"))
+        impls = [i for i in sty.order("barrier", h.impls("barrier")) if not keep or i in keep]
         threads = sorted({s.threads for s in st.values()})
         for impl in impls:
             pts = [(k[1], float(np.median(s.rate)), min(s.rate), max(s.rate), False, False)
@@ -1255,13 +1268,16 @@ def fig_cross(hosts, sty, out, cap):
             thread_axis(ax, threads, h)
         return impls
 
-    if frame("barrier", barrier_host, "Số episode mỗi giây", "barrier"):
-        cap["barrier"] = (pre + r"So sánh các máy, phần barrier: số episode mỗi giây theo số thread, cùng thang đo.")
+    text = pre + r"So sánh các máy, phần barrier: số episode mỗi giây theo số thread, cùng thang đo."
+    if frame("barrier", barrier_host, "Số episode mỗi giây", "barrier", CROSS_MAIN["barrier"]):
+        cap["barrier"] = text + r" \PCfullonly{Hình~\ref{fig:cross:barrier_all} (phụ lục) vẽ mọi barrier.}"
+    if frame("barrier", barrier_host, "Số episode mỗi giây", "barrier_all"):
+        cap["barrier_all"] = text + r" Mọi barrier."
 
-    def counter_host(ax, h, fl):
+    def counter_host(ax, h, fl, keep):
         st, n = h.stats["counter"], counter_n(h.stats["counter"])
         ow = min({s.ow for s in st.values() if s.n == n})
-        impls = sty.order("counter", sty.plain("counter", h.impls("counter")))
+        impls = [i for i in sty.order("counter", sty.plain("counter", h.impls("counter"))) if not keep or i in keep]
         threads = sorted({s.threads for s in st.values() if s.n == n and s.ow == ow})
         for impl in impls:
             pts = [(p,) + st[(impl, p, ow, n)].triple(COUNTER_REF / st[(impl, p, ow, n)].iters) for p in threads
@@ -1271,10 +1287,12 @@ def fig_cross(hosts, sty, out, cap):
             thread_axis(ax, threads, h)
         return impls
 
-    fl = frame("counter", counter_host, "Thời gian cho $10^6$ lần tăng (s)", "counter")
-    if fl:
-        cap["counter"] = (pre + r"So sánh các máy, phần counter ở mức tranh chấp cao nhất (\texttt{OUTSIDE\_WORK} nhỏ nhất của "
-                          r"từng máy): thời gian chạy quy về $10^6$ lần tăng mỗi thread, cùng thang đo.")
+    text = (pre + r"So sánh các máy, phần counter ở mức tranh chấp cao nhất (\texttt{OUTSIDE\_WORK} nhỏ nhất của "
+            r"từng máy): thời gian chạy quy về $10^6$ lần tăng mỗi thread, cùng thang đo.")
+    if frame("counter", counter_host, "Thời gian cho $10^6$ lần tăng (s)", "counter", CROSS_MAIN["counter"]):
+        cap["counter"] = text + r" \PCfullonly{Hình~\ref{fig:cross:counter_all} (phụ lục) vẽ mọi counter.}"
+    if frame("counter", counter_host, "Thời gian cho $10^6$ lần tăng (s)", "counter_all"):
+        cap["counter_all"] = text + r" Mọi counter không có biến thể backoff hay \texttt{seq\_cst}."
 
 
 # ---- tables -----------------------------------------------------------------------------------------------------------
@@ -1351,7 +1369,6 @@ def machine_rows(h):
         ("Lệnh chờ trong vòng spin", tt(h.relax) if h.relax else "–"),
         ("Ghim thread vào core", pin or "–"),
         ("Nguồn điện lúc đo", tex(power_note(h))),
-        ("Thành viên chạy đo", r"\PCowner{%s}" % h.name),
     ]
 
 
@@ -1382,8 +1399,9 @@ def grid_table(row_names, col_names, cell, corner, extra_rows=()):
             out.append(" & ".join([label] + [fn(c) for c in col_names]) + r" \\")
     out += [r"\bottomrule", r"\end{tabular}", r"\endgroup"]
     body = "\n".join(out)
-    if len(col_names) > 11:
-        body = r"\resizebox{\linewidth}{!}{%" + "\n" + body + "}"
+    # Shrink only the tables that would overflow the text block (12 columns, or 11 columns of
+    # 4-digit cells); narrower tables keep their natural size.
+    body = r"\adjustbox{max width=\linewidth}{%" + "\n" + body + "}"
     return body
 
 
@@ -1399,6 +1417,80 @@ def time_cell(s, ref):
 
 DAGGER_NOTE = (r" $\dagger$: đo với số vòng lặp nhỏ hơn 100 lần (cấu hình sụp đổ hoặc đã vượt thời hạn), "
                r"rồi quy đổi tuyến tính.")
+
+
+def reduced_table(h):
+    """Every configuration measured with fewer iterations (lock and counter), with its raw numbers:
+    the per-thread iteration count, the valid runs and timeouts, and the measured time before scaling."""
+    out = [r"\begingroup\footnotesize\setlength{\tabcolsep}{4pt}",
+           r"\begin{tabular}{@{}llrrrrrrrr@{}}", r"\toprule",
+           r"Phần & Cài đặt & $N$ & OW & $p$ & $I$ & Lần hợp lệ & Lần vượt hạn & Trung vị (ms) & Min--max (ms) \\",
+           r"\midrule"]
+    count = 0
+    for part in ("lock", "counter"):
+        st = h.stats[part]
+        cells = sorted((s for s in st.values() if s.valid and (s.reduced or (part == "counter" and s.iters <= 200))),
+                       key=lambda s: (s.impl, s.n, s.ow, s.threads))
+        for s in cells:
+            count += 1
+            span = (r"%s--%s" % (vn(s.lo * 1e3, 3, True), vn(s.hi * 1e3, 3, True))) if s.sec else "–"
+            med = (r"$>$\,%s" % vn(s.cap * 1e3, 2, True)) if s.censored else vn(s.med * 1e3, 3, True)
+            out.append(" & ".join([{"lock": "Lock", "counter": "Counter"}[part], tt(s.impl), str(s.n), str(s.ow),
+                                   str(s.threads), vint(s.iters, True), str(len(s.sec)), str(len(s.cens_rows)),
+                                   med, span]) + r" \\")
+    out += [r"\bottomrule", r"\end{tabular}", r"\endgroup"]
+    return "\n".join(out) if count else None
+
+
+SHORT_RUN_S = 0.05            # end-to-end comparison: only runs at least this long (median of the measured time)
+
+
+def end_to_end(h, part):
+    """Whole-process time (wall_s, measured by run_bench.py around the child process) against the
+    measured region: the median difference below and from the hardware-thread count, and whether
+    the order of two implementations in the same cell changes when the whole-process time is used."""
+    rows = [r for r in h.rows[part] if r["ok"] == 1 and r["wall"] > 0]
+    if not rows:
+        return None
+    below = [r["wall"] - r["seconds"] for r in rows if r["threads"] < h.ncpu]
+    above = [r["wall"] - r["seconds"] for r in rows if r["threads"] >= h.ncpu]
+    cells = collections.defaultdict(list)
+    for s in h.stats[part].values():
+        if s.valid and not s.censored and not s.reduced and s.wall and s.iters and s.med >= SHORT_RUN_S:
+            cells[(s.threads, s.ow, s.n)].append((s.med / s.iters, float(np.median(s.wall)) / s.iters))
+    pairs = swaps = 0
+    worst = 1.0
+    for v in cells.values():
+        for i in range(len(v)):
+            for j in range(i + 1, len(v)):
+                pairs += 1
+                if (v[i][0] - v[j][0]) * (v[i][1] - v[j][1]) < 0:
+                    swaps += 1
+                    worst = max(worst, max(v[i][0], v[j][0]) / min(v[i][0], v[j][0]))
+    return (float(np.median(below)) if below else None, float(np.median(above)) if above else None,
+            pairs, swaps, worst)
+
+
+def end_to_end_table(hosts):
+    out = [r"\begingroup\footnotesize\setlength{\tabcolsep}{4pt}",
+           r"\begin{tabular}{@{}llrrrr@{}}", r"\toprule",
+           r"Máy & Phần & \multicolumn{2}{c}{Chênh trung vị (ms)} & Cặp đổi thứ tự & Chênh lớn nhất \\",
+           r"\cmidrule(lr){3-4}",
+           r" & & $p <$ số luồng & $p \ge$ số luồng & & của cặp đổi \\", r"\midrule"]
+    any_row = False
+    for h in hosts:
+        for part, title in (("lock", "Lock"), ("barrier", "Barrier"), ("counter", "Counter")):
+            e = end_to_end(h, part)
+            if e is None:
+                continue
+            any_row = True
+            lo, hi, pairs, swaps, worst = e
+            out.append(" & ".join([tt(h.name), title, vn(lo * 1e3, 2, True) if lo is not None else "–",
+                                   vn(hi * 1e3, 2, True) if hi is not None else "–",
+                                   r"%s/%s" % (vint(swaps, True), vint(pairs, True)),
+                                   (r"%s\,\%%" % vn((worst - 1) * 100, 2, True)) if swaps else "–"]) + r" \\")
+    out += [r"\bottomrule", r"\end{tabular}", r"\endgroup"]
+    return "\n".join(out) if any_row else None
 
 
 def campaign_table(h):
@@ -1557,6 +1649,12 @@ def host_tables(h, sty):
             tabs["casfail"] = (
                 pre + r"Trung vị số lần compare-and-swap hỏng trên mỗi lần tăng, máy %s, \texttt{OUTSIDE\_WORK} = %d."
                 % (tt(h.name), ow), grid_table(cas, threads, fails, r"Counter \textbackslash{} số thread"))
+    body = reduced_table(h)
+    if body:
+        tabs["reduced"] = (
+            pre + r"Số đo thô, chưa quy đổi, của các cấu hình trên máy %s đo với số vòng lặp giảm (lock) hoặc với không "
+            r"quá 200 lần tăng mỗi thread (counter). $I$ là số vòng lặp mỗi thread của các lần chạy được dùng, và trung "
+            r"vị, min--max tính cả lần vượt thời hạn có cùng số vòng." % tt(h.name), body)
     body = sleep_table(h)
     if body:
         tabs["sleeplatency"] = (
@@ -1581,6 +1679,10 @@ def write_host_tex(h, sty, captions, out_dir):
         define("tab", key, body)
     floats = []
     for key, caption, body in appendix:
+        # Each one is also reachable on its own (\PCtableopt{<host>}{locktime-ow3}), so a report can
+        # place the OUTSIDE_WORK variants next to the OUTSIDE_WORK = 0 table of the same part.
+        define("tabcap", key, caption)
+        define("tab", key, body)
         floats.append("\\begin{table}[H]\\centering\n\\caption{%s}\\label{tab:%s:%s}\n%s\n\\end{table}"
                       % (caption, h.name, key, body))
     define("tab", "appendix", "\n".join(floats) if floats else r"\relax")
@@ -1617,6 +1719,13 @@ def write_cross_tex(hosts, captions, out_dir):
     define("tabcap", "machines", pre + "Cấu hình các máy dùng để đo. Thông tin do \\texttt{scripts/machine\\_info.sh} "
            "ghi lại lúc chạy đợt đo; kích thước cache line do hệ điều hành báo.")
     define("tab", "machines", machine_table(hosts))
+    body = end_to_end_table(hosts)
+    if body:
+        define("tabcap", "endtoend", pre + r"Thời gian cả chương trình, do runner đo từ lúc khởi chạy tới lúc tiến trình "
+               r"kết thúc, so với vùng đo. Chênh là trung vị hiệu hai thời gian qua mọi lần chạy hợp lệ; cặp đổi thứ tự "
+               r"là các cặp cài đặt cùng cấu hình đổi thứ tự nhanh chậm, xét các cấu hình không giảm số vòng và có trung "
+               r"vị từ %s~s." % vn(SHORT_RUN_S, 2, True))
+        define("tab", "endtoend", body)
     for name, caption in captions.items():
         define("figcap", name, caption)
     define("val", "hosts", ",".join(h.name for h in hosts))
@@ -1688,7 +1797,7 @@ def main():
             plt.close("all")
     else:
         note("only one machine: no cross-machine figure")
-        for name in ("lock", "barrier", "counter"):          # stale figures of an earlier run
+        for name in ("lock", "barrier", "counter", "lock_all", "barrier_all", "counter_all"):  # stale figures
             stale = os.path.join(cross, name + ".pdf")
             if os.path.exists(stale):
                 os.remove(stale)

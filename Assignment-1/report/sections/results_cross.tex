@@ -29,7 +29,7 @@ và 12 luồng.
 % results/LAP1184/machine.txt (physical_cores: 6, threads_per_core: 2, cpu_model i5-1335U); cấu hình
 % 2P+8E là thông số của Intel cho i5-1335U, máy ảo không thấy được.
 
-\emph{Bằng chứng.} Lock (Hình~\ref{fig:cross:lock}; Bảng~\ref{tab:C4M7Y670NT:locktime}
+\emph{Bằng chứng.} Lock (Hình~\ref{fig:cross:lock} và~\ref{fig:cross:lock_all} ở phụ lục; Bảng~\ref{tab:C4M7Y670NT:locktime}
 và~\ref{tab:LAP1184:locktime}). Trên \PCname{C4M7Y670NT}, TAS chậm 1,15 lần cận dưới ở 6 thread và 1,53
 ở 8 thread, MCS 1,23 rồi 2,58. Trên \PCname{apple-m5} chỗ gãy này nằm ở 4 lên 6 thread. MCS chậm 4,99 lần
 ở 12 thread (bằng số core) và 2\,070--5\,920 lần khi vượt. Hai mutex thư viện chậm 3,9--4,2 lần cận
@@ -49,7 +49,7 @@ khi quá tải được bàn ở mục Độ vững.
 % apple-m5 12,2/8,70=1,40; std_mutex 0,575/0,294=1,96 (2t), 8,99/2,94=3,06 (20t); mcs 2,72/1,47=1,85
 % (10t), 5,51/1,76=3,13 (12t).
 
-Barrier (Hình~\ref{fig:cross:barrier}; Bảng~\ref{tab:C4M7Y670NT:barrier} và~\ref{tab:LAP1184:barrier}).
+Barrier (Hình~\ref{fig:cross:barrier} và~\ref{fig:cross:barrier_all} ở phụ lục; Bảng~\ref{tab:C4M7Y670NT:barrier} và~\ref{tab:LAP1184:barrier}).
 Trên \PCname{C4M7Y670NT}, mỗi thread thêm vào làm một episode của \PCname{sr} dài thêm 36--39~ns tới 6
 thread, rồi 139~ns từ 6 lên 8 thread. \PCname{sr_block} và \PCname{std_barrier} tụt 6,6 và 5,9 lần ở cùng
 chỗ, còn trên \PCname{apple-m5} chỗ tụt nằm ở 4 lên 6. Từ 10 lên 12 thread, bằng số core, hai barrier này
@@ -76,7 +76,7 @@ ba máy.
 % 323k/50,9k=6,3. LAP1184 omp_barrier 1t 9,92M (sr 128M), 10t 1,19M (sr 1,35M), 12t 1,03M, 16t 4,25k; chờ chặn
 % 16t 4,30k-4,67k; 2t: sr_block 1,60M, std_barrier 1,16M, condvar 47,4k, pthread_barrier 80,6k.
 
-Counter (Hình~\ref{fig:cross:counter}; Bảng~\ref{tab:C4M7Y670NT:countertime}
+Counter (Hình~\ref{fig:cross:counter} và~\ref{fig:cross:counter_all} ở phụ lục; Bảng~\ref{tab:C4M7Y670NT:countertime}
 và~\ref{tab:LAP1184:countertime}). Trên \PCname{C4M7Y670NT}, một lần tăng của \PCname{faa} tốn 5,8--8,1~ns
 ở 4--6 thread và 21--38~ns từ 8 thread. \PCname{cas} nhanh hơn \PCname{faa} ở 2 thread (0,76 lần,
 \PCname{apple-m5} 0,72), rồi chậm hơn 3,6--11 lần từ 4 thread (43--90~ns ở 4--6 thread). Counter dùng
@@ -85,8 +85,8 @@ ba lock thư viện chậm hơn \PCname{faa} 6,6 tới 25 lần. Trên \PCname{L
 \PCname{faa} ngay từ 2 thread (1,49 lần) và 2,9 tới 4,3 lần từ 4 thread, dù số lần hỏng ở 8 thread gần bằng
 \PCname{apple-m5} (1,62 và 1,59). Counter dùng mutex chậm hơn \PCname{faa} 2,3 tới 4,0 lần từ 3 thread.
 \PCname{lock_mcs} tăng từ 159 lên 918~ns mỗi lần tăng khi đi từ 8 lên 10 thread, ở cả bảy lần chạy. Từ 12
-thread, \PCname{lock_omp_lock} chậm hơn \PCname{lock_tas} 1,2--1,4 lần, nên trên Hình~\ref{fig:cross:counter}
-nó chỉ nhanh hơn \PCname{lock_mcs}.
+thread, \PCname{lock_omp_lock} chậm hơn \PCname{lock_tas} 1,2--1,4 lần, nên trên Hình~\ref{fig:cross:counter_all}
+(phụ lục) nó chỉ nhanh hơn \PCname{lock_mcs}.
 % nguồn: C4M7Y670NT counter OW=0 ns/op (scripts/report_numbers/rcross_m3.py): faa 4t 5,8, 6t 8,1, 8..24t 21,6-38,2; cas 4t 42,9, 6t
 % 89,8; cas/faa (bảng) 2t 0,00530/0,00696=0,76, 4..24t 3,56-11,1; std_mutex 8t 17,8, faa 27,0;
 % mutex/faa 3..4t: pthread 38,2/5,8=6,6 .. os_unfair 113,9/4,5=25. LAP1184 countertime: cas/faa
@@ -97,7 +97,8 @@ nó chỉ nhanh hơn \PCname{lock_mcs}.
 
 \emph{Vì sao: hai máy Apple.} Các điểm gãy dời theo đúng số P-core và số core. Chỗ gãy của spinlock, của
 độ dốc barrier spin và của các barrier quay-rồi-ngủ nằm ngay sau số P-core. Điều này phù hợp với giải thích
-ở RQ2 và RQ4. Thread vượt số P-core chạy trên E-core chậm hơn, và cache line phải đi giữa hai cụm core.
+ở RQ2 và RQ4, theo đó thread vượt số P-core chạy trên E-core chậm hơn, và cache line phải đi giữa hai
+cụm core.
 \PCname{faa} trên \PCname{C4M7Y670NT} phù hợp với phần sau. Trong cụm 6 P-core dùng chung L2 nó rất rẻ, và
 tốn gấp 2,7 tới 4,7 lần khi có thread ở cụm E-core. Ở 4--6 thread, \PCname{cas} tốn gấp 7,4--11 lần
 \PCname{faa}, lớn hơn khoảng 3 lần mức mô hình $1+f$ của RQ5 (2,4 và 3,8). Mô hình đó không áp được cho

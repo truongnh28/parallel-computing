@@ -1,0 +1,44 @@
+% Mục 2 (bản rút gọn). Rút từ sections/platform.tex; nguồn: results/<máy>/machine.txt, campaign.log.
+Đề yêu cầu số nền tảng shared-memory không ít hơn số thành viên. Nhóm có ba thành viên và ba máy
+(Bảng~\ref{tab:cross:machines}). Mục Kết quả và phân tích dựa trên \PCname{apple-m5}. RQ6 so ba máy.
+
+Máy \PCname{apple-m5} là một Apple M5 với 10 core, gồm 4 P-core và 6 E-core, không có SMT
+(simultaneous multithreading, nhiều luồng phần cứng chạy chung một core). Mỗi cụm có cache L2 riêng,
+16~MiB cho cụm P-core và 6~MiB cho cụm E-core. Khi số thread vượt 4, một phần thread chạy trên E-core
+chậm hơn, và loại core của mỗi thread do scheduler của macOS quyết định. AArch64 có memory model yếu hơn
+x86-TSO (total store order), nên lỗi chọn sai memory order có thể quan sát được trên máy này. x86 chỉ
+cho một phép đọc vượt lên trước phép ghi đứng trước nó. AArch64 cho đổi chỗ hầu hết các cặp đọc ghi tới
+địa chỉ khác nhau. CPU có các lệnh atomic LSE
+(Large System Extensions) của ARMv8.1, nên \texttt{fetch\_add} và \texttt{compare\_exchange} là một lệnh
+máy (\texttt{ldadd}, \texttt{cas}) chứ không phải vòng LL/SC. Hệ điều hành báo cache line dài 128 byte.
+Mã nguồn đệm mọi biến dùng chung theo hằng \texttt{pc::kCacheLine}, bằng 128 trên Apple arm64 và 64 trên
+nền tảng khác.
+% nguồn: results/apple-m5/machine.txt (l2_cache: 16 MiB per 4 P cores / 6 MiB per 6 E cores; smt: no);
+% include/platform.hpp.
+
+Phần mềm gồm macOS 27.0.1 và Apple clang 21.0.0 với cờ \texttt{-std=c++20 -O2}. Apple clang không nhận
+\texttt{-fopenmp}, và macOS không có \texttt{pthread\_spinlock\_t} hay \texttt{pthread\_barrier\_t}.
+Vì vậy các baseline trên máy này là \texttt{std::mutex}, \texttt{pthread\_mutex\_t},
+\texttt{os\_unfair\_lock}, \texttt{std::barrier} và barrier dựng từ mutex và condition variable. Đợt đo
+chính dài 1 giờ 26 phút, gồm 12\,152 lần chạy hoàn thành (cùng 9 lần vượt thời hạn). Máy cắm sạc và chế độ
+tiết kiệm điện tắt. Runner chờ tới khi load average một phút xuống dưới 7,0 mới bắt đầu (6,73). Load average là số thread
+sẵn sàng chạy, trung bình trong một phút, do hệ điều hành báo.
+% nguồn: campaign.log (START load1=6.73; END duration=1:25:45 ok=12152 timeout=9); machine.txt: power AC
+% Power, low_power_mode 0.
+
+Máy \PCname{C4M7Y670NT} là một Apple M3 Pro với 12 core, gồm 6 P-core và 6 E-core, không có SMT, với
+cache L2 16~MiB cho cụm P-core và 4~MiB cho cụm E-core. Máy chạy macOS 26.7.1 và Apple clang 21.0.0 với
+cùng cờ biên dịch và cùng các baseline như \PCname{apple-m5}. Lưới thread thêm 24. Đợt đo dài 1 giờ 53
+phút, gồm 13\,244 lần chạy hoàn thành (cùng 10 lần vượt thời hạn), máy cắm sạc.
+% nguồn: results/C4M7Y670NT/machine.txt; campaign.log (END duration=1:53:10 ok=13244 timeout=10).
+
+Máy \PCname{LAP1184} là một laptop Intel Core i5-1335U. Theo thông số của Intel, CPU này có 2 P-core với
+Hyper-Threading và 8 E-core, tức 10 core và 12 luồng phần cứng. Nhóm đo trong Ubuntu 20.04 chạy trên
+WSL2, một máy ảo Hyper-V của Windows 11. Máy ảo có 12 CPU ảo và báo chúng là 6 core, mỗi core 2 luồng,
+không khớp với CPU thật. x86-64 có memory model TSO và cache line 64 byte. Phần mềm gồm g++ 11.5 với
+\texttt{-std=c++20 -O2 -fopenmp}. Ngoài các baseline chung, máy này có \texttt{pthread\_spinlock\_t},
+\texttt{pthread\_barrier\_t}, \texttt{omp\_lock\_t} và \texttt{\#pragma omp barrier}, nên có 13 lock, 9
+barrier và 20 counter. Đợt đo dài 1 giờ 20 phút 36 giây, gồm 14\,322 lần chạy hoàn thành (cùng 12 lần
+vượt thời hạn).
+% nguồn: results/LAP1184/machine.txt (virtualization: Microsoft; physical_cores: 6; threads_per_core: 2);
+% campaign.log (END duration=1:20:36 ok=14322 timeout=12).

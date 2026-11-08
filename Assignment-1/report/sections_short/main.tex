@@ -1,0 +1,49 @@
+% Thân bài của bản rút gọn (report_short.tex). Mọi con số lấy từ bản đầy đủ (sections/), nguồn ghi trong
+% comment "% nguồn:" như ở đó. Bản này không có phụ lục, nên không trỏ tới bảng hay hình chỉ có ở phụ lục.
+\section{Giới thiệu và câu hỏi nghiên cứu}
+\input{sections_short/intro}
+
+\section{Nền tảng thí nghiệm}
+\input{sections_short/platform}
+\PCtable{cross}{machines}
+
+\section{Cài đặt}\label{sec:impl}
+\subsection{Mutex lock}
+\input{sections_short/impl_lock}
+\subsection{Sense-reversing barrier}
+\input{sections_short/impl_barrier}
+\subsection{Concurrent counter}
+\input{sections_short/impl_counter}
+
+\section{Kiểm tra tính đúng đắn}
+\input{sections_short/correctness}
+
+\section{Phương pháp đo}
+\input{sections_short/method}
+\PCtableopt{cross}{endtoend}
+
+\section{Kết quả và phân tích}
+\subsection{Mutex lock}
+\input{sections_short/results_lock}
+\subsection{Barrier}
+\input{sections_short/results_barrier}
+\subsection{Concurrent counter}
+\input{sections_short/results_counter}
+\subsection{So sánh giữa các máy}
+% Ba hình so sánh được đặt trong sections_short/results_cross.tex, ngay trước đoạn bằng chứng của chúng.
+\input{sections_short/results_cross}
+
+\section{Các yếu tố đe dọa độ tin cậy}
+\input{sections_short/threats}
+
+\section{Kết luận}
+\input{sections_short/conclusion}
+
+\nocite{*}
+\phantomsection\addcontentsline{toc}{section}{References}
+\bibliographystyle{plain}
+\bibliography{references}
+
+\clearpage
+\appendix
+\input{sections_short/appendix}

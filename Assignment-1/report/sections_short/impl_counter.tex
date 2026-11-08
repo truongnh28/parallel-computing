@@ -1,0 +1,21 @@
+% Mục 3.3 (bản rút gọn). Rút từ sections/impl_counter.tex. Nguồn: include/counter.hpp; lệnh máy:
+% c++ -O2 -S (Apple clang 21) và -arch x86_64.
+Counter bắt đầu từ 0. \texttt{increment()} cộng 1 và trả về giá trị \emph{trước} khi tăng. $M$ lần tăng
+phải trả về đúng $0, \dots, M - 1$, mỗi giá trị một lần, và theo thứ tự thời gian thực
+(linearizable~\cite{herlihy1990linearizability}). Ba cài đặt là \PCname{counter_lock<L>} (biến
+\texttt{long} trong critical section của mỗi lock ở phần 1), \PCname{counter_cas} (vòng
+\texttt{compare\_exchange\_weak}, có biến thể backoff) và \PCname{counter_faa} (một lệnh
+\texttt{fetch\_add}). \PCname{counter_cas} là lock-free: dù một thread bị dừng giữa chừng, thread khác vẫn
+tăng được. \PCname{counter_faa} là wait-free khi phần cứng có lệnh cộng atomic: mỗi lời gọi xong sau một
+số bước cố định, không phụ thuộc thread khác. Trên \PCname{apple-m5} có \PCval{apple-m5}{ncounters}
+counter.
+
+Thứ tự mặc định là \texttt{relaxed}, vì tính atomic của phép đọc-sửa-ghi và thứ tự toàn phần của mọi phép
+ghi lên một biến atomic đúng với mọi memory order. Điểm tuyến tính hoá là phép đọc-sửa-ghi, và counter
+không bảo vệ dữ liệu nào khác. Biến thể \PCname{faa_seqcst}, \PCname{cas_seqcst} đo cái giá của
+\texttt{seq\_cst}. Counter dùng lock đúng nhờ cặp release--acquire của lock. Apple clang bật LSE mặc
+định, nên \texttt{fetch\_add} là một lệnh \texttt{ldadd} và CAS là một lệnh \texttt{cas}, chỉ hỏng khi
+giá trị thật sự đã đổi. Trên x86-64 hai thứ tự sinh cùng một lệnh (\texttt{lock xadd},
+\texttt{lock cmpxchg}). Giá trị atomic nằm riêng một cache line. Trong \PCname{counter_lock}, lock và giá
+trị nằm trên hai line, nên mỗi lần tăng ghi lên hai line. Số lần CAS hỏng được đếm trong biến
+\texttt{thread\_local}.

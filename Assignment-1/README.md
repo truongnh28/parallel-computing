@@ -108,6 +108,7 @@ Common situations:
 python3 -m venv .venv && .venv/bin/pip install matplotlib numpy     # once
 make figures PYTHON=.venv/bin/python     # results/*/  →  report/figures/<host>/*.pdf, tables.tex
 make report                              # report/report.pdf (XeLaTeX)
+make report-short                        # report/report_short.pdf: same content, body about 20 pages, data tables in the appendix
 make zip                                 # assignment1.zip: sources, scripts, results/, report
 ```
 

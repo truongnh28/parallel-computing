@@ -10,6 +10,7 @@
 #   make bench      run the full measurement campaign -> results/<host>/*.csv   (run on an idle machine)
 #   make figures    draw every figure of the report from results/           (needs matplotlib)
 #   make report     build report/report.pdf                                 (needs xelatex)
+#   make report-short  build report/report_short.pdf (about 20 pages of body, data tables in the appendix)
 #   make zip        pack the submission
 CXX ?= c++
 ifeq ($(origin CXX),default)
@@ -95,7 +96,11 @@ figures:
 report: 
 	cd report && latexmk -xelatex -interaction=nonstopmode -halt-on-error report.tex
 
+# Short version (about 20 pages of body plus data-table appendix): report/report_short.pdf, same figures and tables.
+report-short:
+	cd report && latexmk -xelatex -interaction=nonstopmode -halt-on-error report_short.tex
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all test tsan mutation bench check full figures report clean zip
+.PHONY: all test tsan mutation bench check full figures report report-short clean zip
